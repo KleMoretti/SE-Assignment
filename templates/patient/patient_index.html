@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}病人管理系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>病人管理系统</h1>
+    <p>Patient Management System</p>
+</div>
+
+<div class="subsystem-grid">
+    <div class="subsystem-card">
+        <h3>病人基本信息管理</h3>
+        <p>添加、编辑、查询和删除病人基本信息</p>
+        <div class="card-actions">
+            <a href="{{ url_for('patient.patient_list') }}" class="btn btn-secondary">病人列表</a>
+            <a href="{{ url_for('patient.patient_add') }}" class="btn btn-primary">添加病人</a>
+        </div>
+    </div>
+
+    <div class="subsystem-card">
+        <h3>病历记录管理</h3>
+        <p>记录和管理病人的诊疗信息</p>
+        <div class="card-actions">
+            <a href="{{ url_for('patient.medical_record_list') }}" class="btn btn-secondary">病历列表</a>
+            <a href="{{ url_for('patient.medical_record_add') }}" class="btn btn-primary">添加病历</a>
+        </div>
+    </div>
+
+    <div class="subsystem-card">
+        <h3>挂号预约管理</h3>
+        <p>管理病人的预约和挂号信息</p>
+        <div class="card-actions">
+            <a href="{{ url_for('patient.appointment_list') }}" class="btn btn-secondary">预约列表</a>
+            <a href="{{ url_for('patient.appointment_add') }}" class="btn btn-primary">添加预约</a>
+        </div>
+    </div>
+</div>
+
+<div class="back-link">
+    <a href="/">← 返回首页</a>
+</div>
+{% endblock %}
+

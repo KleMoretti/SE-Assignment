@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}医生列表{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>医生列表</h1>
+    <a href="{{ url_for('doctor.doctor_add') }}" class="btn btn-primary">添加医生</a>
+</div>
+
+<div class="search-box">
+    <form method="get" action="">
+        <input type="text" name="search" value="{{ search }}" placeholder="搜索医生姓名或编号...">
+        <select name="department">
+            <option value="">全部科室</option>
+            {% for dept in departments %}
+                <option value="{{ dept }}" {% if department == dept %}selected{% endif %}>{{ dept }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-secondary">搜索</button>
+        <a href="{{ url_for('doctor.doctor_list') }}" class="btn">清除</a>
+    </form>
+</div>
+
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>医生编号</th>
+            <th>姓名</th>
+            <th>性别</th>
+            <th>科室</th>
+            <th>职称</th>
+            <th>专长</th>
+            <th>状态</th>
+            <th>操作</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for doctor in doctors %}
+        <tr>
+            <td>{{ doctor.doctor_no }}</td>
+            <td>{{ doctor.name }}</td>
+            <td>{{ doctor.gender }}</td>
+            <td>{{ doctor.department }}</td>
+            <td>{{ doctor.title }}</td>
+            <td>{{ doctor.specialty }}</td>
+            <td><span class="status-{{ doctor.status }}">{{ '在职' if doctor.status == 'active' else '离职' }}</span></td>
+            <td class="actions">
+                <a href="{{ url_for('doctor.doctor_detail', id=doctor.id) }}" class="btn-small">详情</a>
+                <a href="{{ url_for('doctor.doctor_edit', id=doctor.id) }}" class="btn-small">编辑</a>
+                <form method="post" action="{{ url_for('doctor.doctor_delete', id=doctor.id) }}" style="display:inline;">
+                    <button type="submit" class="btn-small btn-danger" onclick="return confirm('确定要删除吗？')">删除</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="8" class="no-data">暂无数据</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if pagination.pages > 1 %}
+<div class="pagination">
+    {% if pagination.has_prev %}
+        <a href="?page={{ pagination.prev_num }}&search={{ search }}&department={{ department }}">上一页</a>
+    {% endif %}
+    <span>第 {{ pagination.page }} / {{ pagination.pages }} 页</span>
+    {% if pagination.has_next %}
+        <a href="?page={{ pagination.next_num }}&search={{ search }}&department={{ department }}">下一页</a>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="back-link">
+    <a href="{{ url_for('doctor.index') }}">← 返回医生管理首页</a>
+</div>
+{% endblock %}
+

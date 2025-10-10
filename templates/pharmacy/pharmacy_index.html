@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}药品管理系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>药品管理系统</h1>
+    <p>Pharmacy Management System</p>
+</div>
+
+<div class="subsystem-grid">
+    <div class="subsystem-card">
+        <h3>药品信息管理</h3>
+        <p>添加、编辑、查询和删除药品基本信息</p>
+        <div class="card-actions">
+            <a href="{{ url_for('pharmacy.medicine_list') }}" class="btn btn-secondary">药品列表</a>
+            <a href="{{ url_for('pharmacy.medicine_add') }}" class="btn btn-primary">添加药品</a>
+        </div>
+    </div>
+
+    <div class="subsystem-card">
+        <h3>药品库存管理</h3>
+        <p>管理药品库存数量和预警</p>
+        <div class="card-actions">
+            <a href="{{ url_for('pharmacy.inventory_list') }}" class="btn btn-secondary">库存列表</a>
+            <a href="{{ url_for('pharmacy.inventory_list', low_stock=1) }}" class="btn btn-warning">低库存警报</a>
+        </div>
+    </div>
+
+    <div class="subsystem-card">
+        <h3>药品采购管理</h3>
+        <p>管理药品采购订单和收货</p>
+        <div class="card-actions">
+            <a href="{{ url_for('pharmacy.purchase_list') }}" class="btn btn-secondary">采购列表</a>
+            <a href="{{ url_for('pharmacy.purchase_add') }}" class="btn btn-primary">新建采购</a>
+        </div>
+    </div>
+</div>
+
+<div class="back-link">
+    <a href="/">← 返回首页</a>
+</div>
+{% endblock %}
+

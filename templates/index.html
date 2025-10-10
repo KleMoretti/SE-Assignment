@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}首页 - 医院综合管理系统{% endblock %}
+
+{% block content %}
+<div class="welcome-section">
+    <h1>欢迎使用医院综合管理系统</h1>
+    <p class="subtitle">Hospital Management System</p>
+</div>
+
+<div class="modules-grid">
+    <div class="module-card">
+        <div class="module-icon">🏥</div>
+        <h2>病人管理系统</h2>
+        <p>管理病人信息、病历记录和挂号预约</p>
+        <ul class="module-features">
+            <li>病人基本信息管理</li>
+            <li>病历记录管理</li>
+            <li>挂号预约管理</li>
+        </ul>
+        <a href="{{ url_for('patient.index') }}" class="btn btn-primary">进入系统</a>
+    </div>
+
+    <div class="module-card">
+        <div class="module-icon">👨‍⚕️</div>
+        <h2>医生管理系统</h2>
+        <p>管理医生信息、排班和绩效评估</p>
+        <ul class="module-features">
+            <li>医生信息管理</li>
+            <li>医生排班管理</li>
+            <li>医生绩效评估</li>
+        </ul>
+        <a href="{{ url_for('doctor.index') }}" class="btn btn-primary">进入系统</a>
+    </div>
+
+    <div class="module-card">
+        <div class="module-icon">💊</div>
+        <h2>药品管理系统</h2>
+        <p>管理药品信息、库存和采购</p>
+        <ul class="module-features">
+            <li>药品信息管理</li>
+            <li>药品库存管理</li>
+            <li>药品采购管理</li>
+        </ul>
+        <a href="{{ url_for('pharmacy.index') }}" class="btn btn-primary">进入系统</a>
+    </div>
+</div>
+
+<div class="info-section">
+    <h3>系统说明</h3>
+    <p>本系统采用模块化设计，三个子系统相对独立，便于多人协作开发和维护。</p>
+    <ul>
+        <li><strong>技术栈：</strong>Flask + SQLAlchemy + SQLite</li>
+        <li><strong>架构模式：</strong>蓝图（Blueprint）模块化架构</li>
+        <li><strong>开发模式：</strong>支持三人独立开发各自子系统</li>
+    </ul>
+</div>
+{% endblock %}
+

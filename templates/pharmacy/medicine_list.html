@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}药品列表{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>药品列表</h1>
+    <a href="{{ url_for('pharmacy.medicine_add') }}" class="btn btn-primary">添加药品</a>
+</div>
+
+<div class="search-box">
+    <form method="get" action="">
+        <input type="text" name="search" value="{{ search }}" placeholder="搜索药品名称或编号...">
+        <select name="category">
+            <option value="">全部分类</option>
+            {% for cat in categories %}
+                <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-secondary">搜索</button>
+        <a href="{{ url_for('pharmacy.medicine_list') }}" class="btn">清除</a>
+    </form>
+</div>
+
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>药品编号</th>
+            <th>药品名称</th>
+            <th>分类</th>
+            <th>规格</th>
+            <th>单价</th>
+            <th>生产厂家</th>
+            <th>状态</th>
+            <th>操作</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for medicine in medicines %}
+        <tr>
+            <td>{{ medicine.medicine_no }}</td>
+            <td>{{ medicine.name }}</td>
+            <td>{{ medicine.category }}</td>
+            <td>{{ medicine.specification }}</td>
+            <td>¥{{ "%.2f"|format(medicine.price) }}</td>
+            <td>{{ medicine.manufacturer }}</td>
+            <td><span class="status-{{ medicine.status }}">{{ '在售' if medicine.status == 'active' else '停售' }}</span></td>
+            <td class="actions">
+                <a href="{{ url_for('pharmacy.medicine_detail', id=medicine.id) }}" class="btn-small">详情</a>
+                <a href="{{ url_for('pharmacy.medicine_edit', id=medicine.id) }}" class="btn-small">编辑</a>
+                <form method="post" action="{{ url_for('pharmacy.medicine_delete', id=medicine.id) }}" style="display:inline;">
+                    <button type="submit" class="btn-small btn-danger" onclick="return confirm('确定要删除吗？')">删除</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="8" class="no-data">暂无数据</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if pagination.pages > 1 %}
+<div class="pagination">
+    {% if pagination.has_prev %}
+        <a href="?page={{ pagination.prev_num }}&search={{ search }}&category={{ category }}">上一页</a>
+    {% endif %}
+    <span>第 {{ pagination.page }} / {{ pagination.pages }} 页</span>
+    {% if pagination.has_next %}
+        <a href="?page={{ pagination.next_num }}&search={{ search }}&category={{ category }}">下一页</a>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="back-link">
+    <a href="{{ url_for('pharmacy.index') }}">← 返回药品管理首页</a>
+</div>
+{% endblock %}
+

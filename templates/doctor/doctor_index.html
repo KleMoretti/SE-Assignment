@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}医生管理系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>医生管理系统</h1>
+    <p>Doctor Management System</p>
+</div>
+
+<div class="subsystem-grid">
+    <div class="subsystem-card">
+        <h3>医生信息管理</h3>
+        <p>添加、编辑、查询和删除医生基本信息</p>
+        <div class="card-actions">
+            <a href="{{ url_for('doctor.doctor_list') }}" class="btn btn-secondary">医生列表</a>
+            <a href="{{ url_for('doctor.doctor_add') }}" class="btn btn-primary">添加医生</a>
+        </div>
+    </div>
+
+    <div class="subsystem-card">
+        <h3>医生排班管理</h3>
+        <p>管理医生的工作排班和时间安排</p>
+        <div class="card-actions">
+            <a href="{{ url_for('doctor.schedule_list') }}" class="btn btn-secondary">排班列表</a>
+            <a href="{{ url_for('doctor.schedule_add') }}" class="btn btn-primary">添加排班</a>
+        </div>
+    </div>
+
+    <div class="subsystem-card">
+        <h3>医生绩效评估</h3>
+        <p>记录和评估医生的工作绩效</p>
+        <div class="card-actions">
+            <a href="{{ url_for('doctor.performance_list') }}" class="btn btn-secondary">绩效列表</a>
+            <a href="{{ url_for('doctor.performance_add') }}" class="btn btn-primary">添加绩效</a>
+        </div>
+    </div>
+</div>
+
+<div class="back-link">
+    <a href="/">← 返回首页</a>
+</div>
+{% endblock %}
+
