@@ -1,4 +1,21 @@
+# Flask核心
 Flask==3.0.0
 Flask-SQLAlchemy==3.1.1
 Werkzeug==3.0.1
 
+# 数据库驱动
+PyMySQL==1.1.0
+mysqlclient==2.2.0
+
+# RESTful API
+Flask-RESTful==0.3.10
+Flask-CORS==4.0.0
+
+# JWT认证
+Flask-JWT-Extended==4.5.3
+
+# 环境变量管理
+python-dotenv==1.0.0
+
+# 数据验证
+marshmallow==3.20.1

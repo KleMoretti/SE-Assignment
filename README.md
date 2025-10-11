@@ -1,345 +1,406 @@
 # 医院综合管理系统
 
-## 项目简介
+<div align="center">
 
-医院综合管理系统是一个基于Flask框架开发的模块化管理系统，采用蓝图（Blueprint）架构设计，便于多人协作开发和维护。
+**基于Flask的模块化医院管理系统**
 
-## 系统架构
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](CHANGELOG.md)
+[![Python](https://img.shields.io/badge/python-3.8+-green.svg)](https://www.python.org/)
+[![Flask](https://img.shields.io/badge/flask-3.0.0-orange.svg)](https://flask.palletsprojects.com/)
+[![License](https://img.shields.io/badge/license-Educational-lightgrey.svg)]()
 
-### 技术栈
-- **后端框架**: Flask 3.0.0
-- **数据库ORM**: Flask-SQLAlchemy 3.1.1
-- **数据库**: SQLite（可扩展至MySQL/PostgreSQL）
-- **模板引擎**: Jinja2
-- **前端**: HTML5 + CSS3 + JavaScript
+</div>
 
-### 项目结构
+---
 
-```
-hospital-management-system/
-│
-├── app.py                      # 主应用入口
-├── config.py                   # 配置文件
-├── models.py                   # 数据库模型
-├── requirements.txt            # 依赖包列表
-│
-├── modules/                    # 子系统模块
-│   ├── __init__.py
-│   │
-│   ├── patient/               # 病人管理子系统（开发者1）
-│   │   ├── __init__.py
-│   │   └── routes.py
-│   │
-│   ├── doctor/                # 医生管理子系统（开发者2）
-│   │   ├── __init__.py
-│   │   └── routes.py
-│   │
-│   └── pharmacy/              # 药品管理子系统（开发者3）
-│       ├── __init__.py
-│       └── routes.py
-│
-├── templates/                  # 模板文件
-│   ├── base.html              # 基础模板
-│   ├── index.html             # 首页
-│   │
-│   ├── patient/               # 病人管理模板
-│   │   ├── patient_index.html
-│   │   ├── patient_list.html
-│   │   ├── patient_form.html
-│   │   └── ...
-│   │
-│   ├── doctor/                # 医生管理模板
-│   │   ├── doctor_index.html
-│   │   ├── doctor_list.html
-│   │   └── ...
-│   │
-│   └── pharmacy/              # 药品管理模板
-│       ├── pharmacy_index.html
-│       ├── medicine_list.html
-│       └── ...
-│
-└── static/                    # 静态文件
-    ├── css/
-    │   └── style.css          # 样式表
-    └── js/
-        └── main.js            # JavaScript脚本
-```
+## 📋 项目简介
 
-## 子系统说明
+医院综合管理系统是一个采用**前后端分离架构**的现代化管理系统，使用Flask构建RESTful API后端，Vue.js构建前端界面。系统采用模块化设计，支持三人协作开发。
 
-### 1. 病人管理子系统（开发者1负责）
+### 核心特性
 
-**功能模块**：
-- **病人基本信息管理**
-  - 添加、编辑、查询、删除病人信息
-  - 病人信息包括：姓名、性别、年龄、联系方式、身份证号、住址等
-  
-- **病历记录管理**
-  - 创建和查看病历记录
-  - 记录诊断结果、症状、治疗方案、处方等
-  
-- **挂号预约管理**
-  - 病人挂号预约
-  - 预约状态管理（待确认、已确认、已完成、已取消）
+- 🏗️ **模块化架构** - 基于Flask蓝图的模块化设计
+- 🔄 **前后端分离** - RESTful API + Vue.js前端
+- 👥 **多人协作** - 三个独立子系统，支持并行开发
+- 🗄️ **MySQL数据库** - 企业级数据库支持
+- 🔐 **JWT认证** - 现代化的身份认证机制
+- 📱 **响应式设计** - 适配多种设备
 
-**数据库模型**：
-- `Patient`: 病人信息表
-- `MedicalRecord`: 病历记录表
-- `Appointment`: 预约挂号表
+---
 
-**路由前缀**: `/patient`
+## 🏛️ 系统架构
 
-### 2. 医生管理子系统（开发者2负责）
+### 技术栈 v2.0
 
-**功能模块**：
-- **医生信息管理**
-  - 添加、编辑、查询、删除医生信息
-  - 医生信息包括：姓名、科室、职称、专长、学历、入职日期等
-  
-- **医生排班管理**
-  - 创建和编辑医生排班
-  - 排班信息包括：日期、班次、工作时间、最大接诊数等
-  
-- **医生绩效评估**
-  - 记录医生月度绩效
-  - 绩效指标：接诊人数、满意度评分、出勤准时率、医疗质量评分等
-  - 自动计算综合评分和绩效奖金
+**后端技术**
+- Python 3.8+
+- Flask 3.0.0 (Web框架)
+- Flask-SQLAlchemy 3.1.1 (ORM)
+- Flask-RESTful (REST API)
+- Flask-JWT-Extended (JWT认证)
+- MySQL 8.0+ (数据库)
 
-**数据库模型**：
-- `Doctor`: 医生信息表
-- `DoctorSchedule`: 医生排班表
-- `DoctorPerformance`: 医生绩效表
+**前端技术**
+- Vue.js 3.x (前端框架)
+- Vite 4.x (构建工具)
+- Element Plus (UI组件库)
+- Pinia (状态管理)
+- Axios (HTTP客户端)
 
-**路由前缀**: `/doctor`
+### 子系统模块
 
-### 3. 药品管理子系统（开发者3负责）
+| 模块 | 路由前缀 | 负责开发者 | 主要功能 |
+|------|----------|-----------|----------|
+| **病人管理** | `/api/patient` | 开发者1 | 病人信息、病历记录、预约挂号 |
+| **医生管理** | `/api/doctor` | 开发者2 | 医生信息、排班管理、绩效评估 |
+| **药品管理** | `/api/pharmacy` | 开发者3 | 药品信息、库存管理、采购管理 |
 
-**功能模块**：
-- **药品信息管理**
-  - 添加、编辑、查询、删除药品信息
-  - 药品信息包括：名称、分类、规格、单价、生产厂家、用法用量等
-  
-- **药品库存管理**
-  - 查看药品库存
-  - 库存调整
-  - 低库存预警（库存量低于最小库存警戒线）
-  
-- **药品采购管理**
-  - 创建采购订单
-  - 采购单管理（待收货、已收货、已完成）
-  - 收货确认并自动更新库存
+---
 
-**数据库模型**：
-- `Medicine`: 药品信息表
-- `MedicineInventory`: 药品库存表
-- `MedicinePurchase`: 药品采购表
+## 🚀 快速开始
 
-**路由前缀**: `/pharmacy`
+### 前置要求
 
-## 安装和运行
+- Python 3.8+
+- MySQL 8.0+
+- Node.js 16+ (前端开发)
 
-### 1. 环境准备
-
-确保已安装Python 3.8或以上版本。
-
-### 2. 安装依赖
+### 三步启动
 
 ```bash
+# 1. 安装后端依赖
 pip install -r requirements.txt
-```
 
-### 3. 运行系统
+# 2. 配置数据库
+cp env.template .env  # 编辑.env配置MySQL连接信息
+mysql -u root -p < init_database.sql
 
-```bash
+# 3. 启动后端服务
 python app.py
 ```
 
-系统将在 `http://localhost:5000` 启动。
+**访问地址:**
+- 后端API: http://localhost:5000/
+- 前端应用: http://localhost:5173/ (需单独启动Vue项目)
 
-### 4. 访问子系统
+> 💡 **详细安装步骤请查看**: [📖 INSTALLATION.md](INSTALLATION.md)
 
-- 首页: http://localhost:5000/
-- 病人管理: http://localhost:5000/patient
-- 医生管理: http://localhost:5000/doctor
-- 药品管理: http://localhost:5000/pharmacy
+---
 
-## 开发指南
+## 📂 项目结构
 
-### 多人协作开发
-
-本系统采用模块化架构，三个子系统相对独立，适合三人分别开发：
-
-#### 开发者1 - 病人管理子系统
-- 主要工作目录: `modules/patient/`
-- 模板目录: `templates/patient/`
-- 数据库模型: `models.py` 中的 `Patient`, `MedicalRecord`, `Appointment`
-
-#### 开发者2 - 医生管理子系统
-- 主要工作目录: `modules/doctor/`
-- 模板目录: `templates/doctor/`
-- 数据库模型: `models.py` 中的 `Doctor`, `DoctorSchedule`, `DoctorPerformance`
-
-#### 开发者3 - 药品管理子系统
-- 主要工作目录: `modules/pharmacy/`
-- 模板目录: `templates/pharmacy/`
-- 数据库模型: `models.py` 中的 `Medicine`, `MedicineInventory`, `MedicinePurchase`
-
-### 开发流程
-
-1. **克隆项目**
-   ```bash
-   git clone <repository-url>
-   cd hospital-management-system
-   ```
-
-2. **创建分支**（每个开发者创建自己的分支）
-   ```bash
-   git checkout -b feature/patient-system    # 开发者1
-   git checkout -b feature/doctor-system     # 开发者2
-   git checkout -b feature/pharmacy-system   # 开发者3
-   ```
-
-3. **独立开发**
-   - 在各自的模块目录下进行开发
-   - 遵循统一的代码规范和数据库模型定义
-
-4. **测试**
-   ```bash
-   python app.py
-   # 访问对应的子系统进行测试
-   ```
-
-5. **提交代码**
-   ```bash
-   git add .
-   git commit -m "描述你的修改"
-   git push origin feature/xxx-system
-   ```
-
-6. **合并代码**
-   - 创建Pull Request
-   - 代码审查后合并到主分支
-
-### 添加新功能
-
-#### 1. 添加路由
-
-在对应子系统的 `routes.py` 中添加新路由：
-
-```python
-@subsystem_bp.route('/new-feature')
-def new_feature():
-    # 处理逻辑
-    return render_template('new_feature.html')
+```
+hospital-management-system/
+├── app.py                      # 应用入口
+├── config.py                   # 配置文件
+├── models.py                   # 数据库模型
+├── requirements.txt            # Python依赖
+├── init_database.sql           # 数据库初始化脚本
+├── env.template                # 环境变量模板
+│
+├── modules/                    # 子系统模块
+│   ├── patient/               # 病人管理（开发者1）
+│   ├── doctor/                # 医生管理（开发者2）
+│   └── pharmacy/              # 药品管理（开发者3）
+│
+├── templates/                  # HTML模板
+│   ├── patient/
+│   ├── doctor/
+│   └── pharmacy/
+│
+└── static/                     # 静态资源
+    ├── css/
+    └── js/
 ```
 
-#### 2. 添加模板
+---
 
-在对应的模板目录下创建HTML文件，继承 `base.html`:
+## 📚 文档导航
 
-```html
-{% extends "base.html" %}
+| 文档 | 说明 | 适用对象 |
+|------|------|---------|
+| [📖 INSTALLATION.md](INSTALLATION.md) | 完整的安装配置指南 | 首次安装、环境配置 |
+| [👨‍💻 DEVELOPMENT.md](DEVELOPMENT.md) | 开发者完整指南 | 项目开发、多人协作 |
+| [📝 CHANGELOG.md](CHANGELOG.md) | 版本变更历史 | 了解版本更新内容 |
+| [📋 .cursor/rules/hospital.mdc](.cursor/rules/hospital.mdc) | 技术选型与编码规范 | 编码规范参考 |
 
-{% block title %}新功能{% endblock %}
+---
 
-{% block content %}
-<!-- 你的内容 -->
-{% endblock %}
+## 💻 开发指南
+
+### 多人协作分工
+
+#### 👤 开发者1 - 病人管理子系统
+- **工作目录**: `modules/patient/`, `templates/patient/`
+- **核心功能**: 病人信息管理、病历记录、预约挂号
+- **数据模型**: Patient, MedicalRecord, Appointment
+
+#### 👤 开发者2 - 医生管理子系统
+- **工作目录**: `modules/doctor/`, `templates/doctor/`
+- **核心功能**: 医生信息管理、排班管理、绩效评估
+- **数据模型**: Doctor, DoctorSchedule, DoctorPerformance
+
+#### 👤 开发者3 - 药品管理子系统
+- **工作目录**: `modules/pharmacy/`, `templates/pharmacy/`
+- **核心功能**: 药品信息管理、库存管理、采购管理
+- **数据模型**: Medicine, MedicineInventory, MedicinePurchase
+
+> 📘 **详细开发指南请查看**: [👨‍💻 DEVELOPMENT.md](DEVELOPMENT.md)
+
+### Git协作流程
+
+```bash
+# 1. 克隆项目
+git clone <repository-url>
+cd hospital-management-system
+
+# 2. 创建开发分支
+git checkout -b feature/your-module
+
+# 3. 开发完成后提交
+git add .
+git commit -m "feat(module): description"
+git push origin feature/your-module
+
+# 4. 创建Pull Request进行代码审查
 ```
 
-#### 3. 修改数据库模型
+---
 
-如需添加或修改数据库表，编辑 `models.py` 文件。
+## 🗄️ 数据库设计
 
-## 数据库说明
+### 核心数据表
 
-### 初始化数据库
+**病人管理模块**
+- `patients` - 病人基本信息
+- `medical_records` - 病历记录
+- `appointments` - 预约挂号
 
-首次运行时，系统会自动创建 `hospital.db` 数据库文件和所有必要的表。
+**医生管理模块**
+- `doctors` - 医生信息
+- `doctor_schedules` - 医生排班
+- `doctor_performances` - 医生绩效
+
+**药品管理模块**
+- `medicines` - 药品信息
+- `medicine_inventory` - 药品库存
+- `medicine_purchases` - 药品采购
 
 ### 数据库关系
 
-- `Patient` ↔ `MedicalRecord`: 一对多（一个病人有多条病历）
-- `Patient` ↔ `Appointment`: 一对多（一个病人有多个预约）
-- `Doctor` ↔ `MedicalRecord`: 一对多（一个医生诊治多个病人）
-- `Doctor` ↔ `Appointment`: 一对多（一个医生有多个预约）
-- `Doctor` ↔ `DoctorSchedule`: 一对多（一个医生有多个排班）
-- `Doctor` ↔ `DoctorPerformance`: 一对多（一个医生有多个绩效记录）
-- `Medicine` ↔ `MedicineInventory`: 一对一（一个药品对应一个库存记录）
-- `Medicine` ↔ `MedicinePurchase`: 一对多（一个药品有多个采购记录）
+```
+Patient ─┬─ 1:N ─→ MedicalRecord
+         └─ 1:N ─→ Appointment
 
-## 注意事项
+Doctor ──┬─ 1:N ─→ MedicalRecord
+         ├─ 1:N ─→ Appointment
+         ├─ 1:N ─→ DoctorSchedule
+         └─ 1:N ─→ DoctorPerformance
 
-1. **代码规范**
-   - 使用PEP 8编码规范
-   - 函数和类添加必要的文档字符串
-   - 变量命名清晰明确
+Medicine ┬─ 1:1 ─→ MedicineInventory
+         └─ 1:N ─→ MedicinePurchase
+```
 
-2. **安全性**
-   - 修改 `config.py` 中的 `SECRET_KEY`
-   - 生产环境使用更安全的数据库（MySQL/PostgreSQL）
-   - 添加用户认证和授权机制
+---
 
-3. **性能优化**
-   - 数据库查询使用分页
-   - 添加适当的索引
-   - 使用缓存机制
+## 🔌 API接口
 
-4. **测试**
-   - 在提交代码前进行充分测试
-   - 测试各种边界情况
-   - 确保与其他子系统的集成正常
+### RESTful API规范
 
-## 扩展建议
+所有API响应统一格式：
 
-1. **用户认证系统**
-   - 添加用户登录、注册功能
-   - 实现角色权限管理（管理员、医生、护士等）
+**成功响应:**
+```json
+{
+  "success": true,
+  "data": { ... },
+  "message": "操作成功"
+}
+```
 
-2. **数据统计和报表**
-   - 病人就诊统计
-   - 医生工作量统计
-   - 药品销售统计
+**错误响应:**
+```json
+{
+  "success": false,
+  "message": "错误信息",
+  "code": "ERROR_CODE"
+}
+```
 
-3. **导出功能**
-   - 导出Excel报表
-   - 生成PDF文档
+### API端点示例
 
-4. **消息通知**
-   - 预约提醒
-   - 库存预警通知
-   - 邮件/短信通知
+| 模块 | 方法 | 路径 | 说明 |
+|------|------|------|------|
+| 病人管理 | GET | `/api/patient/patients` | 获取病人列表 |
+| 病人管理 | POST | `/api/patient/patients` | 创建病人 |
+| 医生管理 | GET | `/api/doctor/doctors` | 获取医生列表 |
+| 药品管理 | GET | `/api/pharmacy/medicines` | 获取药品列表 |
 
-5. **API接口**
-   - 提供RESTful API
-   - 支持移动端调用
+---
 
-## 常见问题
+## ⚙️ 配置说明
 
-### Q1: 如何修改数据库配置？
-A: 编辑 `config.py` 文件中的 `SQLALCHEMY_DATABASE_URI` 配置项。
+### 环境变量配置
+
+复制 `env.template` 为 `.env` 并配置：
+
+```env
+# MySQL数据库配置
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_USER=root
+MYSQL_PASSWORD=your_password
+MYSQL_DATABASE=hospital_db
+
+# Flask配置
+SECRET_KEY=your-secret-key-here
+FLASK_ENV=development
+
+# JWT配置
+JWT_SECRET_KEY=your-jwt-secret-key
+```
+
+---
+
+## 🧪 测试
+
+### 后端API测试
+
+```bash
+# 使用curl测试
+curl http://localhost:5000/api/patient/patients
+
+# 或使用Postman导入API集合进行测试
+```
+
+### 数据库测试
+
+```bash
+# 进入Python交互环境测试
+python
+>>> from app import create_app, db
+>>> from models import Patient
+>>> app = create_app()
+>>> with app.app_context():
+...     patients = Patient.query.all()
+...     print(patients)
+```
+
+---
+
+## 📊 系统截图
+
+（待添加系统界面截图）
+
+---
+
+## 🔄 版本更新
+
+### 当前版本: v2.0.0 (2025-10-11)
+
+**重大更新:**
+- ✅ 前后端分离架构
+- ✅ 从SQLite迁移到MySQL
+- ✅ 引入Vue.js前端框架
+- ✅ 添加JWT认证支持
+- ✅ RESTful API设计
+
+> 📝 **完整变更历史请查看**: [CHANGELOG.md](CHANGELOG.md)
+
+---
+
+## 🎯 未来规划
+
+### v2.1 (计划中)
+- [ ] 完整的用户认证和权限管理
+- [ ] Vue前端完整实现
+- [ ] API文档（Swagger）
+- [ ] 单元测试覆盖
+
+### v3.0 (规划中)
+- [ ] 微服务架构
+- [ ] Redis缓存
+- [ ] Docker容器化部署
+- [ ] CI/CD集成
+
+---
+
+## ❓ 常见问题
+
+### Q1: 如何重置数据库？
+```bash
+# 删除数据库并重新初始化
+mysql -u root -p -e "DROP DATABASE hospital_db; CREATE DATABASE hospital_db;"
+python -c "from app import create_app, db; app = create_app(); app.app_context().push(); db.create_all()"
+```
 
 ### Q2: 如何添加新的子系统？
-A: 
-1. 在 `modules/` 下创建新目录
-2. 创建蓝图并定义路由
+1. 在 `modules/` 下创建新模块目录
+2. 定义蓝图并实现路由
 3. 在 `app.py` 中注册蓝图
-4. 在 `models.py` 中添加数据库模型
+4. 在 `models.py` 中添加数据模型
 
-### Q3: 如何重置数据库？
-A: 删除 `hospital.db` 文件，重新运行 `python app.py` 即可。
+### Q3: 前端如何调用API？
+```javascript
+// 使用axios调用API
+import axios from 'axios'
 
-## 版本信息
+axios.get('http://localhost:5000/api/patient/patients')
+  .then(response => {
+    console.log(response.data)
+  })
+```
 
-- 版本: v1.0.0
-- 更新日期: 2024-10-10
-- 开发团队: 三人协作开发
+---
 
-## 许可证
+## 🤝 贡献指南
+
+### 代码规范
+- Python代码遵循 PEP 8 规范
+- Vue代码遵循 Vue.js 官方风格指南
+- 提交信息遵循 Conventional Commits 规范
+
+### 提交规范
+```bash
+feat(module): 新功能描述
+fix(module): Bug修复描述
+docs: 文档更新描述
+style: 代码格式修改
+refactor: 代码重构描述
+test: 测试相关修改
+```
+
+---
+
+## 📄 许可证
 
 本项目仅供学习和教学使用。
 
-## 联系方式
+---
 
-如有问题或建议，请联系开发团队。
+## 👥 开发团队
 
+- 开发者1: 病人管理子系统
+- 开发者2: 医生管理子系统
+- 开发者3: 药品管理子系统
+
+---
+
+## 📮 联系方式
+
+如有问题或建议，请：
+1. 查看文档: [INSTALLATION.md](INSTALLATION.md) | [DEVELOPMENT.md](DEVELOPMENT.md)
+2. 提交Issue到项目仓库
+3. 联系开发团队
+
+---
+
+<div align="center">
+
+**医院综合管理系统 v2.0.0**
+
+Made with ❤️ by Development Team
+
+[文档](INSTALLATION.md) • [开发指南](DEVELOPMENT.md) • [更新日志](CHANGELOG.md)
+
+</div>
