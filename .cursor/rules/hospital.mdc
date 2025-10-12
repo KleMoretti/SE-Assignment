@@ -1,0 +1,125 @@
+---
+description: 医院综合管理系统 - 核心规范
+globs:
+alwaysApply: true
+---
+
+# 医院综合管理系统 - 核心规范文档
+
+**文档版本**: v3.0
+**技术架构**: 前后端分离架构
+**后端**: Python Flask + MySQL
+**前端**: Vue.js 3 + Element Plus
+
+## 技术栈
+
+### 后端技术栈
+- **语言**: Python 3.8+
+- **框架**: Flask 3.0+
+- **ORM**: Flask-SQLAlchemy 3.1+
+- **API**: Flask-RESTful
+- **认证**: Flask-JWT-Extended
+- **数据库**: MySQL 8.0+
+
+### 前端技术栈
+- **框架**: Vue.js 3.x + Composition API
+- **构建工具**: Vite 4.x
+- **路由**: Vue Router 4.x
+- **状态管理**: Pinia
+- **UI组件库**: Element Plus
+- **样式**: Tailwind CSS 3.x
+- **HTTP客户端**: Axios
+
+## 项目结构
+
+```
+hospital-management-system/
+├── backend/                    # 后端项目
+│   ├── app.py                 # Flask应用入口
+│   ├── config.py              # 配置管理
+│   ├── models.py              # 数据模型
+│   ├── requirements.txt       # Python依赖
+│   ├── modules/               # 业务模块
+│   │   ├── patient/          # 病人模块
+│   │   ├── doctor/           # 医生模块
+│   │   └── pharmacy/         # 药房模块
+│   ├── static/               # 静态文件
+│   └── templates/            # Flask模板
+├── frontend/                  # 前端项目
+│   ├── src/
+│   │   ├── api/              # API接口
+│   │   ├── components/       # 组件
+│   │   ├── views/            # 页面
+│   │   ├── router/           # 路由配置
+│   │   ├── stores/           # Pinia状态管理
+│   │   └── utils/            # 工具函数
+│   ├── public/               # 公共资源
+│   └── package.json          # Node.js依赖
+└── docs/                     # 项目文档
+```
+
+## 编码规范
+
+### Python后端规范
+
+**命名规范**：
+- 模块名：小写+下划线（如：`patient_routes.py`）
+- 类名：大驼峰（如：`PatientService`）
+- 函数名：小写+下划线（如：`get_patient_list`）
+- 变量名：小写+下划线（如：`is_active`、`has_permission`）
+- 常量：大写+下划线（如：`MAX_PAGE_SIZE`）
+
+**代码风格**：
+- 使用类型提示（Type Hints）
+- 编写Google风格文档字符串
+- 遵循PEP 8规范
+- 使用应用工厂模式 + 蓝图架构
+
+**错误处理**：
+- 使用自定义异常类
+- 统一错误响应格式
+- 记录详细错误日志
+
+### Vue.js前端规范
+
+**命名规范**：
+- 组件：大驼峰（如：`PatientList.vue`）
+- 变量：小驼峰（如：`patientList`）
+- 常量：大写+下划线（如：`MAX_PAGE_SIZE`）
+- CSS类：kebab-case（如：`patient-list`）
+
+**代码风格**：
+- 使用Composition API + `<script setup>`
+- 使用Pinia进行状态管理
+- 使用Axios进行HTTP请求
+- 使用Element Plus + Tailwind CSS
+
+## 数据库设计规范
+
+**表命名**：小写+下划线+复数（如：`patients`、`doctors`）
+**字段命名**：小写+下划线（如：`patient_id`、`created_at`）
+**索引命名**：`idx_表名_字段名` 或 `uk_表名_字段名`
+
+## Git分支管理
+
+```
+main          # 主分支（生产环境）
+├── develop   # 开发分支
+    ├── feature/功能名    # 功能分支
+    └── hotfix/修复名     # 紧急修复分支
+```
+
+## 开发流程
+
+1. **需求分析** → 2. **技术设计** → 3. **开发实现** → 4. **代码审查** → 5. **测试** → 6. **部署上线**
+
+**提交规范**：`<type>(<scope>): <subject>`
+- `feat`: 新功能
+- `fix`: 修复bug
+- `docs`: 文档修改
+- `style`: 代码格式修改
+- `refactor`: 代码重构
+
+---
+
+**文档版本**: v3.0 | **最后更新**: 2025-10-12 | **维护团队**: 医院管理系统开发组

@@ -2,11 +2,12 @@
 
 <div align="center">
 
-**基于Flask的模块化医院管理系统**
+**前后端分离的现代化医院管理系统**
 
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](CHANGELOG.md)
 [![Python](https://img.shields.io/badge/python-3.8+-green.svg)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/flask-3.0.0-orange.svg)](https://flask.palletsprojects.com/)
+[![Vue.js](https://img.shields.io/badge/vue.js-3.x-green.svg)](https://vuejs.org/)
 [![License](https://img.shields.io/badge/license-Educational-lightgrey.svg)]()
 
 </div>
@@ -15,37 +16,45 @@
 
 ## 📋 项目简介
 
-医院综合管理系统是一个采用**前后端分离架构**的现代化管理系统，使用Flask构建RESTful API后端，Vue.js构建前端界面。系统采用模块化设计，支持三人协作开发。
+医院综合管理系统是一个采用**前后端分离架构**的现代化管理系统，使用Flask构建RESTful API后端，Vue.js 3 + Element Plus构建响应式前端界面。系统采用模块化设计，支持三人协作开发。
 
 ### 核心特性
 
-- 🏗️ **模块化架构** - 基于Flask蓝图的模块化设计
-- 🔄 **前后端分离** - RESTful API + Vue.js前端
+- 🏗️ **模块化架构** - 基于Flask蓝图的后端 + Vue.js组件化前端
+- 🔄 **前后端分离** - RESTful API + 现代化前端框架
 - 👥 **多人协作** - 三个独立子系统，支持并行开发
 - 🗄️ **MySQL数据库** - 企业级数据库支持
 - 🔐 **JWT认证** - 现代化的身份认证机制
-- 📱 **响应式设计** - 适配多种设备
+- 📱 **响应式设计** - Element Plus + Tailwind CSS
+- 🐳 **容器化部署** - Docker + Docker Compose
 
 ---
 
 ## 🏛️ 系统架构
 
-### 技术栈 v2.0
+### 技术栈 v3.0
 
-**后端技术**
-- Python 3.8+
-- Flask 3.0.0 (Web框架)
-- Flask-SQLAlchemy 3.1.1 (ORM)
-- Flask-RESTful (REST API)
-- Flask-JWT-Extended (JWT认证)
-- MySQL 8.0+ (数据库)
+**后端技术栈**
+- **Python**: 3.8+
+- **框架**: Flask 3.0+
+- **ORM**: Flask-SQLAlchemy 3.1+
+- **API**: Flask-RESTful
+- **认证**: Flask-JWT-Extended
+- **数据库**: MySQL 8.0+
 
-**前端技术**
-- Vue.js 3.x (前端框架)
-- Vite 4.x (构建工具)
-- Element Plus (UI组件库)
-- Pinia (状态管理)
-- Axios (HTTP客户端)
+**前端技术栈**
+- **框架**: Vue.js 3.x + Composition API
+- **构建工具**: Vite 4.x
+- **路由**: Vue Router 4.x
+- **状态管理**: Pinia
+- **UI组件库**: Element Plus
+- **样式**: Tailwind CSS 3.x
+- **HTTP客户端**: Axios
+
+**部署技术栈**
+- **容器化**: Docker + Docker Compose
+- **Web服务器**: Nginx (前端) + Gunicorn (后端)
+- **数据库**: MySQL 8.0
 
 ### 子系统模块
 
@@ -61,27 +70,48 @@
 
 ### 前置要求
 
-- Python 3.8+
-- MySQL 8.0+
-- Node.js 16+ (前端开发)
+- **后端开发**: Python 3.8+, MySQL 8.0+
+- **前端开发**: Node.js 16+, npm/yarn
+- **生产部署**: Docker + Docker Compose
 
-### 三步启动
+### 开发环境启动
+
+#### 方式一：Docker Compose（推荐）
 
 ```bash
-# 1. 安装后端依赖
-pip install -r requirements.txt
+# 1. 克隆项目
+git clone <repository-url>
+cd hospital-management-system
 
-# 2. 配置数据库
-cp env.template .env  # 编辑.env配置MySQL连接信息
-mysql -u root -p < init_database.sql
+# 2. 启动所有服务
+docker-compose up -d
 
-# 3. 启动后端服务
-python app.py
+# 3. 查看服务状态
+docker-compose ps
 ```
 
 **访问地址:**
+- 前端应用: http://localhost/
 - 后端API: http://localhost:5000/
-- 前端应用: http://localhost:5173/ (需单独启动Vue项目)
+
+#### 方式二：手动启动
+
+```bash
+# 1. 后端启动
+cd backend
+pip install -r requirements.txt
+cp ../env.example .env  # 配置环境变量
+python app.py
+
+# 2. 前端启动（新终端）
+cd frontend
+npm install
+npm run dev
+```
+
+**访问地址:**
+- 前端应用: http://localhost:3000/
+- 后端API: http://localhost:5000/
 
 > 💡 **详细安装步骤请查看**: [📖 INSTALLATION.md](INSTALLATION.md)
 
@@ -91,26 +121,42 @@ python app.py
 
 ```
 hospital-management-system/
-├── app.py                      # 应用入口
-├── config.py                   # 配置文件
-├── models.py                   # 数据库模型
-├── requirements.txt            # Python依赖
-├── init_database.sql           # 数据库初始化脚本
-├── env.template                # 环境变量模板
+├── backend/                    # 后端项目
+│   ├── app.py                 # Flask应用入口
+│   ├── config.py              # 配置文件
+│   ├── models.py              # 数据库模型
+│   ├── requirements.txt       # Python依赖
+│   ├── init_database.sql      # 数据库初始化脚本
+│   ├── Dockerfile             # 后端Docker配置
+│   ├── modules/               # 子系统模块
+│   │   ├── patient/          # 病人管理（开发者1）
+│   │   ├── doctor/           # 医生管理（开发者2）
+│   │   └── pharmacy/         # 药品管理（开发者3）
+│   ├── static/                # 静态资源
+│   └── templates/             # HTML模板
 │
-├── modules/                    # 子系统模块
-│   ├── patient/               # 病人管理（开发者1）
-│   ├── doctor/                # 医生管理（开发者2）
-│   └── pharmacy/              # 药品管理（开发者3）
+├── frontend/                  # 前端项目
+│   ├── src/
+│   │   ├── api/              # API接口封装
+│   │   ├── components/       # 组件
+│   │   ├── views/            # 页面视图
+│   │   ├── router/           # 路由配置
+│   │   ├── stores/           # Pinia状态管理
+│   │   ├── utils/            # 工具函数
+│   │   ├── assets/           # 静态资源
+│   │   ├── App.vue           # 根组件
+│   │   └── main.js           # 入口文件
+│   ├── public/               # 公共资源
+│   ├── package.json          # Node.js依赖
+│   ├── vite.config.js        # Vite配置
+│   ├── tailwind.config.js    # Tailwind配置
+│   ├── Dockerfile            # 前端Docker配置
+│   └── nginx.conf            # Nginx配置
 │
-├── templates/                  # HTML模板
-│   ├── patient/
-│   ├── doctor/
-│   └── pharmacy/
-│
-└── static/                     # 静态资源
-    ├── css/
-    └── js/
+├── docker-compose.yml         # Docker Compose配置
+├── env.example               # 环境变量模板
+├── docs/                     # 项目文档
+└── README.md                 # 项目说明
 ```
 
 ---
@@ -122,7 +168,7 @@ hospital-management-system/
 | [📖 INSTALLATION.md](INSTALLATION.md) | 完整的安装配置指南 | 首次安装、环境配置 |
 | [👨‍💻 DEVELOPMENT.md](DEVELOPMENT.md) | 开发者完整指南 | 项目开发、多人协作 |
 | [📝 CHANGELOG.md](CHANGELOG.md) | 版本变更历史 | 了解版本更新内容 |
-| [📋 .cursor/rules/hospital.mdc](.cursor/rules/hospital.mdc) | 技术选型与编码规范 | 编码规范参考 |
+| [📋 .cursor/rules/hospital.mdc](.cursor/rules/hospital.mdc) | 核心编码规范 | 编码规范参考 |
 
 ---
 
@@ -296,14 +342,15 @@ python
 
 ## 🔄 版本更新
 
-### 当前版本: v2.0.0 (2025-10-11)
+### 当前版本: v3.0.0 (2025-10-12)
 
 **重大更新:**
-- ✅ 前后端分离架构
-- ✅ 从SQLite迁移到MySQL
-- ✅ 引入Vue.js前端框架
-- ✅ 添加JWT认证支持
-- ✅ RESTful API设计
+- ✅ 重构为完整前后端分离架构
+- ✅ Vue.js 3 + Element Plus前端实现
+- ✅ Docker容器化部署支持
+- ✅ 模块化项目结构重组
+- ✅ 响应式设计和现代化UI
+- ✅ 简化编码规范文档
 
 > 📝 **完整变更历史请查看**: [CHANGELOG.md](CHANGELOG.md)
 
@@ -311,17 +358,17 @@ python
 
 ## 🎯 未来规划
 
-### v2.1 (计划中)
-- [ ] 完整的用户认证和权限管理
-- [ ] Vue前端完整实现
-- [ ] API文档（Swagger）
-- [ ] 单元测试覆盖
+### v3.1 (计划中)
+- [ ] 用户认证和权限管理系统
+- [ ] API文档自动生成（Swagger/OpenAPI）
+- [ ] 单元测试和集成测试覆盖
+- [ ] 性能优化和缓存机制
 
-### v3.0 (规划中)
-- [ ] 微服务架构
-- [ ] Redis缓存
-- [ ] Docker容器化部署
-- [ ] CI/CD集成
+### v4.0 (规划中)
+- [ ] 微服务架构重构
+- [ ] Redis缓存集成
+- [ ] CI/CD流水线
+- [ ] 监控和日志系统
 
 ---
 
@@ -397,7 +444,7 @@ test: 测试相关修改
 
 <div align="center">
 
-**医院综合管理系统 v2.0.0**
+**医院综合管理系统 v3.0.0**
 
 Made with ❤️ by Development Team
 
