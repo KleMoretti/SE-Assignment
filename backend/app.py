@@ -32,12 +32,14 @@ def create_app(config_class=Config):
         }
     })
     
-    # 注册蓝图 - 三个子系统（API路由）
+    # 注册蓝图 - 认证 + 三个子系统（API路由）
+    from modules.auth import auth_bp
     from modules.patient import patient_bp
     from modules.doctor import doctor_bp
     from modules.pharmacy import pharmacy_bp
     
-    # API路由前缀：/api/patient, /api/doctor, /api/pharmacy
+    # API路由前缀
+    app.register_blueprint(auth_bp, url_prefix='/api/auth')  # 认证路由
     app.register_blueprint(patient_bp, url_prefix='/api/patient')
     app.register_blueprint(doctor_bp, url_prefix='/api/doctor')
     app.register_blueprint(pharmacy_bp, url_prefix='/api/pharmacy')

@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import router from '@/router'
 
 // 创建axios实例
 const request = axios.create({
@@ -13,14 +14,24 @@ const request = axios.create({
 // 请求拦截器
 request.interceptors.request.use(
   (config) => {
-    // 添加token
+    // 从localStorage获取token并添加到请求头
     const token = localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+    
+    // 如果是刷新token的请求，使用refresh_token
+    if (config.url === '/auth/refresh') {
+      const refreshToken = localStorage.getItem('refreshToken')
+      if (refreshToken) {
+        config.headers.Authorization = `Bearer ${refreshToken}`
+      }
+    }
+    
     return config
   },
   (error) => {
+    console.error('请求错误:', error)
     return Promise.reject(error)
   }
 )
@@ -45,26 +56,32 @@ request.interceptors.response.use(
 
       switch (status) {
         case 400:
-          ElMessage.error(data.message || '请求参数错误')
+          ElMessage.error(data?.message || '请求参数错误')
           break
         case 401:
-          ElMessage.error('未授权，请重新登录')
-          // 跳转到登录页
+          ElMessage.error('登录已过期，请重新登录')
+          // 清除token并跳转到登录页
+          localStorage.removeItem('token')
+          localStorage.removeItem('refreshToken')
+          localStorage.removeItem('userInfo')
+          router.push('/login')
           break
         case 403:
-          ElMessage.error('拒绝访问')
+          ElMessage.error(data?.message || '权限不足')
           break
         case 404:
-          ElMessage.error('请求资源不存在')
+          ElMessage.error(data?.message || '请求资源不存在')
           break
         case 500:
-          ElMessage.error('服务器错误')
+          ElMessage.error(data?.message || '服务器错误')
           break
         default:
-          ElMessage.error(data.message || '请求失败')
+          ElMessage.error(data?.message || '请求失败')
       }
-    } else {
+    } else if (error.request) {
       ElMessage.error('网络错误，请检查网络连接')
+    } else {
+      ElMessage.error(error.message || '请求配置错误')
     }
 
     return Promise.reject(error)
