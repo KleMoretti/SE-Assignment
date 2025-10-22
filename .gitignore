@@ -51,6 +51,10 @@ instance/
 .env
 .env.local
 
+#Frontend
+node_modules/
+package-lock.json
+
 # Test
 .coverage
 htmlcov/
@@ -59,4 +63,7 @@ htmlcov/
 # Backup files
 *.bak
 *.backup
+
+# Server PIDs
+.server_pids
 
