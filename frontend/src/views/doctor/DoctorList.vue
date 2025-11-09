@@ -83,7 +83,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
             <el-button
               type="primary"
@@ -100,6 +100,22 @@
               @click="handleEdit(row)"
             >
               编辑
+            </el-button>
+            <el-button
+              type="success"
+              size="small"
+              link
+              @click="handleViewSchedule(row)"
+            >
+              排班
+            </el-button>
+            <el-button
+              type="warning"
+              size="small"
+              link
+              @click="handleViewPerformance(row)"
+            >
+              绩效
             </el-button>
             <el-popconfirm
               title="确定要删除这位医生吗？"
@@ -286,6 +302,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Plus, Search } from '@element-plus/icons-vue'
 import {
@@ -296,6 +313,8 @@ import {
   deleteDoctor,
   getDoctorStatistics
 } from '@/api/doctor'
+
+const router = useRouter()
 
 // 搜索表单
 const searchForm = reactive({
@@ -419,17 +438,8 @@ const showAddDialog = () => {
 }
 
 // 查看详情
-const handleView = async (row) => {
-  try {
-    const response = await getDoctorDetail(row.id)
-    
-    if (response.success) {
-      currentDoctor.value = response.data
-      detailVisible.value = true
-    }
-  } catch (error) {
-    ElMessage.error(error.message || '获取医生详情失败')
-  }
+const handleView = (row) => {
+  router.push(`/doctor/detail/${row.id}`)
 }
 
 // 编辑
@@ -456,6 +466,22 @@ const handleDelete = async (id) => {
   } catch (error) {
     ElMessage.error(error.message || '删除失败')
   }
+}
+
+// 查看排班
+const handleViewSchedule = (row) => {
+  router.push({
+    path: '/doctor/schedule',
+    query: { doctor_id: row.id }
+  })
+}
+
+// 查看绩效
+const handleViewPerformance = (row) => {
+  router.push({
+    path: '/doctor/performance',
+    query: { doctor_id: row.id }
+  })
 }
 
 // 保存

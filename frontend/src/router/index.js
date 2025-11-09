@@ -40,6 +40,33 @@ const routes = [
     }
   },
   {
+    path: '/doctor/detail/:id',
+    name: 'DoctorDetail',
+    component: () => import('@/views/doctor/DoctorDetail.vue'),
+    meta: {
+      title: '医生详情',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/doctor/schedule',
+    name: 'DoctorSchedule',
+    component: () => import('@/views/doctor/DoctorSchedule.vue'),
+    meta: {
+      title: '医生排班管理',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/doctor/performance',
+    name: 'DoctorPerformance',
+    component: () => import('@/views/doctor/DoctorPerformance.vue'),
+    meta: {
+      title: '医生绩效管理',
+      requiresAuth: true
+    }
+  },
+  {
     path: '/pharmacy',
     name: 'Pharmacy',
     component: () => import('@/views/pharmacy/PharmacyIndex.vue'),

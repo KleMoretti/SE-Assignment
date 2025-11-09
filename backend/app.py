@@ -2,6 +2,28 @@
 医院综合管理系统 - 主应用入口
 Hospital Management System - Main Application Entry
 """
+import os
+import sys
+from pathlib import Path
+from dotenv import load_dotenv
+
+# 设置Windows控制台UTF-8编码支持
+if sys.platform == 'win32':
+    try:
+        import codecs
+        sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
+        sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
+    except Exception:
+        pass  # 如果设置失败，继续运行
+
+# 加载环境变量（必须在导入config之前）
+env_path = Path(__file__).parent.parent / '.env'
+if env_path.exists():
+    load_dotenv(env_path)
+    print("[INFO] 已加载环境变量文件: {}".format(env_path))
+else:
+    print("[WARN] 未找到.env文件: {}".format(env_path))
+
 from flask import Flask, render_template, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
@@ -76,7 +98,7 @@ def create_app(config_class=Config):
     # 创建数据库表
     with app.app_context():
         db.create_all()
-        print("✅ 数据库表创建成功")
+        print("[INFO] 数据库表创建成功")
     
     return app
 

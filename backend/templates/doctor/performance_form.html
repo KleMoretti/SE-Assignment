@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}{{ '编辑绩效' if performance else '添加绩效' }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h4>{{ '编辑绩效评估' if performance else '添加绩效评估' }}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="form-group mb-3">
+                            <label for="doctor_id">医生 <span class="text-danger">*</span></label>
+                            <select class="form-control" id="doctor_id" name="doctor_id" required {{ 'disabled' if performance else '' }}>
+                                <option value="">请选择医生</option>
+                                {% for doctor in doctors %}
+                                <option value="{{ doctor.id }}" 
+                                        {{ 'selected' if performance and performance.doctor_id == doctor.id else '' }}>
+                                    {{ doctor.name }} - {{ doctor.department }} - {{ doctor.title }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            {% if performance %}
+                            <input type="hidden" name="doctor_id" value="{{ performance.doctor_id }}">
+                            {% endif %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="year">年份 <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="year" name="year" 
+                                           value="{{ performance.year if performance else '' }}" 
+                                           min="2000" max="2100" required {{ 'readonly' if performance else '' }}>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="month">月份 <span class="text-danger">*</span></label>
+                                    <select class="form-control" id="month" name="month" required {{ 'disabled' if performance else '' }}>
+                                        <option value="">请选择月份</option>
+                                        {% for m in range(1, 13) %}
+                                        <option value="{{ m }}" {{ 'selected' if performance and performance.month == m else '' }}>
+                                            {{ m }}月
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                    {% if performance %}
+                                    <input type="hidden" name="month" value="{{ performance.month }}">
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="patient_count">接诊人数</label>
+                            <input type="number" class="form-control" id="patient_count" name="patient_count" 
+                                   value="{{ performance.patient_count if performance else '0' }}" min="0">
+                            <small class="form-text text-muted">本月接诊的病人总数</small>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="satisfaction_score">满意度评分 (0-5分)</label>
+                            <input type="number" class="form-control" id="satisfaction_score" name="satisfaction_score" 
+                                   value="{{ performance.satisfaction_score if performance else '0' }}" 
+                                   min="0" max="5" step="0.1">
+                            <small class="form-text text-muted">病人满意度评分，满分5分</small>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="punctuality_score">准时率评分 (0-5分)</label>
+                            <input type="number" class="form-control" id="punctuality_score" name="punctuality_score" 
+                                   value="{{ performance.punctuality_score if performance else '0' }}" 
+                                   min="0" max="5" step="0.1">
+                            <small class="form-text text-muted">出诊准时率评分，满分5分</small>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="quality_score">质量评分 (0-5分)</label>
+                            <input type="number" class="form-control" id="quality_score" name="quality_score" 
+                                   value="{{ performance.quality_score if performance else '0' }}" 
+                                   min="0" max="5" step="0.1">
+                            <small class="form-text text-muted">诊疗质量评分，满分5分</small>
+                        </div>
+
+                        {% if performance %}
+                        <div class="alert alert-info">
+                            <strong>绩效计算说明：</strong><br>
+                            综合评分 = 满意度 × 40% + 准时率 × 20% + 质量评分 × 40%<br>
+                            绩效奖金 = 接诊人数 × 10 + 综合评分 × 100
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label>综合评分</label>
+                                    <input type="text" class="form-control" 
+                                           value="{{ '%.2f'|format(performance.total_score if performance.total_score else 0) }}" readonly>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label>绩效奖金</label>
+                                    <input type="text" class="form-control" 
+                                           value="¥{{ '%.2f'|format(performance.bonus if performance.bonus else 0) }}" readonly>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="form-group mb-3">
+                            <label for="notes">备注</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3">{{ performance.notes if performance else '' }}</textarea>
+                        </div>
+
+                        <div class="form-group mt-4">
+                            <button type="submit" class="btn btn-primary">保存</button>
+                            <a href="{{ url_for('doctor.performance_list') }}" class="btn btn-secondary">取消</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

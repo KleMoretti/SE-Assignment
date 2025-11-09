@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}{{ '编辑医生' if doctor else '添加医生' }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h4>{{ '编辑医生信息' if doctor else '添加医生' }}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="doctor_no">医生编号 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="doctor_no" name="doctor_no" 
+                                           value="{{ doctor.doctor_no if doctor else '' }}" 
+                                           {{ 'readonly' if doctor else 'required' }}>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="name">姓名 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="name" name="name" 
+                                           value="{{ doctor.name if doctor else '' }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label>性别 <span class="text-danger">*</span></label>
+                                    <div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="gender" id="gender_male" 
+                                                   value="男" {{ 'checked' if (doctor and doctor.gender == '男') or not doctor else '' }}>
+                                            <label class="form-check-label" for="gender_male">男</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="gender" id="gender_female" 
+                                                   value="女" {{ 'checked' if doctor and doctor.gender == '女' else '' }}>
+                                            <label class="form-check-label" for="gender_female">女</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="age">年龄</label>
+                                    <input type="number" class="form-control" id="age" name="age" 
+                                           value="{{ doctor.age if doctor else '' }}" min="20" max="100">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="phone">电话</label>
+                                    <input type="tel" class="form-control" id="phone" name="phone" 
+                                           value="{{ doctor.phone if doctor else '' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="email">邮箱</label>
+                                    <input type="email" class="form-control" id="email" name="email" 
+                                           value="{{ doctor.email if doctor else '' }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="department">科室</label>
+                                    <input type="text" class="form-control" id="department" name="department" 
+                                           value="{{ doctor.department if doctor else '' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="title">职称</label>
+                                    <select class="form-control" id="title" name="title">
+                                        <option value="">请选择职称</option>
+                                        <option value="主任医师" {{ 'selected' if doctor and doctor.title == '主任医师' else '' }}>主任医师</option>
+                                        <option value="副主任医师" {{ 'selected' if doctor and doctor.title == '副主任医师' else '' }}>副主任医师</option>
+                                        <option value="主治医师" {{ 'selected' if doctor and doctor.title == '主治医师' else '' }}>主治医师</option>
+                                        <option value="住院医师" {{ 'selected' if doctor and doctor.title == '住院医师' else '' }}>住院医师</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="education">学历</label>
+                                    <select class="form-control" id="education" name="education">
+                                        <option value="">请选择学历</option>
+                                        <option value="博士" {{ 'selected' if doctor and doctor.education == '博士' else '' }}>博士</option>
+                                        <option value="硕士" {{ 'selected' if doctor and doctor.education == '硕士' else '' }}>硕士</option>
+                                        <option value="本科" {{ 'selected' if doctor and doctor.education == '本科' else '' }}>本科</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="hire_date">入职日期</label>
+                                    <input type="date" class="form-control" id="hire_date" name="hire_date" 
+                                           value="{{ doctor.hire_date if doctor else '' }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if doctor %}
+                        <div class="form-group mb-3">
+                            <label>状态</label>
+                            <div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="status" id="status_active" 
+                                           value="active" {{ 'checked' if doctor.status == 'active' else '' }}>
+                                    <label class="form-check-label" for="status_active">在职</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="status" id="status_inactive" 
+                                           value="inactive" {{ 'checked' if doctor.status == 'inactive' else '' }}>
+                                    <label class="form-check-label" for="status_inactive">离职</label>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="form-group mb-3">
+                            <label for="specialty">专长</label>
+                            <textarea class="form-control" id="specialty" name="specialty" rows="3">{{ doctor.specialty if doctor else '' }}</textarea>
+                        </div>
+
+                        <div class="form-group mt-4">
+                            <button type="submit" class="btn btn-primary">保存</button>
+                            <a href="{{ url_for('doctor.doctor_list') }}" class="btn btn-secondary">取消</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

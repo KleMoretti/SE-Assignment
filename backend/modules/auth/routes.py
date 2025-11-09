@@ -110,6 +110,10 @@ def register():
     
     except Exception as e:
         db.session.rollback()
+        import traceback
+        error_detail = traceback.format_exc()
+        print(f"[ERROR] 注册失败: {str(e)}")
+        print(f"[ERROR] 详细错误:\n{error_detail}")
         return error_response(f'注册失败：{str(e)}', 'REGISTER_ERROR', 500)
 
 
