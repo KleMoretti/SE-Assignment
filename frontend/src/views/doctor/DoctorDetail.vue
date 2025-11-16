@@ -1,218 +1,212 @@
 <template>
   <div class="doctor-detail-container">
-    <!-- 返回按钮 -->
-    <el-button @click="goBack" class="mb-4">
-      <el-icon><ArrowLeft /></el-icon>
-      返回列表
-    </el-button>
-
     <!-- 加载状态 -->
-    <el-skeleton v-if="loading" :rows="8" animated />
+    <div v-loading="loading" element-loading-text="加载中..." class="loading-wrapper">
+      <!-- 返回按钮 -->
+      <el-page-header @back="goBack" class="page-header-nav">
+        <template #content>
+          <span class="page-title">医生详情</span>
+        </template>
+      </el-page-header>
 
-    <!-- 医生详情 -->
-    <template v-else-if="doctor">
-      <!-- 基本信息卡片 -->
-      <el-card class="mb-4">
-        <template #header>
-          <div class="card-header">
-            <span class="text-lg font-bold">基本信息</span>
-            <el-button type="primary" size="small" @click="handleEdit">
+      <!-- 医生头部信息卡片 -->
+      <el-card v-if="doctor" class="doctor-header-card" shadow="never">
+        <div class="doctor-header">
+          <div class="header-left">
+            <el-avatar :size="100" class="doctor-avatar-large">
+              <template v-if="doctor.avatar">
+                <img :src="doctor.avatar" :alt="doctor.name" />
+              </template>
+              <template v-else>
+                {{ doctor.name?.charAt(0) }}
+              </template>
+            </el-avatar>
+
+            <div class="header-info">
+              <h1 class="doctor-name-large">{{ doctor.name }}</h1>
+              <div class="doctor-meta-info">
+                <el-tag type="info" size="large">{{ doctor.title }}</el-tag>
+                <span class="meta-divider">|</span>
+                <span class="department-text">
+                  <el-icon><OfficeBuilding /></el-icon>
+                  {{ doctor.department }}
+                </span>
+              </div>
+              <div class="doctor-contact">
+                <span class="contact-item">
+                  <el-icon><User /></el-icon>
+                  工号: {{ doctor.doctorNo }}
+                </span>
+                <span class="contact-item">
+                  <el-icon><Phone /></el-icon>
+                  {{ doctor.phone }}
+                </span>
+                <span class="contact-item">
+                  <el-icon><Message /></el-icon>
+                  {{ doctor.email }}
+                </span>
+              </div>
+              <div class="status-container">
+                <el-tag :type="doctor.status === 'active' ? 'success' : 'info'">
+                  {{ doctor.status === 'active' ? '在职' : '离职' }}
+                </el-tag>
+              </div>
+            </div>
+          </div>
+
+          <div class="header-actions">
+            <el-button type="primary" :icon="Calendar" @click="viewSchedule">
+              查看排班
+            </el-button>
+            <el-button :icon="TrendCharts" @click="viewPerformance">
+              查看绩效
+            </el-button>
+            <el-button :icon="Edit" @click="editDoctor">
               编辑信息
             </el-button>
           </div>
-        </template>
-
-        <el-descriptions :column="3" border>
-          <el-descriptions-item label="医生编号">
-            {{ doctor.doctor_no }}
-          </el-descriptions-item>
-          <el-descriptions-item label="姓名">
-            {{ doctor.name }}
-          </el-descriptions-item>
-          <el-descriptions-item label="性别">
-            {{ doctor.gender }}
-          </el-descriptions-item>
-          <el-descriptions-item label="年龄">
-            {{ doctor.age }}
-          </el-descriptions-item>
-          <el-descriptions-item label="电话">
-            {{ doctor.phone }}
-          </el-descriptions-item>
-          <el-descriptions-item label="邮箱">
-            {{ doctor.email }}
-          </el-descriptions-item>
-          <el-descriptions-item label="科室">
-            {{ doctor.department }}
-          </el-descriptions-item>
-          <el-descriptions-item label="职称">
-            {{ doctor.title }}
-          </el-descriptions-item>
-          <el-descriptions-item label="学历">
-            {{ doctor.education }}
-          </el-descriptions-item>
-          <el-descriptions-item label="入职日期">
-            {{ doctor.hire_date }}
-          </el-descriptions-item>
-          <el-descriptions-item label="状态">
-            <el-tag :type="doctor.status === 'active' ? 'success' : 'info'">
-              {{ doctor.status === 'active' ? '在职' : '离职' }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="专长" :span="3">
-            {{ doctor.specialty || '无' }}
-          </el-descriptions-item>
-        </el-descriptions>
+        </div>
       </el-card>
 
-      <!-- 统计信息卡片 -->
-      <el-row :gutter="20" class="mb-4">
+      <!-- 统计卡片 -->
+      <el-row :gutter="16" class="stats-section">
         <el-col :span="6">
-          <el-card class="stat-card">
-            <div class="stat-icon">
-              <el-icon :size="40" color="#409EFF">
-                <Calendar />
-              </el-icon>
-            </div>
+          <el-card shadow="hover" class="stat-card">
             <div class="stat-content">
-              <div class="stat-title">总预约数</div>
-              <div class="stat-value">{{ doctor.statistics?.total_appointments || 0 }}</div>
+              <div class="stat-icon" style="background: #ecf5ff; color: #409eff;">
+                <el-icon :size="32"><User /></el-icon>
+              </div>
+              <div class="stat-info">
+                <p class="stat-label">总患者数</p>
+                <p class="stat-value">{{ doctor?.patientCount || 0 }}</p>
+              </div>
             </div>
           </el-card>
         </el-col>
         <el-col :span="6">
-          <el-card class="stat-card">
-            <div class="stat-icon">
-              <el-icon :size="40" color="#67C23A">
-                <Check />
-              </el-icon>
-            </div>
+          <el-card shadow="hover" class="stat-card">
             <div class="stat-content">
-              <div class="stat-title">已完成预约</div>
-              <div class="stat-value">{{ doctor.statistics?.completed_appointments || 0 }}</div>
+              <div class="stat-icon" style="background: #fef0e6; color: #e6a23c;">
+                <el-icon :size="32"><Star /></el-icon>
+              </div>
+              <div class="stat-info">
+                <p class="stat-label">医生评分</p>
+                <p class="stat-value">{{ doctor?.rating || 'N/A' }}</p>
+              </div>
             </div>
           </el-card>
         </el-col>
         <el-col :span="6">
-          <el-card class="stat-card">
-            <div class="stat-icon">
-              <el-icon :size="40" color="#E6A23C">
-                <Document />
-              </el-icon>
-            </div>
+          <el-card shadow="hover" class="stat-card">
             <div class="stat-content">
-              <div class="stat-title">病历记录</div>
-              <div class="stat-value">{{ doctor.statistics?.total_medical_records || 0 }}</div>
+              <div class="stat-icon" style="background: #e1f3f8; color: #17a2b8;">
+                <el-icon :size="32"><Calendar /></el-icon>
+              </div>
+              <div class="stat-info">
+                <p class="stat-label">今日预约</p>
+                <p class="stat-value">{{ doctor?.todayAppointments || 0 }}</p>
+              </div>
             </div>
           </el-card>
         </el-col>
         <el-col :span="6">
-          <el-card class="stat-card">
-            <div class="stat-icon">
-              <el-icon :size="40" color="#F56C6C">
-                <Clock />
-              </el-icon>
-            </div>
+          <el-card shadow="hover" class="stat-card">
             <div class="stat-content">
-              <div class="stat-title">排班记录</div>
-              <div class="stat-value">{{ doctor.statistics?.total_schedules || 0 }}</div>
+              <div class="stat-icon" style="background: #f0f9ff; color: #67c23a;">
+                <el-icon :size="32"><Document /></el-icon>
+              </div>
+              <div class="stat-info">
+                <p class="stat-label">从业年限</p>
+                <p class="stat-value">{{ doctor?.yearsOfExperience || 0 }}年</p>
+              </div>
             </div>
           </el-card>
         </el-col>
       </el-row>
 
-      <!-- 快捷操作 -->
-      <el-card class="mb-4">
-        <template #header>
-          <span class="text-lg font-bold">快捷操作</span>
-        </template>
-        <el-space :size="20">
-          <el-button type="primary" @click="handleViewSchedule">
-            <el-icon><Calendar /></el-icon>
-            查看排班
-          </el-button>
-          <el-button type="success" @click="handleViewPerformance">
-            <el-icon><TrendCharts /></el-icon>
-            查看绩效
-          </el-button>
-          <el-button type="warning" @click="handleAddSchedule">
-            <el-icon><Plus /></el-icon>
-            添加排班
-          </el-button>
-          <el-button type="info" @click="handleAddPerformance">
-            <el-icon><Plus /></el-icon>
-            添加绩效
-          </el-button>
-        </el-space>
-      </el-card>
+      <!-- 详细信息 Tabs -->
+      <el-card class="detail-tabs-card" shadow="never">
+        <el-tabs v-model="activeTab">
+          <el-tab-pane label="基本信息" name="basic">
+            <div class="info-section">
+              <h3 class="section-title">联系方式</h3>
+              <el-descriptions :column="2" border>
+                <el-descriptions-item label="联系电话">
+                  <el-icon><Phone /></el-icon>
+                  {{ doctor?.phone || '未设置' }}
+                </el-descriptions-item>
+                <el-descriptions-item label="电子邮箱">
+                  <el-icon><Message /></el-icon>
+                  {{ doctor?.email || '未设置' }}
+                </el-descriptions-item>
+              </el-descriptions>
+            </div>
 
-      <!-- 最近排班 -->
-      <el-card class="mb-4" v-if="recentSchedules.length > 0">
-        <template #header>
-          <div class="card-header">
-            <span class="text-lg font-bold">最近排班</span>
-            <el-button type="text" @click="handleViewSchedule">查看全部</el-button>
-          </div>
-        </template>
-        <el-table :data="recentSchedules" stripe>
-          <el-table-column prop="date" label="日期" width="120" />
-          <el-table-column prop="shift" label="班次" width="100">
-            <template #default="{ row }">
-              <el-tag :type="getShiftType(row.shift)">
-                {{ getShiftText(row.shift) }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="start_time" label="开始时间" width="100" />
-          <el-table-column prop="end_time" label="结束时间" width="100" />
-          <el-table-column prop="max_patients" label="最大接诊数" width="110" />
-          <el-table-column prop="status" label="状态" width="100">
-            <template #default="{ row }">
-              <el-tag :type="getStatusType(row.status)">
-                {{ getStatusText(row.status) }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="notes" label="备注" show-overflow-tooltip />
-        </el-table>
-      </el-card>
+            <div class="info-section">
+              <h3 class="section-title">专业信息</h3>
+              <el-descriptions :column="2" border>
+                <el-descriptions-item label="职称">{{ doctor?.title }}</el-descriptions-item>
+                <el-descriptions-item label="所属科室">{{ doctor?.department }}</el-descriptions-item>
+                <el-descriptions-item label="执业证号">{{ doctor?.licenseNumber || '未设置' }}</el-descriptions-item>
+                <el-descriptions-item label="学历">{{ doctor?.education || '未设置' }}</el-descriptions-item>
+              </el-descriptions>
+            </div>
 
-      <!-- 最近绩效 -->
-      <el-card v-if="recentPerformances.length > 0">
-        <template #header>
-          <div class="card-header">
-            <span class="text-lg font-bold">最近绩效</span>
-            <el-button type="text" @click="handleViewPerformance">查看全部</el-button>
-          </div>
-        </template>
-        <el-table :data="recentPerformances" stripe>
-          <el-table-column prop="year" label="年份" width="100" />
-          <el-table-column prop="month" label="月份" width="80">
-            <template #default="{ row }">
-              {{ row.month }}月
-            </template>
-          </el-table-column>
-          <el-table-column prop="patient_count" label="接诊人数" width="100" />
-          <el-table-column prop="satisfaction_score" label="满意度" width="100" />
-          <el-table-column prop="punctuality_score" label="准时率" width="100" />
-          <el-table-column prop="quality_score" label="质量评分" width="100" />
-          <el-table-column prop="total_score" label="综合评分" width="100">
-            <template #default="{ row }">
-              <el-tag :type="getScoreType(row.total_score)">
-                {{ row.total_score ? row.total_score.toFixed(2) : 0 }}分
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="bonus" label="绩效奖金" width="120">
-            <template #default="{ row }">
-              <span class="bonus-text">¥{{ row.bonus ? row.bonus.toFixed(2) : 0 }}</span>
-            </template>
-          </el-table-column>
-        </el-table>
-      </el-card>
-    </template>
+            <div class="info-section">
+              <h3 class="section-title">专长领域</h3>
+              <div v-if="doctor?.specialties && doctor.specialties.length" class="specialties-list">
+                <el-tag
+                  v-for="(specialty, index) in doctor.specialties"
+                  :key="index"
+                  size="large"
+                  effect="plain"
+                  class="specialty-tag"
+                >
+                  {{ specialty }}
+                </el-tag>
+              </div>
+              <el-empty v-else description="暂无专长信息" :image-size="80" />
+            </div>
 
-    <!-- 错误提示 -->
-    <el-empty v-else description="未找到医生信息" />
+            <div class="info-section">
+              <h3 class="section-title">个人简介</h3>
+              <p class="bio-text">{{ doctor?.bio || '暂无个人简介' }}</p>
+            </div>
+          </el-tab-pane>
+
+          <el-tab-pane label="排班信息" name="schedule">
+            <div class="schedule-preview">
+              <el-calendar>
+                <template #date-cell="{ data }">
+                  <div class="calendar-day">
+                    {{ data.day.split('-').slice(2).join('-') }}
+                  </div>
+                </template>
+              </el-calendar>
+              <div class="view-more">
+                <el-button type="primary" link @click="viewSchedule">
+                  查看完整排班 <el-icon><ArrowRight /></el-icon>
+                </el-button>
+              </div>
+            </div>
+          </el-tab-pane>
+
+          <el-tab-pane label="绩效记录" name="performance">
+            <div class="performance-preview">
+              <el-empty description="绩效数据">
+                <el-button type="primary" @click="viewPerformance">查看完整绩效</el-button>
+              </el-empty>
+            </div>
+          </el-tab-pane>
+
+          <el-tab-pane label="患者评价" name="reviews">
+            <div class="reviews-section">
+              <el-empty description="暂无患者评价" :image-size="100" />
+            </div>
+          </el-tab-pane>
+        </el-tabs>
+      </el-card>
+    </div>
   </div>
 </template>
 
@@ -221,229 +215,239 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
-  ArrowLeft,
-  Calendar,
-  Check,
-  Document,
-  Clock,
-  TrendCharts,
-  Plus
+  Calendar, TrendCharts, Edit, User, Phone, Message, OfficeBuilding,
+  Star, Document, ArrowRight
 } from '@element-plus/icons-vue'
-import {
-  getDoctorDetail,
-  getDoctorSchedules,
-  getDoctorPerformances
-} from '@/api/doctor'
+import { getDoctorDetail } from '@/api/doctor'
 
+// 路由
 const router = useRouter()
 const route = useRoute()
 
-const loading = ref(true)
+// 响应式数据
+const loading = ref(false)
 const doctor = ref(null)
-const recentSchedules = ref([])
-const recentPerformances = ref([])
+const activeTab = ref('basic')
 
-// 获取医生详情
-const getDoctorInfo = async () => {
+// 方法
+const fetchDoctorDetail = async () => {
   loading.value = true
-  
   try {
-    const doctorId = route.params.id || route.query.id
-    
-    if (!doctorId) {
-      ElMessage.error('缺少医生ID参数')
-      goBack()
-      return
-    }
-    
-    // 获取基本信息
-    const response = await getDoctorDetail(doctorId)
-    
-    if (response.success) {
-      doctor.value = response.data
-      
-      // 获取最近排班
-      getRecentSchedules(doctorId)
-      
-      // 获取最近绩效
-      getRecentPerformances(doctorId)
-    }
+    const id = route.params.id
+    const res = await getDoctorDetail(id)
+    doctor.value = res.data
   } catch (error) {
-    ElMessage.error(error.message || '获取医生详情失败')
+    ElMessage.error('获取医生详情失败')
+    goBack()
   } finally {
     loading.value = false
   }
 }
 
-// 获取最近排班
-const getRecentSchedules = async (doctorId) => {
-  try {
-    const today = new Date()
-    const response = await getDoctorSchedules(doctorId, {
-      start_date: today.toISOString().split('T')[0]
-    })
-    
-    if (response.success) {
-      recentSchedules.value = response.data.schedules.slice(0, 5)
-    }
-  } catch (error) {
-    console.error('获取排班数据失败:', error)
-  }
-}
-
-// 获取最近绩效
-const getRecentPerformances = async (doctorId) => {
-  try {
-    const response = await getDoctorPerformances(doctorId)
-    
-    if (response.success) {
-      recentPerformances.value = response.data.performances.slice(0, 5)
-    }
-  } catch (error) {
-    console.error('获取绩效数据失败:', error)
-  }
-}
-
-// 返回列表
 const goBack = () => {
-  router.push('/doctor')
+  router.back()
 }
 
-// 编辑医生信息
-const handleEdit = () => {
-  router.push(`/doctor?edit=${doctor.value.id}`)
+const viewSchedule = () => {
+  router.push(`/doctor/schedule/${doctor.value.id}`)
 }
 
-// 查看排班
-const handleViewSchedule = () => {
-  router.push({
-    path: '/doctor/schedule',
-    query: { doctor_id: doctor.value.id }
-  })
+const viewPerformance = () => {
+  router.push(`/doctor/performance/${doctor.value.id}`)
 }
 
-// 查看绩效
-const handleViewPerformance = () => {
-  router.push({
-    path: '/doctor/performance',
-    query: { doctor_id: doctor.value.id }
-  })
+const editDoctor = () => {
+  // 跳转到编辑页面或打开编辑对话框
+  ElMessage.info('编辑功能开发中')
 }
 
-// 添加排班
-const handleAddSchedule = () => {
-  router.push({
-    path: '/doctor/schedule',
-    query: { doctor_id: doctor.value.id, action: 'add' }
-  })
-}
-
-// 添加绩效
-const handleAddPerformance = () => {
-  router.push({
-    path: '/doctor/performance',
-    query: { doctor_id: doctor.value.id, action: 'add' }
-  })
-}
-
-// 获取班次类型
-const getShiftType = (shift) => {
-  const typeMap = {
-    morning: 'success',
-    afternoon: 'warning',
-    evening: 'danger'
-  }
-  return typeMap[shift] || ''
-}
-
-// 获取班次文本
-const getShiftText = (shift) => {
-  const textMap = {
-    morning: '上午班',
-    afternoon: '下午班',
-    evening: '夜班'
-  }
-  return textMap[shift] || shift
-}
-
-// 获取状态类型
-const getStatusType = (status) => {
-  const typeMap = {
-    available: 'success',
-    full: 'warning',
-    cancelled: 'info'
-  }
-  return typeMap[status] || ''
-}
-
-// 获取状态文本
-const getStatusText = (status) => {
-  const textMap = {
-    available: '可预约',
-    full: '已满',
-    cancelled: '已取消'
-  }
-  return textMap[status] || status
-}
-
-// 获取评分类型
-const getScoreType = (score) => {
-  if (!score) return 'info'
-  if (score >= 4.5) return 'success'
-  if (score >= 3.5) return 'warning'
-  return 'danger'
-}
-
-// 初始化
+// 生命周期
 onMounted(() => {
-  getDoctorInfo()
+  fetchDoctorDetail()
 })
 </script>
 
 <style scoped>
 .doctor-detail-container {
-  padding: 20px;
+  padding: 24px;
+  background-color: #f5f7fa;
+  min-height: 100vh;
 }
 
-.card-header {
+.loading-wrapper {
+  min-height: 400px;
+}
+
+.page-header-nav {
+  margin-bottom: 24px;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.doctor-header-card {
+  margin-bottom: 16px;
+}
+
+.doctor-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
 }
 
-.stat-card {
+.header-left {
   display: flex;
-  align-items: center;
-  padding: 20px;
-}
-
-.stat-icon {
-  margin-right: 15px;
-}
-
-.stat-content {
+  gap: 24px;
   flex: 1;
 }
 
-.stat-title {
+.doctor-avatar-large {
+  flex-shrink: 0;
+  border: 4px solid #f0f2f5;
+}
+
+.header-info {
+  flex: 1;
+}
+
+.doctor-name-large {
+  font-size: 28px;
+  font-weight: 600;
+  color: #303133;
+  margin: 0 0 12px 0;
+}
+
+.doctor-meta-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.meta-divider {
+  color: #dcdfe6;
+}
+
+.department-text {
+  font-size: 16px;
+  color: #606266;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.doctor-contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-bottom: 12px;
+}
+
+.contact-item {
+  font-size: 14px;
+  color: #606266;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  flex-direction: column;
+}
+
+.stats-section {
+  margin-bottom: 16px;
+}
+
+.stat-card {
+  height: 100%;
+}
+
+.stat-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.stat-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-info {
+  flex: 1;
+}
+
+.stat-label {
   font-size: 14px;
   color: #909399;
-  margin-bottom: 8px;
+  margin: 0 0 8px 0;
 }
 
 .stat-value {
   font-size: 24px;
-  font-weight: bold;
+  font-weight: 600;
   color: #303133;
+  margin: 0;
 }
 
-.bonus-text {
-  color: #67c23a;
-  font-weight: bold;
+.detail-tabs-card {
+  margin-bottom: 24px;
 }
 
-.mb-4 {
-  margin-bottom: 20px;
+.info-section {
+  margin-bottom: 32px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+  margin: 0 0 16px 0;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #409eff;
+}
+
+.specialties-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.specialty-tag {
+  font-size: 14px;
+}
+
+.bio-text {
+  font-size: 14px;
+  color: #606266;
+  line-height: 1.8;
+  margin: 0;
+}
+
+.schedule-preview,
+.performance-preview,
+.reviews-section {
+  min-height: 300px;
+}
+
+.view-more {
+  text-align: center;
+  margin-top: 24px;
+}
+
+.calendar-day {
+  text-align: center;
+  padding: 4px;
 }
 </style>
 

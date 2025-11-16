@@ -5,7 +5,8 @@ import sys
 import os
 
 # 添加backend目录到Python路径
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
+backend_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backend')
+sys.path.insert(0, backend_dir)
 
 # 加载环境变量
 from pathlib import Path
@@ -14,7 +15,12 @@ env_path = Path(__file__).parent / '.env'
 if env_path.exists():
     load_dotenv(env_path)
 
-from app import create_app, db
+# 导入必要的模块
+# noinspection PyUnresolvedReferences
+from app import create_app
+# noinspection PyUnresolvedReferences
+from extensions import db
+# noinspection PyUnresolvedReferences
 from models import User
 
 def create_admin_user():

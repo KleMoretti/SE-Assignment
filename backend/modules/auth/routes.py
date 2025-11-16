@@ -12,7 +12,7 @@ from flask_jwt_extended import (
 )
 from . import auth_bp
 from models import User
-from app import db
+from extensions import db
 from datetime import datetime
 from functools import wraps
 

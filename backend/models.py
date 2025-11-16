@@ -3,7 +3,7 @@
 Database Models
 """
 from datetime import datetime
-from app import db
+from extensions import db
 from typing import Dict
 from werkzeug.security import generate_password_hash, check_password_hash
 

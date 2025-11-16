@@ -2,717 +2,627 @@
   <div class="doctor-performance-container">
     <!-- 页面头部 -->
     <div class="page-header">
-      <h2>医生绩效管理</h2>
-      <el-button type="primary" @click="showAddDialog">
-        <el-icon><Plus /></el-icon>
-        添加绩效评估
-      </el-button>
+      <el-page-header @back="goBack">
+        <template #content>
+          <div class="header-content">
+            <h1 class="page-title">
+              <el-icon class="title-icon"><TrendCharts /></el-icon>
+              医生绩效分析
+            </h1>
+            <p v-if="doctorInfo" class="doctor-info-text">
+              {{ doctorInfo.name }} - {{ doctorInfo.title }} - {{ doctorInfo.department }}
+            </p>
+          </div>
+        </template>
+        <template #extra>
+          <el-select v-model="timeRange" @change="loadPerformanceData" style="width: 120px;">
+            <el-option label="本周" value="week" />
+            <el-option label="本月" value="month" />
+            <el-option label="本季度" value="quarter" />
+            <el-option label="本年度" value="year" />
+          </el-select>
+        </template>
+      </el-page-header>
     </div>
 
-    <!-- 统计卡片 -->
-    <el-row :gutter="20" class="stats-row">
+    <!-- 关键指标卡片 -->
+    <el-row :gutter="16" class="kpi-section" v-loading="loading">
       <el-col :span="6">
-        <el-card class="stat-card">
-          <div class="stat-title">总记录数</div>
-          <div class="stat-value">{{ statistics.total_records || 0 }}</div>
+        <el-card shadow="hover" class="kpi-card kpi-card-blue">
+          <div class="kpi-content">
+            <div class="kpi-icon">
+              <el-icon :size="40"><User /></el-icon>
+            </div>
+            <div class="kpi-info">
+              <p class="kpi-label">接诊患者数</p>
+              <p class="kpi-value">{{ performance.totalPatients || 0 }}</p>
+              <p class="kpi-change" :class="getChangeClass(performance.patientsChange)">
+                <el-icon v-if="performance.patientsChange >= 0"><CaretTop /></el-icon>
+                <el-icon v-else><CaretBottom /></el-icon>
+                {{ Math.abs(performance.patientsChange || 0) }}% 较上期
+              </p>
+            </div>
+          </div>
         </el-card>
       </el-col>
+
       <el-col :span="6">
-        <el-card class="stat-card">
-          <div class="stat-title">总接诊人数</div>
-          <div class="stat-value">{{ statistics.total_patients || 0 }}</div>
+        <el-card shadow="hover" class="kpi-card kpi-card-purple">
+          <div class="kpi-content">
+            <div class="kpi-icon">
+              <el-icon :size="40"><Promotion /></el-icon>
+            </div>
+            <div class="kpi-info">
+              <p class="kpi-label">手术台数</p>
+              <p class="kpi-value">{{ performance.totalSurgeries || 0 }}</p>
+              <p class="kpi-change" :class="getChangeClass(performance.surgeriesChange)">
+                <el-icon v-if="performance.surgeriesChange >= 0"><CaretTop /></el-icon>
+                <el-icon v-else><CaretBottom /></el-icon>
+                {{ Math.abs(performance.surgeriesChange || 0) }}% 较上期
+              </p>
+            </div>
+          </div>
         </el-card>
       </el-col>
+
       <el-col :span="6">
-        <el-card class="stat-card">
-          <div class="stat-title">平均满意度</div>
-          <div class="stat-value">{{ statistics.average_satisfaction || 0 }}分</div>
+        <el-card shadow="hover" class="kpi-card kpi-card-cyan">
+          <div class="kpi-content">
+            <div class="kpi-icon">
+              <el-icon :size="40"><Star /></el-icon>
+            </div>
+            <div class="kpi-info">
+              <p class="kpi-label">患者满意度</p>
+              <p class="kpi-value">{{ performance.satisfactionRate || 0 }}%</p>
+              <p class="kpi-change" :class="getChangeClass(performance.satisfactionChange)">
+                <el-icon v-if="performance.satisfactionChange >= 0"><CaretTop /></el-icon>
+                <el-icon v-else><CaretBottom /></el-icon>
+                {{ Math.abs(performance.satisfactionChange || 0) }}% 较上期
+              </p>
+            </div>
+          </div>
         </el-card>
       </el-col>
+
       <el-col :span="6">
-        <el-card class="stat-card">
-          <div class="stat-title">总绩效奖金</div>
-          <div class="stat-value">¥{{ statistics.total_bonus || 0 }}</div>
+        <el-card shadow="hover" class="kpi-card kpi-card-green">
+          <div class="kpi-content">
+            <div class="kpi-icon">
+              <el-icon :size="40"><Money /></el-icon>
+            </div>
+            <div class="kpi-info">
+              <p class="kpi-label">总收入（元）</p>
+              <p class="kpi-value">{{ formatCurrency(performance.totalRevenue || 0) }}</p>
+              <p class="kpi-change" :class="getChangeClass(performance.revenueChange)">
+                <el-icon v-if="performance.revenueChange >= 0"><CaretTop /></el-icon>
+                <el-icon v-else><CaretBottom /></el-icon>
+                {{ Math.abs(performance.revenueChange || 0) }}% 较上期
+              </p>
+            </div>
+          </div>
         </el-card>
       </el-col>
     </el-row>
 
-    <!-- 搜索栏 -->
-    <el-card class="search-card">
-      <el-form :inline="true" :model="searchForm">
-        <el-form-item label="医生">
-          <el-select
-            v-model="searchForm.doctor_id"
-            placeholder="请选择医生"
-            clearable
-            filterable
-            @change="handleSearch"
-          >
-            <el-option
-              v-for="doctor in doctors"
-              :key="doctor.id"
-              :label="`${doctor.name} - ${doctor.department}`"
-              :value="doctor.id"
-            />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="年份">
-          <el-date-picker
-            v-model="searchForm.year"
-            type="year"
-            placeholder="选择年份"
-            format="YYYY"
-            value-format="YYYY"
-            clearable
-            @change="handleSearch"
-          />
-        </el-form-item>
-
-        <el-form-item label="月份">
-          <el-select
-            v-model="searchForm.month"
-            placeholder="请选择月份"
-            clearable
-            @change="handleSearch"
-          >
-            <el-option
-              v-for="m in 12"
-              :key="m"
-              :label="`${m}月`"
-              :value="m"
-            />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">
-            <el-icon><Search /></el-icon>
-            搜索
-          </el-button>
-          <el-button @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
-
-    <!-- 数据表格 -->
-    <el-card class="table-card">
-      <el-table
-        v-loading="loading"
-        :data="performanceList"
-        stripe
-        border
-      >
-        <el-table-column prop="doctor_name" label="医生姓名" width="120" />
-        <el-table-column prop="year" label="年份" width="100" />
-        <el-table-column prop="month" label="月份" width="80">
-          <template #default="{ row }">
-            {{ row.month }}月
+    <!-- 图表区域 -->
+    <el-row :gutter="16" class="charts-section">
+      <!-- 接诊趋势图 -->
+      <el-col :span="16">
+        <el-card shadow="never" class="chart-card">
+          <template #header>
+            <div class="chart-header">
+              <h3 class="chart-title">接诊趋势分析</h3>
+              <el-tag type="info" size="small">单位: 人次</el-tag>
+            </div>
           </template>
-        </el-table-column>
-        <el-table-column prop="patient_count" label="接诊人数" width="100" />
-        <el-table-column prop="satisfaction_score" label="满意度评分" width="110">
-          <template #default="{ row }">
-            <el-rate
-              v-model="row.satisfaction_score"
-              disabled
-              show-score
-              text-color="#ff9900"
-            />
+          <div class="chart-body">
+            <div class="trend-chart">
+              <div class="chart-placeholder" style="height: 300px; display: flex; align-items: center; justify-content: center;">
+                <el-empty description="图表数据加载中..." :image-size="100">
+                  <template #image>
+                    <el-icon :size="60" color="#909399"><TrendCharts /></el-icon>
+                  </template>
+                </el-empty>
+              </div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+
+      <!-- 诊疗类型分布 -->
+      <el-col :span="8">
+        <el-card shadow="never" class="chart-card">
+          <template #header>
+            <div class="chart-header">
+              <h3 class="chart-title">诊疗类型分布</h3>
+            </div>
           </template>
-        </el-table-column>
-        <el-table-column prop="punctuality_score" label="准时率" width="100">
-          <template #default="{ row }">
-            {{ row.punctuality_score || 0 }}分
+          <div class="chart-body">
+            <div class="type-distribution">
+              <div
+                v-for="item in diagnosisTypes"
+                :key="item.name"
+                class="type-item"
+              >
+                <div class="type-info">
+                  <span class="type-color" :style="{ backgroundColor: item.color }"></span>
+                  <span class="type-name">{{ item.name }}</span>
+                </div>
+                <div class="type-value">
+                  <span class="type-count">{{ item.count }}</span>
+                  <el-tag size="small" type="info">{{ item.percentage }}%</el-tag>
+                </div>
+                <el-progress
+                  :percentage="item.percentage"
+                  :color="item.color"
+                  :show-text="false"
+                />
+              </div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <!-- 工作时长统计 -->
+    <el-row :gutter="16" class="work-hours-section">
+      <el-col :span="24">
+        <el-card shadow="never" class="chart-card">
+          <template #header>
+            <div class="chart-header">
+              <h3 class="chart-title">工作时长统计</h3>
+              <el-tag type="info" size="small">单位: 小时</el-tag>
+            </div>
           </template>
-        </el-table-column>
-        <el-table-column prop="quality_score" label="质量评分" width="100">
-          <template #default="{ row }">
-            {{ row.quality_score || 0 }}分
-          </template>
-        </el-table-column>
-        <el-table-column prop="total_score" label="综合评分" width="100">
-          <template #default="{ row }">
-            <el-tag :type="getScoreType(row.total_score)">
-              {{ row.total_score ? row.total_score.toFixed(2) : 0 }}分
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="bonus" label="绩效奖金" width="120">
-          <template #default="{ row }">
-            <span class="bonus-text">¥{{ row.bonus ? row.bonus.toFixed(2) : 0 }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="notes" label="备注" min-width="150" show-overflow-tooltip />
+          <div class="chart-body">
+            <div class="work-hours-grid">
+              <div class="work-hour-card">
+                <div class="hour-icon" style="background: #ecf5ff; color: #409eff;">
+                  <el-icon :size="32"><Timer /></el-icon>
+                </div>
+                <div class="hour-info">
+                  <p class="hour-label">门诊时长</p>
+                  <p class="hour-value">{{ performance.clinicHours || 0 }}<span class="hour-unit">小时</span></p>
+                  <el-progress
+                    :percentage="getPercentage(performance.clinicHours, performance.totalHours)"
+                    color="#409eff"
+                  />
+                </div>
+              </div>
 
-        <el-table-column label="操作" width="180" fixed="right">
-          <template #default="{ row }">
-            <el-button
-              type="primary"
-              size="small"
-              link
-              @click="handleView(row)"
-            >
-              查看
-            </el-button>
-            <el-button
-              type="primary"
-              size="small"
-              link
-              @click="handleEdit(row)"
-            >
-              编辑
-            </el-button>
-            <el-popconfirm
-              title="确定要删除这条绩效记录吗？"
-              @confirm="handleDelete(row.id)"
-            >
-              <template #reference>
-                <el-button
-                  type="danger"
-                  size="small"
-                  link
-                >
-                  删除
-                </el-button>
-              </template>
-            </el-popconfirm>
-          </template>
-        </el-table-column>
-      </el-table>
+              <div class="work-hour-card">
+                <div class="hour-icon" style="background: #f4f4f5; color: #909399;">
+                  <el-icon :size="32"><Operation /></el-icon>
+                </div>
+                <div class="hour-info">
+                  <p class="hour-label">手术时长</p>
+                  <p class="hour-value">{{ performance.surgeryHours || 0 }}<span class="hour-unit">小时</span></p>
+                  <el-progress
+                    :percentage="getPercentage(performance.surgeryHours, performance.totalHours)"
+                    color="#909399"
+                  />
+                </div>
+              </div>
 
-      <!-- 分页 -->
-      <el-pagination
-        v-model:current-page="pagination.page"
-        v-model:page-size="pagination.per_page"
-        :total="pagination.total"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="handleSearch"
-        @current-change="handleSearch"
-      />
-    </el-card>
+              <div class="work-hour-card">
+                <div class="hour-icon" style="background: #f0f9ff; color: #67c23a;">
+                  <el-icon :size="32"><ChatDotRound /></el-icon>
+                </div>
+                <div class="hour-info">
+                  <p class="hour-label">会诊时长</p>
+                  <p class="hour-value">{{ performance.consultationHours || 0 }}<span class="hour-unit">小时</span></p>
+                  <el-progress
+                    :percentage="getPercentage(performance.consultationHours, performance.totalHours)"
+                    color="#67c23a"
+                  />
+                </div>
+              </div>
 
-    <!-- 添加/编辑绩效对话框 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="dialogTitle"
-      width="600px"
-      @close="handleDialogClose"
-    >
-      <el-form
-        ref="performanceFormRef"
-        :model="performanceForm"
-        :rules="performanceRules"
-        label-width="120px"
-      >
-        <el-form-item label="医生" prop="doctor_id">
-          <el-select
-            v-model="performanceForm.doctor_id"
-            placeholder="请选择医生"
-            filterable
-            style="width: 100%"
-          >
-            <el-option
-              v-for="doctor in doctors"
-              :key="doctor.id"
-              :label="`${doctor.name} - ${doctor.department} - ${doctor.title}`"
-              :value="doctor.id"
-            />
-          </el-select>
-        </el-form-item>
+              <div class="work-hour-card total">
+                <div class="hour-icon" style="background: #fef0e6; color: #e6a23c;">
+                  <el-icon :size="32"><Odometer /></el-icon>
+                </div>
+                <div class="hour-info">
+                  <p class="hour-label">总工作时长</p>
+                  <p class="hour-value total-value">{{ performance.totalHours || 0 }}<span class="hour-unit">小时</span></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
 
-        <el-form-item label="年份" prop="year">
-          <el-date-picker
-            v-model="performanceForm.year"
-            type="year"
-            placeholder="选择年份"
-            format="YYYY"
-            value-format="YYYY"
-            style="width: 100%"
-          />
-        </el-form-item>
-
-        <el-form-item label="月份" prop="month">
-          <el-select
-            v-model="performanceForm.month"
-            placeholder="请选择月份"
-            style="width: 100%"
-          >
-            <el-option
-              v-for="m in 12"
-              :key="m"
-              :label="`${m}月`"
-              :value="m"
-            />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="接诊人数" prop="patient_count">
-          <el-input-number
-            v-model="performanceForm.patient_count"
-            :min="0"
-            style="width: 100%"
-          />
-        </el-form-item>
-
-        <el-form-item label="满意度评分" prop="satisfaction_score">
-          <el-slider
-            v-model="performanceForm.satisfaction_score"
-            :min="0"
-            :max="5"
-            :step="0.1"
-            show-input
-          />
-        </el-form-item>
-
-        <el-form-item label="准时率评分" prop="punctuality_score">
-          <el-slider
-            v-model="performanceForm.punctuality_score"
-            :min="0"
-            :max="5"
-            :step="0.1"
-            show-input
-          />
-        </el-form-item>
-
-        <el-form-item label="质量评分" prop="quality_score">
-          <el-slider
-            v-model="performanceForm.quality_score"
-            :min="0"
-            :max="5"
-            :step="0.1"
-            show-input
-          />
-        </el-form-item>
-
-        <el-form-item label="备注" prop="notes">
-          <el-input
-            v-model="performanceForm.notes"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入备注信息"
-          />
-        </el-form-item>
-      </el-form>
-
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saveLoading" @click="handleSave">
-          保存
-        </el-button>
+    <!-- 详细数据表格 -->
+    <el-card shadow="never" class="data-table-card">
+      <template #header>
+        <div class="table-header">
+          <h3 class="section-title">详细绩效数据</h3>
+          <el-button type="primary" plain :icon="Download">导出报表</el-button>
+        </div>
       </template>
-    </el-dialog>
-
-    <!-- 查看详情对话框 -->
-    <el-dialog
-      v-model="detailVisible"
-      title="绩效详情"
-      width="700px"
-    >
-      <el-descriptions v-if="currentPerformance" :column="2" border>
-        <el-descriptions-item label="医生姓名">
-          {{ currentPerformance.doctor_name }}
-        </el-descriptions-item>
-        <el-descriptions-item label="评估期间">
-          {{ currentPerformance.year }}年{{ currentPerformance.month }}月
-        </el-descriptions-item>
-        <el-descriptions-item label="接诊人数">
-          {{ currentPerformance.patient_count || 0 }} 人
-        </el-descriptions-item>
-        <el-descriptions-item label="满意度评分">
-          <el-rate
-            :model-value="currentPerformance.satisfaction_score"
-            disabled
-            show-score
-            text-color="#ff9900"
-          />
-        </el-descriptions-item>
-        <el-descriptions-item label="准时率评分">
-          {{ currentPerformance.punctuality_score || 0 }} 分
-        </el-descriptions-item>
-        <el-descriptions-item label="质量评分">
-          {{ currentPerformance.quality_score || 0 }} 分
-        </el-descriptions-item>
-        <el-descriptions-item label="综合评分">
-          <el-tag :type="getScoreType(currentPerformance.total_score)">
-            {{ currentPerformance.total_score ? currentPerformance.total_score.toFixed(2) : 0 }} 分
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="绩效奖金">
-          <span class="bonus-text-large">
-            ¥{{ currentPerformance.bonus ? currentPerformance.bonus.toFixed(2) : 0 }}
-          </span>
-        </el-descriptions-item>
-        <el-descriptions-item label="备注" :span="2">
-          {{ currentPerformance.notes || '无' }}
-        </el-descriptions-item>
-      </el-descriptions>
-    </el-dialog>
+      <el-table :data="performanceDetails" border stripe>
+        <el-table-column prop="date" label="日期" width="120" />
+        <el-table-column prop="patients" label="接诊人数" width="120" align="center" />
+        <el-table-column prop="surgeries" label="手术数量" width="120" align="center" />
+        <el-table-column prop="prescriptions" label="处方数量" width="120" align="center" />
+        <el-table-column prop="satisfaction" label="满意度" width="120" align="center">
+          <template #default="{ row }">
+            <el-rate v-model="row.satisfaction" disabled show-score text-color="#ff9900" />
+          </template>
+        </el-table-column>
+        <el-table-column prop="revenue" label="收入（元）" align="right">
+          <template #default="{ row }">
+            <span class="revenue-text">¥{{ formatCurrency(row.revenue) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="备注" prop="notes" show-overflow-tooltip />
+      </el-table>
+    </el-card>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Plus, Search } from '@element-plus/icons-vue'
 import {
-  getPerformances,
-  getPerformanceDetail,
-  createPerformance,
-  updatePerformance,
-  deletePerformance,
-  getPerformanceStatistics,
-  getDoctors
-} from '@/api/doctor'
+  TrendCharts, User, Star, Money, CaretTop, CaretBottom, Timer,
+  Promotion, Operation, ChatDotRound, Odometer, Download
+} from '@element-plus/icons-vue'
+import { getDoctorDetail, getDoctorPerformance } from '@/api/doctor'
 
+// 路由
+const router = useRouter()
 const route = useRoute()
 
-// 搜索表单
-const searchForm = reactive({
-  doctor_id: null,
-  year: null,
-  month: null
-})
-
-// 统计数据
-const statistics = ref({})
-
-// 医生列表
-const doctors = ref([])
-
-// 绩效列表
-const performanceList = ref([])
+// 响应式数据
 const loading = ref(false)
+const doctorInfo = ref(null)
+const timeRange = ref('month')
 
-// 分页
-const pagination = reactive({
-  page: 1,
-  per_page: 10,
-  total: 0
+const performance = reactive({
+  totalPatients: 0,
+  patientsChange: 0,
+  totalSurgeries: 0,
+  surgeriesChange: 0,
+  satisfactionRate: 0,
+  satisfactionChange: 0,
+  totalRevenue: 0,
+  revenueChange: 0,
+  clinicHours: 0,
+  surgeryHours: 0,
+  consultationHours: 0,
+  totalHours: 0
 })
 
-// 对话框
-const dialogVisible = ref(false)
-const dialogTitle = ref('添加绩效评估')
-const editMode = ref(false)
-const saveLoading = ref(false)
+const diagnosisTypes = ref([
+  { name: '门诊', count: 120, percentage: 60, color: '#409eff' },
+  { name: '急诊', count: 30, percentage: 15, color: '#f56c6c' },
+  { name: '手术', count: 25, percentage: 12.5, color: '#e6a23c' },
+  { name: '会诊', count: 25, percentage: 12.5, color: '#67c23a' }
+])
 
-// 绩效表单
-const performanceFormRef = ref(null)
-const performanceForm = reactive({
-  id: null,
-  doctor_id: null,
-  year: null,
-  month: null,
-  patient_count: 0,
-  satisfaction_score: 0,
-  punctuality_score: 0,
-  quality_score: 0,
-  notes: ''
-})
+const performanceDetails = ref([])
 
-// 表单验证规则
-const performanceRules = {
-  doctor_id: [
-    { required: true, message: '请选择医生', trigger: 'change' }
-  ],
-  year: [
-    { required: true, message: '请选择年份', trigger: 'change' }
-  ],
-  month: [
-    { required: true, message: '请选择月份', trigger: 'change' }
-  ]
-}
-
-// 详情对话框
-const detailVisible = ref(false)
-const currentPerformance = ref(null)
-
-// 获取绩效列表
-const getPerformanceList = async () => {
-  loading.value = true
-  
+// 方法
+const fetchDoctorInfo = async () => {
   try {
-    const params = {
-      page: pagination.page,
-      per_page: pagination.per_page
-    }
-    
-    // 处理年份参数
-    if (searchForm.year) {
-      params.year = parseInt(searchForm.year)
-    }
-    
-    if (searchForm.month) {
-      params.month = searchForm.month
-    }
-    
-    if (searchForm.doctor_id) {
-      params.doctor_id = searchForm.doctor_id
-    }
-    
-    const response = await getPerformances(params)
-    
-    if (response.success) {
-      performanceList.value = response.data.list
-      pagination.total = response.data.total
+    const id = route.params.id
+    if (id) {
+      const res = await getDoctorDetail(id)
+      doctorInfo.value = res.data
     }
   } catch (error) {
-    ElMessage.error(error.message || '获取绩效列表失败')
+    console.error('获取医生信息失败', error)
+  }
+}
+
+const loadPerformanceData = async () => {
+  loading.value = true
+  try {
+    const id = route.params.id || doctorInfo.value?.id
+    if (!id) return
+
+    const params = { timeRange: timeRange.value }
+    const res = await getDoctorPerformance(id, params)
+
+    Object.assign(performance, res.data)
+    performanceDetails.value = res.data.details || []
+  } catch (error) {
+    ElMessage.error('获取绩效数据失败')
   } finally {
     loading.value = false
   }
 }
 
-// 获取统计数据
-const getStatistics = async () => {
-  try {
-    const params = {}
-    
-    if (searchForm.year) {
-      params.year = parseInt(searchForm.year)
-    }
-    
-    if (searchForm.month) {
-      params.month = searchForm.month
-    }
-    
-    const response = await getPerformanceStatistics(params)
-    
-    if (response.success) {
-      statistics.value = response.data
-    }
-  } catch (error) {
-    console.error('获取统计数据失败:', error)
-  }
+const formatCurrency = (value) => {
+  if (!value) return '0'
+  return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 }
 
-// 获取医生列表
-const getDoctorList = async () => {
-  try {
-    const response = await getDoctors({ per_page: 1000, status: 'active' })
-    
-    if (response.success) {
-      doctors.value = response.data.list
-    }
-  } catch (error) {
-    console.error('获取医生列表失败:', error)
-  }
+const getPercentage = (value, total) => {
+  if (!total || total === 0) return 0
+  return Math.round((value / total) * 100)
 }
 
-// 搜索
-const handleSearch = () => {
-  pagination.page = 1
-  getPerformanceList()
-  getStatistics()
+const getChangeClass = (change) => {
+  return change >= 0 ? 'positive' : 'negative'
 }
 
-// 重置
-const handleReset = () => {
-  searchForm.doctor_id = null
-  searchForm.year = null
-  searchForm.month = null
-  handleSearch()
+const goBack = () => {
+  router.back()
 }
 
-// 显示添加对话框
-const showAddDialog = () => {
-  editMode.value = false
-  dialogTitle.value = '添加绩效评估'
-  resetForm()
-  // 设置默认年月为当前时间
-  const now = new Date()
-  performanceForm.year = now.getFullYear().toString()
-  performanceForm.month = now.getMonth() + 1
-  dialogVisible.value = true
-}
-
-// 查看详情
-const handleView = async (row) => {
-  try {
-    const response = await getPerformanceDetail(row.id)
-    
-    if (response.success) {
-      currentPerformance.value = response.data
-      detailVisible.value = true
-    }
-  } catch (error) {
-    ElMessage.error(error.message || '获取绩效详情失败')
-  }
-}
-
-// 编辑
-const handleEdit = (row) => {
-  editMode.value = true
-  dialogTitle.value = '编辑绩效评估'
-  
-  Object.keys(performanceForm).forEach(key => {
-    if (key === 'year') {
-      performanceForm[key] = row[key]?.toString()
-    } else {
-      performanceForm[key] = row[key]
-    }
-  })
-  
-  dialogVisible.value = true
-}
-
-// 删除
-const handleDelete = async (id) => {
-  try {
-    const response = await deletePerformance(id)
-    
-    if (response.success) {
-      ElMessage.success('删除成功')
-      getPerformanceList()
-      getStatistics()
-    }
-  } catch (error) {
-    ElMessage.error(error.message || '删除失败')
-  }
-}
-
-// 保存
-const handleSave = async () => {
-  if (!performanceFormRef.value) return
-  
-  await performanceFormRef.value.validate(async (valid) => {
-    if (!valid) return
-    
-    saveLoading.value = true
-    
-    try {
-      const { id, ...data } = performanceForm
-      
-      // 转换年份为数字
-      data.year = parseInt(data.year)
-      
-      let response
-      
-      if (editMode.value) {
-        response = await updatePerformance(id, data)
-      } else {
-        response = await createPerformance(data)
-      }
-      
-      if (response.success) {
-        ElMessage.success(editMode.value ? '更新成功' : '创建成功')
-        dialogVisible.value = false
-        getPerformanceList()
-        getStatistics()
-      }
-    } catch (error) {
-      ElMessage.error(error.message || '操作失败')
-    } finally {
-      saveLoading.value = false
-    }
-  })
-}
-
-// 关闭对话框
-const handleDialogClose = () => {
-  resetForm()
-  performanceFormRef.value?.clearValidate()
-}
-
-// 重置表单
-const resetForm = () => {
-  Object.assign(performanceForm, {
-    id: null,
-    doctor_id: null,
-    year: null,
-    month: null,
-    patient_count: 0,
-    satisfaction_score: 0,
-    punctuality_score: 0,
-    quality_score: 0,
-    notes: ''
-  })
-}
-
-// 获取评分类型
-const getScoreType = (score) => {
-  if (!score) return 'info'
-  if (score >= 4.5) return 'success'
-  if (score >= 3.5) return 'warning'
-  return 'danger'
-}
-
-// 初始化
+// 生命周期
 onMounted(() => {
-  getDoctorList()
-  
-  // 从 URL 查询参数中获取 doctor_id
-  const route = useRoute()
-  if (route.query.doctor_id) {
-    searchForm.doctor_id = parseInt(route.query.doctor_id)
-  }
-  
-  getPerformanceList()
-  getStatistics()
+  fetchDoctorInfo()
+  loadPerformanceData()
 })
 </script>
 
 <style scoped>
 .doctor-performance-container {
-  padding: 20px;
+  padding: 24px;
+  background-color: #f5f7fa;
+  min-height: 100vh;
 }
 
 .page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
-.page-header h2 {
+.header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #303133;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.title-icon {
+  font-size: 28px;
+  color: #409eff;
+}
+
+.doctor-info-text {
+  font-size: 14px;
+  color: #909399;
   margin: 0;
 }
 
-.stats-row {
-  margin-bottom: 20px;
+.kpi-section {
+  margin-bottom: 16px;
 }
 
-.stat-card {
-  text-align: center;
+.kpi-card {
+  height: 100%;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
-.stat-title {
+.kpi-card-blue { border-left: 4px solid #409eff; }
+.kpi-card-purple { border-left: 4px solid #9c27b0; }
+.kpi-card-cyan { border-left: 4px solid #00bcd4; }
+.kpi-card-green { border-left: 4px solid #67c23a; }
+
+.kpi-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.kpi-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.kpi-card-blue .kpi-icon { background: #ecf5ff; color: #409eff; }
+.kpi-card-purple .kpi-icon { background: #f3e5f5; color: #9c27b0; }
+.kpi-card-cyan .kpi-icon { background: #e0f7fa; color: #00bcd4; }
+.kpi-card-green .kpi-icon { background: #f0f9ff; color: #67c23a; }
+
+.kpi-info {
+  flex: 1;
+}
+
+.kpi-label {
   font-size: 14px;
   color: #909399;
-  margin-bottom: 10px;
+  margin: 0 0 8px 0;
 }
 
-.stat-value {
-  font-size: 24px;
-  font-weight: bold;
+.kpi-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #303133;
+  margin: 0 0 8px 0;
+}
+
+.kpi-change {
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+}
+
+.kpi-change.positive {
+  color: #67c23a;
+}
+
+.kpi-change.negative {
+  color: #f56c6c;
+}
+
+.charts-section {
+  margin-bottom: 16px;
+}
+
+.chart-card {
+  height: 100%;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chart-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  margin: 0;
+}
+
+.chart-body {
+  padding: 16px 0;
+}
+
+.type-distribution {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.type-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.type-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.type-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.type-name {
+  font-size: 14px;
+  color: #606266;
+  flex: 1;
+}
+
+.type-value {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.type-count {
+  font-size: 16px;
+  font-weight: 600;
   color: #303133;
 }
 
-.search-card {
-  margin-bottom: 20px;
+.work-hours-section {
+  margin-bottom: 16px;
 }
 
-.table-card {
-  margin-bottom: 20px;
+.work-hours-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
 }
 
-.el-pagination {
-  margin-top: 20px;
-  justify-content: flex-end;
+.work-hour-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+  background-color: #fafafa;
+  border-radius: 12px;
+  transition: all 0.3s;
 }
 
-.bonus-text {
+.work-hour-card:hover {
+  background-color: #f0f2f5;
+  transform: translateY(-4px);
+}
+
+.work-hour-card.total {
+  background: linear-gradient(135deg, #fef0e6 0%, #fff7e6 100%);
+}
+
+.hour-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hour-info {
+  width: 100%;
+  text-align: center;
+}
+
+.hour-label {
+  font-size: 14px;
+  color: #909399;
+  margin: 0 0 8px 0;
+}
+
+.hour-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #303133;
+  margin: 0 0 12px 0;
+}
+
+.hour-value.total-value {
+  font-size: 36px;
+  color: #e6a23c;
+}
+
+.hour-unit {
+  font-size: 14px;
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+.data-table-card {
+  margin-bottom: 24px;
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  margin: 0;
+}
+
+.revenue-text {
+  font-weight: 600;
   color: #67c23a;
-  font-weight: bold;
-}
-
-.bonus-text-large {
-  color: #67c23a;
-  font-weight: bold;
-  font-size: 18px;
 }
 </style>
 

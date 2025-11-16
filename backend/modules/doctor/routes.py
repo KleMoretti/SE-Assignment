@@ -5,7 +5,7 @@ Doctor Management - Routes
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from . import doctor_bp
 from models import Doctor, DoctorSchedule, DoctorPerformance, Appointment, MedicalRecord
-from app import db
+from extensions import db
 from datetime import datetime, date
 from sqlalchemy import func, extract
 
@@ -78,7 +78,7 @@ def get_doctors():
         doctors_data = [doctor.to_dict() for doctor in pagination.items]
         
         return success_response({
-            'list': doctors_data,
+            'items': doctors_data,
             'total': pagination.total,
             'page': page,
             'per_page': per_page,
@@ -1153,4 +1153,62 @@ def performance_detail(id):
     """绩效详情"""
     performance = DoctorPerformance.query.get_or_404(id)
     return render_template('doctor/performance_detail.html', performance=performance)
+
+
+# ============= 辅助数据接口 =============
+
+@doctor_bp.route('/departments', methods=['GET'])
+def get_departments():
+    """获取科室列表（API）"""
+    try:
+        # 从医生表中获取所有科室（去重）
+        departments_query = db.session.query(Doctor.department).filter(
+            Doctor.department.isnot(None),
+            Doctor.department != ''
+        ).distinct().all()
+
+        # 转换为列表格式
+        departments = [{'id': dept[0], 'name': dept[0]} for dept in departments_query]
+
+        # 如果没有科室数据，返回默认科室列表
+        if not departments:
+            departments = [
+                {'id': '内科', 'name': '内科'},
+                {'id': '外科', 'name': '外科'},
+                {'id': '儿科', 'name': '儿科'},
+                {'id': '妇产科', 'name': '妇产科'},
+                {'id': '骨科', 'name': '骨科'},
+                {'id': '神经科', 'name': '神经科'},
+                {'id': '皮肤科', 'name': '皮肤科'},
+                {'id': '眼科', 'name': '眼科'},
+                {'id': '耳鼻喉科', 'name': '耳鼻喉科'},
+                {'id': '口腔科', 'name': '口腔科'},
+                {'id': '急诊科', 'name': '急诊科'},
+                {'id': '中医科', 'name': '中医科'}
+            ]
+
+        return success_response(departments)
+
+    except Exception as e:
+        return error_response(f'获取科室列表失败：{str(e)}', 'GET_DEPARTMENTS_ERROR', 500)
+
+
+@doctor_bp.route('/titles', methods=['GET'])
+def get_titles():
+    """获取职称列表（API）"""
+    try:
+        # 标准职称列表
+        titles = [
+            '主任医师',
+            '副主任医师',
+            '主治医师',
+            '住院医师',
+            '医师'
+        ]
+
+        return success_response(titles)
+
+    except Exception as e:
+        return error_response(f'获取职称列表失败：{str(e)}', 'GET_TITLES_ERROR', 500)
+
 

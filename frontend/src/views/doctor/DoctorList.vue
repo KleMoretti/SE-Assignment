@@ -1,229 +1,288 @@
 <template>
   <div class="doctor-list-container">
-    <!-- 页面头部 -->
+    <!-- 页面标题和操作栏 -->
     <div class="page-header">
-      <h2>医生管理</h2>
-      <el-button type="primary" @click="showAddDialog">
-        <el-icon><Plus /></el-icon>
-        添加医生
-      </el-button>
+      <div class="header-content">
+        <h1 class="page-title">
+          <el-icon class="title-icon"><User /></el-icon>
+          医生管理
+        </h1>
+        <p class="page-subtitle">管理医院医生信息、排班和绩效</p>
+      </div>
+      <div class="action-buttons">
+        <el-button type="primary" @click="showAddDialog" :icon="Plus">
+          添加医生
+        </el-button>
+        <el-button @click="goToSchedule" :icon="Calendar">
+          排班管理
+        </el-button>
+        <el-button @click="goToPerformance" :icon="TrendCharts">
+          绩效管理
+        </el-button>
+      </div>
     </div>
 
-    <!-- 搜索栏 -->
-    <el-card class="search-card">
-      <el-form :inline="true" :model="searchForm">
-        <el-form-item label="搜索">
-          <el-input
-            v-model="searchForm.search"
-            placeholder="姓名/编号/电话/邮箱"
-            clearable
-            @clear="handleSearch"
-          />
-        </el-form-item>
+    <!-- 搜索和筛选区域 -->
+    <el-card class="filter-card" shadow="never">
+      <div class="filter-section">
+        <el-input
+          v-model="searchQuery"
+          placeholder="搜索医生姓名、工号..."
+          :prefix-icon="Search"
+          clearable
+          @input="handleSearch"
+          class="search-input"
+        />
 
-        <el-form-item label="科室">
-          <el-select
-            v-model="searchForm.department"
-            placeholder="请选择科室"
-            clearable
-            @change="handleSearch"
-          >
+        <div class="filter-group">
+          <el-select v-model="filterDepartment" placeholder="全部科室" clearable @change="handleFilter">
             <el-option
               v-for="dept in departments"
-              :key="dept"
-              :label="dept"
-              :value="dept"
+              :key="dept.id"
+              :label="dept.name"
+              :value="dept.id"
             />
           </el-select>
-        </el-form-item>
 
-        <el-form-item label="状态">
-          <el-select
-            v-model="searchForm.status"
-            placeholder="请选择状态"
-            clearable
-            @change="handleSearch"
-          >
+          <el-select v-model="filterTitle" placeholder="全部职称" clearable @change="handleFilter">
+            <el-option
+              v-for="title in titles"
+              :key="title"
+              :label="title"
+              :value="title"
+            />
+          </el-select>
+
+          <el-select v-model="filterStatus" placeholder="全部状态" clearable @change="handleFilter">
             <el-option label="在职" value="active" />
             <el-option label="离职" value="inactive" />
           </el-select>
-        </el-form-item>
-
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">
-            <el-icon><Search /></el-icon>
-            搜索
-          </el-button>
-          <el-button @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
+        </div>
+      </div>
     </el-card>
 
-    <!-- 数据表格 -->
-    <el-card class="table-card">
-      <el-table
-        v-loading="loading"
-        :data="doctorList"
-        stripe
-        border
-      >
-        <el-table-column prop="doctor_no" label="医生编号" width="120" />
-        <el-table-column prop="name" label="姓名" width="100" />
-        <el-table-column prop="gender" label="性别" width="60" />
-        <el-table-column prop="age" label="年龄" width="60" />
-        <el-table-column prop="phone" label="电话" width="130" />
-        <el-table-column prop="email" label="邮箱" min-width="180" />
-        <el-table-column prop="department" label="科室" width="100" />
-        <el-table-column prop="title" label="职称" width="120" />
-        <el-table-column prop="status" label="状态" width="80">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 'active' ? 'success' : 'info'">
-              {{ row.status === 'active' ? '在职' : '离职' }}
-            </el-tag>
-          </template>
-        </el-table-column>
+    <!-- 医生列表卡片 -->
+    <div v-loading="loading" element-loading-text="加载中...">
+      <el-empty v-if="!loading && doctorList.length === 0" description="暂无医生数据">
+        <el-button type="primary" @click="showAddDialog">添加医生</el-button>
+      </el-empty>
 
-        <el-table-column label="操作" width="280" fixed="right">
-          <template #default="{ row }">
-            <el-button
-              type="primary"
-              size="small"
-              link
-              @click="handleView(row)"
-            >
-              查看
-            </el-button>
-            <el-button
-              type="primary"
-              size="small"
-              link
-              @click="handleEdit(row)"
-            >
-              编辑
-            </el-button>
-            <el-button
-              type="success"
-              size="small"
-              link
-              @click="handleViewSchedule(row)"
-            >
-              排班
-            </el-button>
-            <el-button
-              type="warning"
-              size="small"
-              link
-              @click="handleViewPerformance(row)"
-            >
-              绩效
-            </el-button>
-            <el-popconfirm
-              title="确定要删除这位医生吗？"
-              @confirm="handleDelete(row.id)"
-            >
-              <template #reference>
-                <el-button
-                  type="danger"
-                  size="small"
-                  link
-                >
-                  删除
-                </el-button>
-              </template>
-            </el-popconfirm>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div v-else class="doctor-grid">
+        <el-card
+          v-for="doctor in doctorList"
+          :key="doctor.id"
+          class="doctor-card"
+          shadow="hover"
+          @click="viewDoctorDetail(doctor.id)"
+        >
+          <div class="doctor-card-content">
+            <div class="doctor-header-section">
+              <el-avatar :size="60" class="doctor-avatar">
+                <template v-if="doctor.avatar">
+                  <img :src="doctor.avatar" :alt="doctor.name" />
+                </template>
+                <template v-else>
+                  {{ doctor.name.charAt(0) }}
+                </template>
+              </el-avatar>
 
-      <!-- 分页 -->
+              <div class="doctor-basic-info">
+                <h3 class="doctor-name">{{ doctor.name }}</h3>
+                <div class="doctor-meta">
+                  <el-tag size="small" type="info">{{ doctor.title }}</el-tag>
+                  <span class="doctor-department">{{ doctor.department }}</span>
+                </div>
+              </div>
+
+              <el-tag
+                :type="doctor.status === 'active' ? 'success' : 'info'"
+                size="small"
+                class="status-tag"
+              >
+                {{ doctor.status === 'active' ? '在职' : '离职' }}
+              </el-tag>
+            </div>
+
+            <el-divider class="card-divider" />
+
+            <div class="doctor-stats-section">
+              <div class="stat-item">
+                <el-icon class="stat-icon"><User /></el-icon>
+                <div class="stat-content">
+                  <span class="stat-value">{{ doctor.patientCount || 0 }}</span>
+                  <span class="stat-label">患者数</span>
+                </div>
+              </div>
+              <div class="stat-item">
+                <el-icon class="stat-icon"><Star /></el-icon>
+                <div class="stat-content">
+                  <span class="stat-value">{{ doctor.rating || 'N/A' }}</span>
+                  <span class="stat-label">评分</span>
+                </div>
+              </div>
+              <div class="stat-item">
+                <el-icon class="stat-icon"><Calendar /></el-icon>
+                <div class="stat-content">
+                  <span class="stat-value">{{ doctor.scheduleCount || 0 }}</span>
+                  <span class="stat-label">排班数</span>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="doctor.specialties && doctor.specialties.length" class="doctor-specialties">
+              <el-tag
+                v-for="specialty in doctor.specialties.slice(0, 3)"
+                :key="specialty"
+                size="small"
+                effect="plain"
+                class="specialty-tag"
+              >
+                {{ specialty }}
+              </el-tag>
+              <el-tag v-if="doctor.specialties.length > 3" size="small" effect="plain">
+                +{{ doctor.specialties.length - 3 }}
+              </el-tag>
+            </div>
+
+            <div class="doctor-actions" @click.stop>
+              <el-button-group>
+                <el-tooltip content="查看排班" placement="top">
+                  <el-button size="small" :icon="Calendar" @click="viewSchedule(doctor.id)" />
+                </el-tooltip>
+                <el-tooltip content="查看绩效" placement="top">
+                  <el-button size="small" :icon="TrendCharts" @click="viewPerformance(doctor.id)" />
+                </el-tooltip>
+                <el-tooltip content="编辑信息" placement="top">
+                  <el-button size="small" :icon="Edit" @click="editDoctor(doctor)" />
+                </el-tooltip>
+                <el-tooltip content="删除医生" placement="top">
+                  <el-button size="small" :icon="Delete" type="danger" @click="deleteDoctor(doctor.id)" />
+                </el-tooltip>
+              </el-button-group>
+            </div>
+          </div>
+        </el-card>
+      </div>
+    </div>
+
+    <!-- 分页 -->
+    <div v-if="total > 0" class="pagination-container">
       <el-pagination
         v-model:current-page="pagination.page"
-        v-model:page-size="pagination.per_page"
-        :total="pagination.total"
+        v-model:page-size="pagination.pageSize"
         :page-sizes="[10, 20, 50, 100]"
+        :total="total"
         layout="total, sizes, prev, pager, next, jumper"
-        @size-change="handleSearch"
-        @current-change="handleSearch"
+        @size-change="handleSizeChange"
+        @current-change="handlePageChange"
       />
-    </el-card>
+    </div>
 
     <!-- 添加/编辑医生对话框 -->
     <el-dialog
       v-model="dialogVisible"
-      :title="dialogTitle"
+      :title="editingDoctor ? '编辑医生' : '添加医生'"
       width="600px"
-      @close="handleDialogClose"
+      :close-on-click-modal="false"
     >
       <el-form
         ref="doctorFormRef"
-        :model="doctorForm"
-        :rules="doctorRules"
+        :model="formData"
+        :rules="formRules"
         label-width="100px"
       >
-        <el-form-item label="医生编号" prop="doctor_no">
-          <el-input v-model="doctorForm.doctor_no" placeholder="请输入医生编号" />
-        </el-form-item>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="姓名" prop="name">
+              <el-input v-model="formData.name" placeholder="请输入姓名" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="工号" prop="doctorNo">
+              <el-input v-model="formData.doctorNo" placeholder="请输入工号" />
+            </el-form-item>
+          </el-col>
+        </el-row>
 
-        <el-form-item label="姓名" prop="name">
-          <el-input v-model="doctorForm.name" placeholder="请输入姓名" />
-        </el-form-item>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="性别" prop="gender">
+              <el-radio-group v-model="formData.gender">
+                <el-radio label="男">男</el-radio>
+                <el-radio label="女">女</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="年龄" prop="age">
+              <el-input-number v-model="formData.age" :min="20" :max="100" />
+            </el-form-item>
+          </el-col>
+        </el-row>
 
-        <el-form-item label="性别" prop="gender">
-          <el-radio-group v-model="doctorForm.gender">
-            <el-radio label="男">男</el-radio>
-            <el-radio label="女">女</el-radio>
-          </el-radio-group>
-        </el-form-item>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="科室" prop="department">
+              <el-select v-model="formData.department" placeholder="请选择科室" style="width: 100%">
+                <el-option
+                  v-for="dept in departments"
+                  :key="dept.id"
+                  :label="dept.name"
+                  :value="dept.name"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="职称" prop="title">
+              <el-select v-model="formData.title" placeholder="请选择职称" style="width: 100%">
+                <el-option v-for="title in titles" :key="title" :label="title" :value="title" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
 
-        <el-form-item label="年龄" prop="age">
-          <el-input-number v-model="doctorForm.age" :min="20" :max="100" />
-        </el-form-item>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="联系电话" prop="phone">
+              <el-input v-model="formData.phone" placeholder="请输入联系电话" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="邮箱" prop="email">
+              <el-input v-model="formData.email" placeholder="请输入邮箱" />
+            </el-form-item>
+          </el-col>
+        </el-row>
 
-        <el-form-item label="电话" prop="phone">
-          <el-input v-model="doctorForm.phone" placeholder="请输入电话" />
-        </el-form-item>
-
-        <el-form-item label="邮箱" prop="email">
-          <el-input v-model="doctorForm.email" placeholder="请输入邮箱" />
-        </el-form-item>
-
-        <el-form-item label="科室" prop="department">
-          <el-input v-model="doctorForm.department" placeholder="请输入科室" />
-        </el-form-item>
-
-        <el-form-item label="职称" prop="title">
-          <el-select v-model="doctorForm.title" placeholder="请选择职称">
-            <el-option label="主任医师" value="主任医师" />
-            <el-option label="副主任医师" value="副主任医师" />
-            <el-option label="主治医师" value="主治医师" />
-            <el-option label="住院医师" value="住院医师" />
+        <el-form-item label="学历" prop="education">
+          <el-select v-model="formData.education" placeholder="请选择学历" style="width: 100%">
+            <el-option label="本科" value="本科" />
+            <el-option label="硕士" value="硕士" />
+            <el-option label="博士" value="博士" />
           </el-select>
         </el-form-item>
 
         <el-form-item label="专长" prop="specialty">
-          <el-input v-model="doctorForm.specialty" type="textarea" placeholder="请输入专长" />
-        </el-form-item>
-
-        <el-form-item label="学历" prop="education">
-          <el-select v-model="doctorForm.education" placeholder="请选择学历">
-            <el-option label="博士" value="博士" />
-            <el-option label="硕士" value="硕士" />
-            <el-option label="本科" value="本科" />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="入职日期" prop="hire_date">
-          <el-date-picker
-            v-model="doctorForm.hire_date"
-            type="date"
-            placeholder="选择入职日期"
-            format="YYYY-MM-DD"
-            value-format="YYYY-MM-DD"
+          <el-input
+            v-model="formData.specialty"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入专长领域"
           />
         </el-form-item>
 
-        <el-form-item v-if="editMode" label="状态" prop="status">
-          <el-radio-group v-model="doctorForm.status">
+        <el-form-item label="入职日期" prop="hireDate">
+          <el-date-picker
+            v-model="formData.hireDate"
+            type="date"
+            placeholder="选择入职日期"
+            style="width: 100%"
+          />
+        </el-form-item>
+
+        <el-form-item label="状态" prop="status">
+          <el-radio-group v-model="formData.status">
             <el-radio label="active">在职</el-radio>
             <el-radio label="inactive">离职</el-radio>
           </el-radio-group>
@@ -231,71 +290,11 @@
       </el-form>
 
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saveLoading" @click="handleSave">
-          保存
+        <el-button @click="closeDialog">取消</el-button>
+        <el-button type="primary" @click="submitDoctor" :loading="submitting">
+          确定
         </el-button>
       </template>
-    </el-dialog>
-
-    <!-- 查看详情对话框 -->
-    <el-dialog
-      v-model="detailVisible"
-      title="医生详情"
-      width="700px"
-    >
-      <el-descriptions v-if="currentDoctor" :column="2" border>
-        <el-descriptions-item label="医生编号">
-          {{ currentDoctor.doctor_no }}
-        </el-descriptions-item>
-        <el-descriptions-item label="姓名">
-          {{ currentDoctor.name }}
-        </el-descriptions-item>
-        <el-descriptions-item label="性别">
-          {{ currentDoctor.gender }}
-        </el-descriptions-item>
-        <el-descriptions-item label="年龄">
-          {{ currentDoctor.age }}
-        </el-descriptions-item>
-        <el-descriptions-item label="电话">
-          {{ currentDoctor.phone }}
-        </el-descriptions-item>
-        <el-descriptions-item label="邮箱">
-          {{ currentDoctor.email }}
-        </el-descriptions-item>
-        <el-descriptions-item label="科室">
-          {{ currentDoctor.department }}
-        </el-descriptions-item>
-        <el-descriptions-item label="职称">
-          {{ currentDoctor.title }}
-        </el-descriptions-item>
-        <el-descriptions-item label="学历">
-          {{ currentDoctor.education }}
-        </el-descriptions-item>
-        <el-descriptions-item label="入职日期">
-          {{ currentDoctor.hire_date }}
-        </el-descriptions-item>
-        <el-descriptions-item label="状态">
-          <el-tag :type="currentDoctor.status === 'active' ? 'success' : 'info'">
-            {{ currentDoctor.status === 'active' ? '在职' : '离职' }}
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="专长" :span="2">
-          {{ currentDoctor.specialty }}
-        </el-descriptions-item>
-
-        <!-- 统计信息 -->
-        <el-descriptions-item v-if="currentDoctor.statistics" label="预约总数" :span="2">
-          {{ currentDoctor.statistics.total_appointments }} 次
-          （已完成：{{ currentDoctor.statistics.completed_appointments }} 次）
-        </el-descriptions-item>
-        <el-descriptions-item v-if="currentDoctor.statistics" label="病历记录">
-          {{ currentDoctor.statistics.total_medical_records }} 条
-        </el-descriptions-item>
-        <el-descriptions-item v-if="currentDoctor.statistics" label="排班记录">
-          {{ currentDoctor.statistics.total_schedules }} 条
-        </el-descriptions-item>
-      </el-descriptions>
     </el-dialog>
   </div>
 </template>
@@ -303,52 +302,40 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { Plus, Search } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  getDoctors,
-  getDoctorDetail,
-  createDoctor,
-  updateDoctor,
-  deleteDoctor,
-  getDoctorStatistics
-} from '@/api/doctor'
+  Plus, Calendar, TrendCharts, Search, User, Star, Edit, Delete
+} from '@element-plus/icons-vue'
+import { getDoctorList, createDoctor, updateDoctor, deleteDoctor as deleteDoctorApi, getDepartments } from '@/api/doctor'
 
+// 路由
 const router = useRouter()
 
-// 搜索表单
-const searchForm = reactive({
-  search: '',
-  department: '',
-  status: ''
-})
-
-// 科室列表
-const departments = ref([])
-
-// 医生列表
-const doctorList = ref([])
+// 响应式数据
 const loading = ref(false)
+const submitting = ref(false)
+const dialogVisible = ref(false)
+const editingDoctor = ref(null)
+const doctorFormRef = ref(null)
 
-// 分页
+const searchQuery = ref('')
+const filterDepartment = ref('')
+const filterTitle = ref('')
+const filterStatus = ref('')
+
+const doctorList = ref([])
+const departments = ref([])
+const titles = ref(['主任医师', '副主任医师', '主治医师', '住院医师'])
+
 const pagination = reactive({
   page: 1,
-  per_page: 10,
-  total: 0
+  pageSize: 10
 })
+const total = ref(0)
 
-// 对话框
-const dialogVisible = ref(false)
-const dialogTitle = ref('添加医生')
-const editMode = ref(false)
-const saveLoading = ref(false)
-
-// 医生表单
-const doctorFormRef = ref(null)
-const doctorForm = reactive({
-  id: null,
-  doctor_no: '',
+const formData = reactive({
   name: '',
+  doctorNo: '',
   gender: '男',
   age: null,
   phone: '',
@@ -357,177 +344,151 @@ const doctorForm = reactive({
   title: '',
   specialty: '',
   education: '',
-  hire_date: '',
+  hireDate: '',
   status: 'active'
 })
 
-// 表单验证规则
-const doctorRules = {
-  doctor_no: [
-    { required: true, message: '请输入医生编号', trigger: 'blur' }
+const formRules = {
+  name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
+  doctorNo: [{ required: true, message: '请输入工号', trigger: 'blur' }],
+  department: [{ required: true, message: '请选择科室', trigger: 'change' }],
+  title: [{ required: true, message: '请选择职称', trigger: 'change' }],
+  phone: [
+    { required: true, message: '请输入联系电话', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' }
   ],
-  name: [
-    { required: true, message: '请输入姓名', trigger: 'blur' }
-  ],
-  gender: [
-    { required: true, message: '请选择性别', trigger: 'change' }
+  email: [
+    { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
   ]
 }
 
-// 详情对话框
-const detailVisible = ref(false)
-const currentDoctor = ref(null)
-
-// 获取医生列表
-const getDoctorList = async () => {
+// 方法
+const fetchDoctorList = async () => {
   loading.value = true
-  
   try {
     const params = {
       page: pagination.page,
-      per_page: pagination.per_page,
-      ...searchForm
+      pageSize: pagination.pageSize,
+      search: searchQuery.value,
+      department: filterDepartment.value,
+      title: filterTitle.value,
+      status: filterStatus.value
     }
-    
-    const response = await getDoctors(params)
-    
-    if (response.success) {
-      doctorList.value = response.data.list
-      pagination.total = response.data.total
-    }
+    const res = await getDoctorList(params)
+    doctorList.value = res.data.items || []
+    total.value = res.data.total || 0
   } catch (error) {
-    ElMessage.error(error.message || '获取医生列表失败')
+    ElMessage.error('获取医生列表失败')
   } finally {
     loading.value = false
   }
 }
 
-// 获取统计数据（科室列表）
-const getStatistics = async () => {
+const fetchDepartments = async () => {
   try {
-    const response = await getDoctorStatistics()
-    
-    if (response.success) {
-      departments.value = response.data.departments || []
-    }
+    const res = await getDepartments()
+    departments.value = res.data || []
   } catch (error) {
-    console.error('获取统计数据失败:', error)
+    console.error('获取科室列表失败', error)
   }
 }
 
-// 搜索
 const handleSearch = () => {
   pagination.page = 1
-  getDoctorList()
+  fetchDoctorList()
 }
 
-// 重置
-const handleReset = () => {
-  searchForm.search = ''
-  searchForm.department = ''
-  searchForm.status = ''
-  handleSearch()
+const handleFilter = () => {
+  pagination.page = 1
+  fetchDoctorList()
 }
 
-// 显示添加对话框
+const handleSizeChange = () => {
+  pagination.page = 1
+  fetchDoctorList()
+}
+
+const handlePageChange = () => {
+  fetchDoctorList()
+}
+
 const showAddDialog = () => {
-  editMode.value = false
-  dialogTitle.value = '添加医生'
-  resetForm()
+  editingDoctor.value = null
+  resetFormData()
   dialogVisible.value = true
 }
 
-// 查看详情
-const handleView = (row) => {
-  router.push(`/doctor/detail/${row.id}`)
-}
-
-// 编辑
-const handleEdit = (row) => {
-  editMode.value = true
-  dialogTitle.value = '编辑医生'
-  
-  Object.keys(doctorForm).forEach(key => {
-    doctorForm[key] = row[key]
+const editDoctor = (doctor) => {
+  editingDoctor.value = doctor
+  Object.assign(formData, {
+    name: doctor.name,
+    doctorNo: doctor.doctorNo,
+    gender: doctor.gender,
+    age: doctor.age,
+    phone: doctor.phone,
+    email: doctor.email,
+    department: doctor.department,
+    title: doctor.title,
+    specialty: doctor.specialty,
+    education: doctor.education,
+    hireDate: doctor.hireDate,
+    status: doctor.status
   })
-  
   dialogVisible.value = true
 }
 
-// 删除
-const handleDelete = async (id) => {
-  try {
-    const response = await deleteDoctor(id)
-    
-    if (response.success) {
-      ElMessage.success('删除成功')
-      getDoctorList()
+const submitDoctor = async () => {
+  if (!doctorFormRef.value) return
+
+  await doctorFormRef.value.validate(async (valid) => {
+    if (!valid) return
+
+    submitting.value = true
+    try {
+      if (editingDoctor.value) {
+        await updateDoctor(editingDoctor.value.id, formData)
+        ElMessage.success('更新医生信息成功')
+      } else {
+        await createDoctor(formData)
+        ElMessage.success('添加医生成功')
+      }
+      closeDialog()
+      fetchDoctorList()
+    } catch (error) {
+      ElMessage.error(editingDoctor.value ? '更新医生信息失败' : '添加医生失败')
+    } finally {
+      submitting.value = false
     }
+  })
+}
+
+const deleteDoctor = async (id) => {
+  try {
+    await ElMessageBox.confirm('确定要删除该医生吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+
+    await deleteDoctorApi(id)
+    ElMessage.success('删除医生成功')
+    fetchDoctorList()
   } catch (error) {
-    ElMessage.error(error.message || '删除失败')
+    if (error !== 'cancel') {
+      ElMessage.error('删除医生失败')
+    }
   }
 }
 
-// 查看排班
-const handleViewSchedule = (row) => {
-  router.push({
-    path: '/doctor/schedule',
-    query: { doctor_id: row.id }
-  })
+const closeDialog = () => {
+  dialogVisible.value = false
+  resetFormData()
 }
 
-// 查看绩效
-const handleViewPerformance = (row) => {
-  router.push({
-    path: '/doctor/performance',
-    query: { doctor_id: row.id }
-  })
-}
-
-// 保存
-const handleSave = async () => {
-  if (!doctorFormRef.value) return
-  
-  await doctorFormRef.value.validate(async (valid) => {
-    if (!valid) return
-    
-    saveLoading.value = true
-    
-    try {
-      const { id, ...data } = doctorForm
-      let response
-      
-      if (editMode.value) {
-        response = await updateDoctor(id, data)
-      } else {
-        response = await createDoctor(data)
-      }
-      
-      if (response.success) {
-        ElMessage.success(editMode.value ? '更新成功' : '创建成功')
-        dialogVisible.value = false
-        getDoctorList()
-      }
-    } catch (error) {
-      ElMessage.error(error.message || '操作失败')
-    } finally {
-      saveLoading.value = false
-    }
-  })
-}
-
-// 关闭对话框
-const handleDialogClose = () => {
-  resetForm()
-  doctorFormRef.value?.clearValidate()
-}
-
-// 重置表单
-const resetForm = () => {
-  Object.assign(doctorForm, {
-    id: null,
-    doctor_no: '',
+const resetFormData = () => {
+  Object.assign(formData, {
     name: '',
+    doctorNo: '',
     gender: '男',
     age: null,
     phone: '',
@@ -536,44 +497,232 @@ const resetForm = () => {
     title: '',
     specialty: '',
     education: '',
-    hire_date: '',
+    hireDate: '',
     status: 'active'
   })
+  if (doctorFormRef.value) {
+    doctorFormRef.value.clearValidate()
+  }
 }
 
-// 初始化
+const viewDoctorDetail = (id) => {
+  router.push(`/doctor/detail/${id}`)
+}
+
+const viewSchedule = (id) => {
+  router.push(`/doctor/schedule/${id}`)
+}
+
+const viewPerformance = (id) => {
+  router.push(`/doctor/performance/${id}`)
+}
+
+const goToSchedule = () => {
+  router.push('/doctor/schedule')
+}
+
+const goToPerformance = () => {
+  router.push('/doctor/performance')
+}
+
+// 生命周期
 onMounted(() => {
-  getDoctorList()
-  getStatistics()
+  fetchDoctorList()
+  fetchDepartments()
 })
 </script>
 
 <style scoped>
 .doctor-list-container {
-  padding: 20px;
+  padding: 24px;
+  background-color: #f5f7fa;
+  min-height: 100vh;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
-.page-header h2 {
+.header-content {
+  flex: 1;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #303133;
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.title-icon {
+  font-size: 28px;
+  color: #409eff;
+}
+
+.page-subtitle {
+  font-size: 14px;
+  color: #909399;
   margin: 0;
 }
 
-.search-card {
-  margin-bottom: 20px;
+.action-buttons {
+  display: flex;
+  gap: 12px;
 }
 
-.table-card {
-  margin-bottom: 20px;
+.filter-card {
+  margin-bottom: 24px;
 }
 
-.el-pagination {
-  margin-top: 20px;
-  justify-content: flex-end;
+.filter-section {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.search-input {
+  flex: 1;
+  max-width: 400px;
+}
+
+.filter-group {
+  display: flex;
+  gap: 12px;
+}
+
+.doctor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.doctor-card {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.doctor-card:hover {
+  transform: translateY(-4px);
+}
+
+.doctor-card-content {
+  padding: 4px;
+}
+
+.doctor-header-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  position: relative;
+}
+
+.doctor-avatar {
+  flex-shrink: 0;
+}
+
+.doctor-basic-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.doctor-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+  margin: 0 0 8px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.doctor-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.doctor-department {
+  font-size: 14px;
+  color: #606266;
+}
+
+.status-tag {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.card-divider {
+  margin: 16px 0;
+}
+
+.doctor-stats-section {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.stat-icon {
+  font-size: 24px;
+  color: #409eff;
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #909399;
+}
+
+.doctor-specialties {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.specialty-tag {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doctor-actions {
+  display: flex;
+  justify-content: center;
+  padding-top: 12px;
+  border-top: 1px solid #ebeef5;
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
 }
 </style>

@@ -14,7 +14,11 @@ env_path = Path(__file__).parent / '.env'
 if env_path.exists():
     load_dotenv(env_path)
 
-from app import create_app, db
+# noinspection PyUnresolvedReferences
+from app import create_app
+# noinspection PyUnresolvedReferences
+from extensions import db
+# noinspection PyUnresolvedReferences
 from models import User
 
 def create_test_user():
