@@ -1,9 +1,9 @@
 <template>
-  <div class="login-container">
-    <div class="login-box">
-      <div class="login-header">
-        <h2>🏥 医院综合管理系统</h2>
-        <p>Hospital Management System</p>
+  <div class="login-container" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center;">
+    <div class="login-box" style="background: white; padding: 40px; border-radius: 12px; max-width: 420px; width: 100%;">
+      <div class="login-header" style="text-align: center; margin-bottom: 30px;">
+        <h2 style="margin: 0 0 10px 0; font-size: 24px; color: #333;">🏥 医院综合管理系统</h2>
+        <p style="margin: 0; font-size: 14px; color: #999;">Hospital Management System</p>
       </div>
 
       <el-tabs v-model="activeTab" class="login-tabs">
@@ -134,7 +134,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
@@ -142,6 +142,10 @@ import { register } from '@/api/auth'
 
 const router = useRouter()
 const userStore = useUserStore()
+
+onMounted(() => {
+  console.log('Login page mounted successfully!')
+})
 
 // 标签页
 const activeTab = ref('login')

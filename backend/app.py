@@ -2,15 +2,32 @@
 医院综合管理系统 - 主应用入口
 Hospital Management System - Main Application Entry
 """
-from flask import Flask, render_template, jsonify
-from flask_sqlalchemy import SQLAlchemy
-from flask_cors import CORS
-from flask_jwt_extended import JWTManager
-from config import Config
+import os
+import sys
+from pathlib import Path
+from dotenv import load_dotenv
 
-# 初始化扩展对象
-db = SQLAlchemy()
-jwt = JWTManager()
+# 设置Windows控制台UTF-8编码支持
+if sys.platform == 'win32':
+    try:
+        import codecs
+        sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
+        sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
+    except Exception:
+        pass  # 如果设置失败，继续运行
+
+# 加载环境变量（必须在导入config之前）
+env_path = Path(__file__).parent.parent / '.env'
+if env_path.exists():
+    load_dotenv(env_path)
+    print("[INFO] 已加载环境变量文件: {}".format(env_path))
+else:
+    print("[WARN] 未找到.env文件: {}".format(env_path))
+
+from flask import Flask, render_template, jsonify
+from flask_cors import CORS
+from config import Config
+from extensions import db, jwt
 
 
 def create_app(config_class=Config):
@@ -75,9 +92,14 @@ def create_app(config_class=Config):
     
     # 创建数据库表
     with app.app_context():
-        db.create_all()
-        print("✅ 数据库表创建成功")
-    
+        try:
+            db.create_all()
+            print("[INFO] 数据库表创建成功")
+        except Exception as e:
+            print(f"[WARN] 数据库表创建失败: {e}")
+            print("[WARN] 如果遇到外键类型不兼容错误，请运行: python reset_database.py")
+            # 不抛出异常，允许应用继续运行（假设表已存在）
+
     return app
 
 

@@ -12,7 +12,7 @@ from flask_jwt_extended import (
 )
 from . import auth_bp
 from models import User
-from app import db
+from extensions import db
 from datetime import datetime
 from functools import wraps
 
@@ -110,6 +110,10 @@ def register():
     
     except Exception as e:
         db.session.rollback()
+        import traceback
+        error_detail = traceback.format_exc()
+        print(f"[ERROR] 注册失败: {str(e)}")
+        print(f"[ERROR] 详细错误:\n{error_detail}")
         return error_response(f'注册失败：{str(e)}', 'REGISTER_ERROR', 500)
 
 

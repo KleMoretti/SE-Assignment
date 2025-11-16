@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}绩效详情{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4>绩效详情</h4>
+                    <div>
+                        <a href="{{ url_for('doctor.performance_list') }}" class="btn btn-secondary">返回列表</a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <table class="table table-bordered">
+                                <tr>
+                                    <th width="40%">医生姓名</th>
+                                    <td>{{ performance.doctor.name if performance.doctor else '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>科室</th>
+                                    <td>{{ performance.doctor.department if performance.doctor else '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>职称</th>
+                                    <td>{{ performance.doctor.title if performance.doctor else '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>评估期间</th>
+                                    <td>{{ performance.year }}年{{ performance.month }}月</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-bordered">
+                                <tr>
+                                    <th width="40%">接诊人数</th>
+                                    <td><span class="badge bg-primary fs-6">{{ performance.patient_count or 0 }} 人</span></td>
+                                </tr>
+                                <tr>
+                                    <th>满意度评分</th>
+                                    <td>{{ '%.2f'|format(performance.satisfaction_score) if performance.satisfaction_score else '0.00' }} 分</td>
+                                </tr>
+                                <tr>
+                                    <th>准时率评分</th>
+                                    <td>{{ '%.2f'|format(performance.punctuality_score) if performance.punctuality_score else '0.00' }} 分</td>
+                                </tr>
+                                <tr>
+                                    <th>质量评分</th>
+                                    <td>{{ '%.2f'|format(performance.quality_score) if performance.quality_score else '0.00' }} 分</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info mb-4">
+                        <h5>绩效计算说明</h5>
+                        <p class="mb-2"><strong>综合评分计算公式：</strong></p>
+                        <p class="mb-2">综合评分 = 满意度评分 × 40% + 准时率评分 × 20% + 质量评分 × 40%</p>
+                        <p class="mb-2">
+                            = {{ '%.2f'|format(performance.satisfaction_score or 0) }} × 0.4 + 
+                            {{ '%.2f'|format(performance.punctuality_score or 0) }} × 0.2 + 
+                            {{ '%.2f'|format(performance.quality_score or 0) }} × 0.4
+                        </p>
+                        <p class="mb-2">
+                            = {{ '%.2f'|format((performance.satisfaction_score or 0) * 0.4) }} + 
+                            {{ '%.2f'|format((performance.punctuality_score or 0) * 0.2) }} + 
+                            {{ '%.2f'|format((performance.quality_score or 0) * 0.4) }}
+                        </p>
+                        <hr>
+                        <p class="mb-2"><strong>绩效奖金计算公式：</strong></p>
+                        <p class="mb-0">
+                            绩效奖金 = 接诊人数 × 10 + 综合评分 × 100<br>
+                            = {{ performance.patient_count or 0 }} × 10 + {{ '%.2f'|format(performance.total_score or 0) }} × 100<br>
+                            = ¥{{ '%.2f'|format((performance.patient_count or 0) * 10) }} + ¥{{ '%.2f'|format((performance.total_score or 0) * 100) }}
+                        </p>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h5 class="text-muted">综合评分</h5>
+                                    {% set score = performance.total_score or 0 %}
+                                    <h2 class="
+                                        {% if score >= 4.5 %}text-success
+                                        {% elif score >= 3.5 %}text-warning
+                                        {% else %}text-danger
+                                        {% endif %}
+                                    ">
+                                        {{ '%.2f'|format(score) }} 分
+                                    </h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h5 class="text-muted">绩效奖金</h5>
+                                    <h2 class="text-success">¥{{ '%.2f'|format(performance.bonus or 0) }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if performance.notes %}
+                    <div class="mt-4">
+                        <h5>备注</h5>
+                        <div class="alert alert-secondary">
+                            {{ performance.notes }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

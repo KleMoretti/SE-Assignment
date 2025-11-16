@@ -6,6 +6,7 @@ Werkzeug==3.0.1
 # 数据库驱动
 PyMySQL==1.1.0
 mysqlclient==2.2.0
+cryptography>=41.0.0  # MySQL 8.0+ 认证需要
 
 # RESTful API
 Flask-RESTful==0.3.10
