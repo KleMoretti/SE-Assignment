@@ -23,10 +23,40 @@ const routes = [
   },
   {
     path: '/patient',
-    name: 'Patient',
-    component: () => import('@/views/patient/PatientList.vue'),
+    name: 'PatientIndex',
+    component: () => import('@/views/patient/PatientIndex.vue'),
+    redirect: () => ({ name: 'PatientList' }),
     meta: {
       title: '病人管理',
+      requiresAuth: true
+    },
+    children: [
+      {
+        path: 'list',
+        name: 'PatientList',
+        component: () => import('@/views/patient/PatientList.vue'),
+        meta: { title: '病人信息', requiresAuth: true }
+      },
+      {
+        path: 'appointments',
+        name: 'AppointmentList',
+        component: () => import('@/views/patient/AppointmentList.vue'),
+        meta: { title: '挂号预约管理', requiresAuth: true }
+      },
+      {
+        path: 'records',
+        name: 'MedicalRecordList',
+        component: () => import('@/views/patient/MedicalRecordList.vue'),
+        meta: { title: '病历记录管理', requiresAuth: true }
+      }
+    ]
+  },
+  {
+    path: '/patient/detail/:id',
+    name: 'PatientDetail',
+    component: () => import('@/views/patient/PatientDetail.vue'),
+    meta: {
+      title: '病人详情',
       requiresAuth: true
     }
   },

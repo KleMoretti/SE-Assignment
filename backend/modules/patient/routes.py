@@ -2,13 +2,35 @@
 病人管理子系统 - 路由
 Patient Management - Routes
 """
-from flask import render_template, request, redirect, url_for, flash
+from flask import render_template, request, redirect, url_for, flash, jsonify
 from . import patient_bp
 from backend.extensions import db
 from . import patient_services, record_services, appointment_services
 
 
-# ============= 病人基本信息管理 =============
+# ============= 统一响应格式 =============
+
+def success_response(data=None, message='操作成功', code='SUCCESS'):
+    """成功响应"""
+    return jsonify({
+        'success': True,
+        'message': message,
+        'code': code,
+        'data': data
+    })
+
+
+def error_response(message='操作失败', code='ERROR', status_code=400):
+    """错误响应"""
+    return jsonify({
+        'success': False,
+        'message': message,
+        'code': code,
+        'data': None
+    }), status_code
+
+
+# ============= 传统视图路由 (HTML) =============
 
 @patient_bp.route('/')
 def index():
@@ -16,9 +38,11 @@ def index():
     return render_template('patient/patient_index.html')
 
 
-@patient_bp.route('/patients')
-def patient_list():
-    """病人列表"""
+# --- 病人信息视图 ---
+
+@patient_bp.route('/list')
+def view_patient_list():
+    """病人列表页面"""
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '')
     
@@ -31,14 +55,16 @@ def patient_list():
                          search=search)
 
 
-@patient_bp.route('/patient/add', methods=['GET', 'POST'])
-def patient_add():
-    """添加病人"""
+@patient_bp.route('/add', methods=['GET', 'POST'])
+def view_patient_add():
+    """添加病人页面"""
     if request.method == 'POST':
+        print('>>> [view_patient_add] 收到表单提交')  # 加这一行
+
         try:
             patient_services.add_new_patient(request.form)
             flash('病人信息添加成功！', 'success')
-            return redirect(url_for('patient.patient_list'))
+            return redirect(url_for('patient.view_patient_list'))
         except Exception as e:
             db.session.rollback()
             flash(f'添加失败：{str(e)}', 'error')
@@ -46,16 +72,16 @@ def patient_add():
     return render_template('patient/patient_form.html', patient=None)
 
 
-@patient_bp.route('/patient/edit/<int:id>', methods=['GET', 'POST'])
-def patient_edit(id):
-    """编辑病人信息"""
+@patient_bp.route('/edit/<int:id>', methods=['GET', 'POST'])
+def view_patient_edit(id):
+    """编辑病人信息页面"""
     patient = patient_services.get_patient_by_id(id)
 
     if request.method == 'POST':
         try:
             patient_services.update_patient_info(id, request.form)
             flash('病人信息更新成功！', 'success')
-            return redirect(url_for('patient.patient_list'))
+            return redirect(url_for('patient.view_patient_list'))
         except Exception as e:
             db.session.rollback()
             flash(f'更新失败：{str(e)}', 'error')
@@ -63,9 +89,9 @@ def patient_edit(id):
     return render_template('patient/patient_form.html', patient=patient)
 
 
-@patient_bp.route('/patient/delete/<int:id>', methods=['POST'])
-def patient_delete(id):
-    """删除病人"""
+@patient_bp.route('/delete/<int:id>', methods=['POST'])
+def view_patient_delete(id):
+    """删除病人动作"""
     try:
         patient_services.delete_patient_by_id(id)
         flash('病人信息已删除！', 'success')
@@ -73,21 +99,21 @@ def patient_delete(id):
         db.session.rollback()
         flash(f'删除失败：{str(e)}', 'error')
     
-    return redirect(url_for('patient.patient_list'))
+    return redirect(url_for('patient.view_patient_list'))
 
 
-@patient_bp.route('/patient/detail/<int:id>')
-def patient_detail(id):
-    """病人详情"""
+@patient_bp.route('/detail/<int:id>')
+def view_patient_detail(id):
+    """病人详情页面"""
     patient = patient_services.get_patient_by_id(id)
     return render_template('patient/patient_detail.html', patient=patient)
 
 
-# ============= 病历记录管理 =============
+# --- 病历记录视图 ---
 
-@patient_bp.route('/medical-records')
-def medical_record_list():
-    """病历列表"""
+@patient_bp.route('/medical-records/list')
+def view_medical_record_list():
+    """病历列表页面"""
     page = request.args.get('page', 1, type=int)
     patient_id = request.args.get('patient_id', type=int)
     
@@ -100,14 +126,14 @@ def medical_record_list():
                          patient_id=patient_id)
 
 
-@patient_bp.route('/medical-record/add', methods=['GET', 'POST'])
-def medical_record_add():
-    """添加病历"""
+@patient_bp.route('/medical-records/add', methods=['GET', 'POST'])
+def view_medical_record_add():
+    """添加病历页面"""
     if request.method == 'POST':
         try:
             record_services.add_new_medical_record(request.form)
             flash('病历添加成功！', 'success')
-            return redirect(url_for('patient.medical_record_list'))
+            return redirect(url_for('patient.view_medical_record_list'))
         except Exception as e:
             db.session.rollback()
             flash(f'添加失败：{str(e)}', 'error')
@@ -116,18 +142,18 @@ def medical_record_add():
     return render_template('patient/medical_record_form.html', record=None, patients=patients)
 
 
-@patient_bp.route('/medical-record/detail/<int:id>')
-def medical_record_detail(id):
-    """病历详情"""
+@patient_bp.route('/medical-records/detail/<int:id>')
+def view_medical_record_detail(id):
+    """病历详情页面"""
     record = record_services.get_medical_record_by_id(id)
     return render_template('patient/medical_record_detail.html', record=record)
 
 
-# ============= 挂号预约管理 =============
+# --- 挂号预约视图 ---
 
-@patient_bp.route('/appointments')
-def appointment_list():
-    """预约列表"""
+@patient_bp.route('/appointments/list')
+def view_appointment_list():
+    """预约列表页面"""
     page = request.args.get('page', 1, type=int)
     status = request.args.get('status', '')
     
@@ -140,14 +166,14 @@ def appointment_list():
                          status=status)
 
 
-@patient_bp.route('/appointment/add', methods=['GET', 'POST'])
-def appointment_add():
-    """添加预约"""
+@patient_bp.route('/appointments/add', methods=['GET', 'POST'])
+def view_appointment_add():
+    """添加预约页面"""
     if request.method == 'POST':
         try:
             appointment_services.add_new_appointment(request.form)
             flash('预约添加成功！', 'success')
-            return redirect(url_for('patient.appointment_list'))
+            return redirect(url_for('patient.view_appointment_list'))
         except Exception as e:
             db.session.rollback()
             flash(f'添加失败：{str(e)}', 'error')
@@ -156,9 +182,9 @@ def appointment_add():
     return render_template('patient/appointment_form.html', appointment=None, patients=patients)
 
 
-@patient_bp.route('/appointment/update-status/<int:id>', methods=['POST'])
-def appointment_update_status(id):
-    """更新预约状态"""
+@patient_bp.route('/appointments/update-status/<int:id>', methods=['POST'])
+def view_appointment_update_status(id):
+    """更新预约状态动作"""
     try:
         status = request.form.get('status')
         appointment_services.update_appointment_status(id, status)
@@ -167,4 +193,183 @@ def appointment_update_status(id):
         db.session.rollback()
         flash(f'更新失败：{str(e)}', 'error')
     
-    return redirect(url_for('patient.appointment_list'))
+    return redirect(url_for('patient.view_appointment_list'))
+
+
+# ============= RESTful API (JSON) =============
+
+# --- 病人管理 API ---
+
+@patient_bp.route('/patients', methods=['GET'])
+def api_get_patients():
+    """获取病人列表 (API)"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        search = request.args.get('search', '')
+
+        pagination = patient_services.get_patients_with_pagination(page=page, per_page=per_page, search=search)
+        patients_data = [p.to_dict() for p in pagination.items]
+
+        return success_response({
+            'items': patients_data,
+            'total': pagination.total,
+            'page': page,
+            'per_page': per_page,
+            'pages': pagination.pages
+        })
+    except Exception as e:
+        return error_response(f'获取病人列表失败: {str(e)}', 'GET_PATIENTS_ERROR', 500)
+
+
+@patient_bp.route('/patients/<int:id>', methods=['GET'])
+def api_get_patient(id):
+    """获取单个病人详情 (API)"""
+    try:
+        patient = patient_services.get_patient_by_id(id)
+        return success_response(patient.to_dict())
+    except Exception as e:
+        return error_response(f'获取病人详情失败: {str(e)}', 'GET_PATIENT_ERROR', 404)
+
+
+@patient_bp.route('/patients', methods=['POST'])
+def api_create_patient():
+    """创建新病人 (API)"""
+    try:
+        data = request.get_json()
+        if not data:
+            return error_response('请求数据不能为空', 'INVALID_DATA')
+
+        patient = patient_services.add_new_patient(data)
+        return success_response(patient.to_dict(), '病人创建成功', 'PATIENT_CREATED')
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'创建病人失败: {str(e)}', 'CREATE_PATIENT_ERROR', 500)
+
+
+@patient_bp.route('/patients/<int:id>', methods=['PUT'])
+def api_update_patient(id):
+    """更新病人信息 (API)"""
+    try:
+        data = request.get_json()
+        if not data:
+            return error_response('请求数据不能为空', 'INVALID_DATA')
+
+        patient = patient_services.update_patient_info(id, data)
+        return success_response(patient.to_dict(), '病人信息更新成功', 'PATIENT_UPDATED')
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'更新病人信息失败: {str(e)}', 'UPDATE_PATIENT_ERROR', 500)
+
+
+@patient_bp.route('/patients/<int:id>', methods=['DELETE'])
+def api_delete_patient(id):
+    """删除病人 (API)"""
+    try:
+        patient_services.delete_patient_by_id(id)
+        return success_response(None, '病人删除成功', 'PATIENT_DELETED')
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'删除病人失败: {str(e)}', 'DELETE_PATIENT_ERROR', 500)
+
+
+# --- 挂号预约管理 API ---
+
+@patient_bp.route('/appointments', methods=['GET'])
+def api_get_appointments():
+    """获取预约列表 (API)"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        status = request.args.get('status', '')
+
+        pagination = appointment_services.get_appointments_with_pagination(
+            page=page,
+            per_page=per_page,
+            status=status
+        )
+        items = [a.to_dict() for a in pagination.items]
+
+        return success_response({
+            'items': items,
+            'total': pagination.total,
+            'page': page,
+            'per_page': per_page,
+            'pages': pagination.pages
+        })
+    except Exception as e:
+        return error_response(f'获取预约列表失败: {str(e)}', 'GET_APPOINTMENTS_ERROR', 500)
+
+
+@patient_bp.route('/appointments', methods=['POST'])
+def api_create_appointment():
+    """创建新预约 (API)"""
+    try:
+        data = request.get_json()
+        if not data:
+            return error_response('请求数据不能为空', 'INVALID_DATA')
+
+        appointment = appointment_services.add_new_appointment(data)
+        return success_response(appointment.to_dict(), '预约创建成功', 'APPOINTMENT_CREATED')
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'创建预约失败: {str(e)}', 'CREATE_APPOINTMENT_ERROR', 500)
+
+
+@patient_bp.route('/appointments/<int:id>/status', methods=['PUT'])
+def api_update_appointment_status(id):
+    """更新预约状态 (API)"""
+    try:
+        data = request.get_json()
+        if not data or 'status' not in data:
+            return error_response('缺少状态信息', 'INVALID_DATA')
+
+        appointment = appointment_services.update_appointment_status(id, data['status'])
+        return success_response(appointment.to_dict(), '预约状态更新成功', 'APPOINTMENT_STATUS_UPDATED')
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'更新预约状态失败: {str(e)}', 'UPDATE_APPOINTMENT_STATUS_ERROR', 500)
+
+
+# --- 病历记录管理 API ---
+
+@patient_bp.route('/medical-records', methods=['GET'])
+def api_get_medical_records():
+    """获取病历列表 (API)"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        patient_id = request.args.get('patient_id', type=int)
+
+        pagination = record_services.get_medical_records_with_pagination(
+            page=page,
+            per_page=per_page,
+            patient_id=patient_id
+        )
+        items = [r.to_dict() for r in pagination.items]
+
+        return success_response({
+            'items': items,
+            'total': pagination.total,
+            'page': page,
+            'per_page': per_page,
+            'pages': pagination.pages
+        })
+    except Exception as e:
+        return error_response(f'获取病历列表失败: {str(e)}', 'GET_MEDICAL_RECORDS_ERROR', 500)
+
+
+@patient_bp.route('/medical-records', methods=['POST'])
+def api_create_medical_record():
+    """创建新病历 (API)"""
+    try:
+        data = request.get_json()
+        if not data:
+            return error_response('请求数据不能为空', 'INVALID_DATA')
+
+        record = record_services.add_new_medical_record(data)
+        return success_response(record.to_dict(), '病历创建成功', 'RECORD_CREATED')
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'创建病历失败: {str(e)}', 'CREATE_RECORD_ERROR', 500)
+

@@ -4,6 +4,7 @@ Patient Information Management Services
 """
 from backend.models import Patient
 from backend.extensions import db
+from sqlalchemy import func
 
 def get_patients_with_pagination(page, per_page=10, search=''):
     """获取病人列表（分页和搜索）"""
@@ -21,18 +22,52 @@ def get_patients_with_pagination(page, per_page=10, search=''):
     return pagination
 
 
+def generate_patient_no():
+    """生成下一个病人编号，如 P00000001、P00000002 ..."""
+    max_no = db.session.query(func.max(Patient.patient_no)).scalar()
+    if not max_no:
+        return 'P00000001'
+    # 假设格式为以字母开头 + 数字，比如 P00000001
+    prefix = max_no[0]
+    numeric_part = max_no[1:]
+    try:
+        num = int(numeric_part)
+    except (TypeError, ValueError):
+        # 如果现有数据格式不符合预期，就从 0 开始
+        num = 0
+    return f"{prefix}{num + 1:08d}"
+
+
 def add_new_patient(form_data):
-    """添加新病人"""
+    """添加新病人，支持表单和 JSON 数据"""
+    # 将传入的数据统一转换为 dict，便于处理
+    try:
+        data = dict(form_data)
+    except Exception:
+        data = form_data or {}
+
+    # patient_no：表单提交时通常会传；API 调用时可以不传，由后端自动生成
+    patient_no = data.get('patient_no')
+    if not patient_no:
+        patient_no = generate_patient_no()
+
+    # 安全转换年龄
+    raw_age = data.get('age')
+    try:
+        age = int(raw_age) if raw_age not in (None, '') else None
+    except (TypeError, ValueError):
+        age = None
+
     patient = Patient(
-        patient_no=form_data.get('patient_no'),
-        name=form_data.get('name'),
-        gender=form_data.get('gender'),
-        age=form_data.get('age', type=int),
-        phone=form_data.get('phone'),
-        id_card=form_data.get('id_card'),
-        address=form_data.get('address'),
-        emergency_contact=form_data.get('emergency_contact'),
-        emergency_phone=form_data.get('emergency_phone')
+        patient_no=patient_no,
+        name=data.get('name'),
+        gender=data.get('gender'),
+        age=age,
+        phone=data.get('phone'),
+        id_card=data.get('id_card'),
+        address=data.get('address'),
+        emergency_contact=data.get('emergency_contact'),
+        emergency_phone=data.get('emergency_phone')
     )
     db.session.add(patient)
     db.session.commit()
@@ -68,4 +103,3 @@ def delete_patient_by_id(patient_id):
 def get_all_patients_for_dropdown():
     """获取所有病人用于下拉选择"""
     return Patient.query.all()
-

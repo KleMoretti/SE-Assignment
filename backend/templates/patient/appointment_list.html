@@ -7,7 +7,7 @@
 <div class="container mx-auto mt-10">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold">挂号预约列表</h1>
-        <a href="{{ url_for('patient.appointment_add') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+        <a href="{{ url_for('patient.view_appointment_add') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
             添加新预约
         </a>
     </div>
@@ -39,7 +39,7 @@
                 {% for appointment in appointments %}
                 <tr>
                     <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                        <a href="{{ url_for('patient.patient_detail', id=appointment.patient.id) }}" class="text-blue-500 hover:underline">
+                        <a href="{{ url_for('patient.view_patient_detail', id=appointment.patient.id) }}" class="text-blue-500 hover:underline">
                             {{ appointment.patient.name }}
                         </a>
                     </td>
@@ -55,7 +55,7 @@
                         </span>
                     </td>
                     <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                        <form action="{{ url_for('patient.appointment_update_status', id=appointment.id) }}" method="post" class="inline-block">
+                        <form action="{{ url_for('patient.view_appointment_update_status', id=appointment.id) }}" method="post" class="inline-block">
                             <select name="status" onchange="this.form.submit()" class="text-xs">
                                 <option value="待确认" {% if appointment.status == '待确认' %}selected{% endif %}>待确认</option>
                                 <option value="已确认" {% if appointment.status == '已确认' %}selected{% endif %}>已确认</option>
@@ -75,7 +75,7 @@
 
     <!-- 分页 -->
     <div class="mt-6">
-        {{ render_pagination(pagination, 'patient.appointment_list', status=status) }}
+        {{ render_pagination(pagination, 'patient.view_appointment_list', status=status) }}
     </div>
 </div>
 {% endblock %}

@@ -7,7 +7,7 @@
     <div class="bg-white shadow-md rounded-lg p-8">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-3xl font-bold">病历详情</h1>
-            <a href="{{ url_for('patient.medical_record_list') }}" class="bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded hover:bg-gray-300">
+            <a href="{{ url_for('patient.view_medical_record_list') }}" class="bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded hover:bg-gray-300">
                 返回列表
             </a>
         </div>
@@ -18,7 +18,7 @@
                 <div class="sm:col-span-1">
                     <dt class="text-sm font-medium text-gray-500">病人姓名</dt>
                     <dd class="mt-1 text-lg text-gray-900">
-                        <a href="{{ url_for('patient.patient_detail', id=record.patient.id) }}" class="text-blue-500 hover:underline">
+                        <a href="{{ url_for('patient.view_patient_detail', id=record.patient.id) }}" class="text-blue-500 hover:underline">
                             {{ record.patient.name }}
                         </a>
                     </dd>
@@ -64,4 +64,3 @@
     </div>
 </div>
 {% endblock %}
-

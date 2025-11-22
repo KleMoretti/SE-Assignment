@@ -12,23 +12,22 @@
         <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
             <h2 class="text-xl font-semibold mb-4">病人信息管理</h2>
             <p class="text-gray-600 mb-4">查看、添加、编辑和删除病人的基本信息。</p>
-            <a href="{{ url_for('patient.patient_list') }}" class="text-blue-500 hover:text-blue-700 font-medium">进入病人列表 &rarr;</a>
+            <a href="{{ url_for('patient.view_patient_list') }}" class="text-blue-500 hover:text-blue-700 font-medium">进入病人列表 &rarr;</a>
         </div>
 
         <!-- 病历记录管理 -->
         <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
             <h2 class="text-xl font-semibold mb-4">病历记录管理</h2>
             <p class="text-gray-600 mb-4">管理病人的就诊记录、诊断和治疗方案。</p>
-            <a href="{{ url_for('patient.medical_record_list') }}" class="text-blue-500 hover:text-blue-700 font-medium">查看病历记录 &rarr;</a>
+            <a href="{{ url_for('patient.view_medical_record_list') }}" class="text-blue-500 hover:text-blue-700 font-medium">查看病历记录 &rarr;</a>
         </div>
 
         <!-- 挂号预约管理 -->
         <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
             <h2 class="text-xl font-semibold mb-4">挂号预约管理</h2>
             <p class="text-gray-600 mb-4">处理病人的挂号预约和排班。</p>
-            <a href="{{ url_for('patient.appointment_list') }}" class="text-blue-500 hover:text-blue-700 font-medium">查看预约列表 &rarr;</a>
+            <a href="{{ url_for('patient.view_appointment_list') }}" class="text-blue-500 hover:text-blue-700 font-medium">查看预约列表 &rarr;</a>
         </div>
     </div>
 </div>
 {% endblock %}
-
