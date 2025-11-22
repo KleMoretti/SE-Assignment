@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}{{ '编辑' if record else '添加' }}病历{% endblock %}
+
+{% block content %}
+<div class="container mx-auto mt-10">
+    <h1 class="text-3xl font-bold mb-6">{{ '编辑' if record else '添加' }}病历</h1>
+
+    <div class="bg-white shadow-md rounded-lg p-8">
+        <form method="post">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- 关联病人 -->
+                <div>
+                    <label for="patient_id" class="block text-sm font-medium text-gray-700">病人</label>
+                    <select name="patient_id" id="patient_id" required
+                            class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        {% for patient in patients %}
+                            <option value="{{ patient.id }}" {% if record and record.patient_id == patient.id %}selected{% endif %}>
+                                {{ patient.name }} (ID: {{ patient.patient_no }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- 主治医生 -->
+                <div>
+                    <label for="doctor_id" class="block text-sm font-medium text-gray-700">主治医生ID</label>
+                    <input type="number" name="doctor_id" id="doctor_id" value="{{ record.doctor_id if record else '' }}" required
+                           class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+
+                <!-- 主要症状 -->
+                <div class="md:col-span-2">
+                    <label for="symptoms" class="block text-sm font-medium text-gray-700">主要症状</label>
+                    <textarea name="symptoms" id="symptoms" rows="3" required
+                              class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">{{ record.symptoms if record else '' }}</textarea>
+                </div>
+
+                <!-- 诊断结果 -->
+                <div class="md:col-span-2">
+                    <label for="diagnosis" class="block text-sm font-medium text-gray-700">诊断结果</label>
+                    <textarea name="diagnosis" id="diagnosis" rows="3" required
+                              class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">{{ record.diagnosis if record else '' }}</textarea>
+                </div>
+
+                <!-- 治疗方案 -->
+                <div class="md:col-span-2">
+                    <label for="treatment" class="block text-sm font-medium text-gray-700">治疗方案</label>
+                    <textarea name="treatment" id="treatment" rows="3"
+                              class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">{{ record.treatment if record else '' }}</textarea>
+                </div>
+
+                <!-- 处方 -->
+                <div class="md:col-span-2">
+                    <label for="prescription" class="block text-sm font-medium text-gray-700">处方</label>
+                    <textarea name="prescription" id="prescription" rows="3"
+                              class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">{{ record.prescription if record else '' }}</textarea>
+                </div>
+
+                <!-- 备注 -->
+                <div class="md:col-span-2">
+                    <label for="notes" class="block text-sm font-medium text-gray-700">备注</label>
+                    <textarea name="notes" id="notes" rows="2"
+                              class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">{{ record.notes if record else '' }}</textarea>
+                </div>
+            </div>
+
+            <div class="mt-8 flex justify-end">
+                <a href="{{ url_for('patient.medical_record_list') }}" class="bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded mr-4 hover:bg-gray-300">
+                    取消
+                </a>
+                <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    保存
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

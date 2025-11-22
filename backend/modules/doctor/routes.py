@@ -4,8 +4,8 @@ Doctor Management - Routes
 """
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from . import doctor_bp
-from models import Doctor, DoctorSchedule, DoctorPerformance, Appointment, MedicalRecord
-from extensions import db
+from backend.models import Doctor, DoctorSchedule, DoctorPerformance, Appointment, MedicalRecord
+from backend.extensions import db
 from datetime import datetime, date
 from sqlalchemy import func, extract
 
@@ -1210,5 +1210,3 @@ def get_titles():
 
     except Exception as e:
         return error_response(f'获取职称列表失败：{str(e)}', 'GET_TITLES_ERROR', 500)
-
-

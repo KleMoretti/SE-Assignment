@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}{{ '编辑' if appointment else '添加' }}预约{% endblock %}
+
+{% block content %}
+<div class="container mx-auto mt-10">
+    <h1 class="text-3xl font-bold mb-6">{{ '编辑' if appointment else '添加' }}新预约</h1>
+
+    <div class="bg-white shadow-md rounded-lg p-8">
+        <form method="post">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- 关联病人 -->
+                <div>
+                    <label for="patient_id" class="block text-sm font-medium text-gray-700">病人</label>
+                    <select name="patient_id" id="patient_id" required
+                            class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        {% for patient in patients %}
+                            <option value="{{ patient.id }}" {% if appointment and appointment.patient_id == patient.id %}selected{% endif %}>
+                                {{ patient.name }} (ID: {{ patient.patient_no }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- 预约医生ID -->
+                <div>
+                    <label for="doctor_id" class="block text-sm font-medium text-gray-700">预约医生ID</label>
+                    <input type="number" name="doctor_id" id="doctor_id" value="{{ appointment.doctor_id if appointment else '' }}" required
+                           class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+
+                <!-- 预约科室 -->
+                <div>
+                    <label for="department" class="block text-sm font-medium text-gray-700">预约科室</label>
+                    <input type="text" name="department" id="department" value="{{ appointment.department if appointment else '' }}" required
+                           class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+
+                <!-- 预约日期 -->
+                <div>
+                    <label for="appointment_date" class="block text-sm font-medium text-gray-700">预约日期</label>
+                    <input type="date" name="appointment_date" id="appointment_date" value="{{ appointment.appointment_date.strftime('%Y-%m-%d') if appointment else '' }}" required
+                           class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+
+                <!-- 预约时间 -->
+                <div>
+                    <label for="appointment_time" class="block text-sm font-medium text-gray-700">预约时间</label>
+                    <input type="time" name="appointment_time" id="appointment_time" value="{{ appointment.appointment_time if appointment else '' }}"
+                           class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+
+                <!-- 备注 -->
+                <div class="md:col-span-2">
+                    <label for="notes" class="block text-sm font-medium text-gray-700">备注</label>
+                    <textarea name="notes" id="notes" rows="3"
+                              class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">{{ appointment.notes if appointment else '' }}</textarea>
+                </div>
+            </div>
+
+            <div class="mt-8 flex justify-end">
+                <a href="{{ url_for('patient.appointment_list') }}" class="bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded mr-4 hover:bg-gray-300">
+                    取消
+                </a>
+                <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    保存
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}挂号预约列表{% endblock %}
+
+{% block content %}
+<div class="container mx-auto mt-10">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">挂号预约列表</h1>
+        <a href="{{ url_for('patient.appointment_add') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+            添加新预约
+        </a>
+    </div>
+
+    <!-- 提示信息 -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="bg-{{ 'green' if category == 'success' else 'red' }}-100 border border-{{ 'green' if category == 'success' else 'red' }}-400 text-{{ 'green' if category == 'success' else 'red' }}-700 px-4 py-3 rounded relative mb-4" role="alert">
+                    <span class="block sm:inline">{{ message }}</span>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <table class="min-w-full leading-normal">
+            <thead>
+                <tr>
+                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">病人姓名</th>
+                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">预约医生</th>
+                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">预约科室</th>
+                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">预约日期</th>
+                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">状态</th>
+                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for appointment in appointments %}
+                <tr>
+                    <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                        <a href="{{ url_for('patient.patient_detail', id=appointment.patient.id) }}" class="text-blue-500 hover:underline">
+                            {{ appointment.patient.name }}
+                        </a>
+                    </td>
+                    <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">{{ appointment.doctor.real_name or 'N/A' }}</td>
+                    <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">{{ appointment.department }}</td>
+                    <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">{{ appointment.appointment_date.strftime('%Y-%m-%d') }} {{ appointment.appointment_time }}</td>
+                    <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                            {% if appointment.status == '已确认' %} bg-green-100 text-green-800
+                            {% elif appointment.status == '已取消' %} bg-red-100 text-red-800
+                            {% else %} bg-yellow-100 text-yellow-800 {% endif %}">
+                            {{ appointment.status }}
+                        </span>
+                    </td>
+                    <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                        <form action="{{ url_for('patient.appointment_update_status', id=appointment.id) }}" method="post" class="inline-block">
+                            <select name="status" onchange="this.form.submit()" class="text-xs">
+                                <option value="待确认" {% if appointment.status == '待确认' %}selected{% endif %}>待确认</option>
+                                <option value="已确认" {% if appointment.status == '已确认' %}selected{% endif %}>已确认</option>
+                                <option value="已取消" {% if appointment.status == '已取消' %}selected{% endif %}>已取消</option>
+                            </select>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center py-10 text-gray-500">没有找到挂号预约记录。</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 分页 -->
+    <div class="mt-6">
+        {{ render_pagination(pagination, 'patient.appointment_list', status=status) }}
+    </div>
+</div>
+{% endblock %}
+

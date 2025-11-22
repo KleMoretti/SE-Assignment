@@ -2,11 +2,10 @@
 病人管理子系统 - 路由
 Patient Management - Routes
 """
-from flask import render_template, request, redirect, url_for, flash, jsonify
+from flask import render_template, request, redirect, url_for, flash
 from . import patient_bp
-from backend.models import Patient, MedicalRecord, Appointment
 from backend.extensions import db
-from datetime import datetime
+from . import patient_services, record_services, appointment_services
 
 
 # ============= 病人基本信息管理 =============
@@ -14,7 +13,7 @@ from datetime import datetime
 @patient_bp.route('/')
 def index():
     """病人管理首页"""
-    return render_template('patient_index.html')
+    return render_template('patient/patient_index.html')
 
 
 @patient_bp.route('/patients')
@@ -23,21 +22,11 @@ def patient_list():
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '')
     
-    query = Patient.query
-    if search:
-        query = query.filter(
-            (Patient.name.like(f'%{search}%')) | 
-            (Patient.patient_no.like(f'%{search}%')) |
-            (Patient.phone.like(f'%{search}%'))
-        )
-    
-    pagination = query.order_by(Patient.created_at.desc()).paginate(
-        page=page, per_page=10, error_out=False
-    )
+    pagination = patient_services.get_patients_with_pagination(page=page, search=search)
     patients = pagination.items
     
-    return render_template('patient_list.html', 
-                         patients=patients, 
+    return render_template('patient/patient_list.html',
+                         patients=patients,
                          pagination=pagination,
                          search=search)
 
@@ -47,61 +36,38 @@ def patient_add():
     """添加病人"""
     if request.method == 'POST':
         try:
-            patient = Patient(
-                patient_no=request.form.get('patient_no'),
-                name=request.form.get('name'),
-                gender=request.form.get('gender'),
-                age=request.form.get('age', type=int),
-                phone=request.form.get('phone'),
-                id_card=request.form.get('id_card'),
-                address=request.form.get('address'),
-                emergency_contact=request.form.get('emergency_contact'),
-                emergency_phone=request.form.get('emergency_phone')
-            )
-            db.session.add(patient)
-            db.session.commit()
+            patient_services.add_new_patient(request.form)
             flash('病人信息添加成功！', 'success')
             return redirect(url_for('patient.patient_list'))
         except Exception as e:
             db.session.rollback()
             flash(f'添加失败：{str(e)}', 'error')
     
-    return render_template('patient_form.html', patient=None)
+    return render_template('patient/patient_form.html', patient=None)
 
 
 @patient_bp.route('/patient/edit/<int:id>', methods=['GET', 'POST'])
 def patient_edit(id):
     """编辑病人信息"""
-    patient = Patient.query.get_or_404(id)
-    
+    patient = patient_services.get_patient_by_id(id)
+
     if request.method == 'POST':
         try:
-            patient.name = request.form.get('name')
-            patient.gender = request.form.get('gender')
-            patient.age = request.form.get('age', type=int)
-            patient.phone = request.form.get('phone')
-            patient.id_card = request.form.get('id_card')
-            patient.address = request.form.get('address')
-            patient.emergency_contact = request.form.get('emergency_contact')
-            patient.emergency_phone = request.form.get('emergency_phone')
-            
-            db.session.commit()
+            patient_services.update_patient_info(id, request.form)
             flash('病人信息更新成功！', 'success')
             return redirect(url_for('patient.patient_list'))
         except Exception as e:
             db.session.rollback()
             flash(f'更新失败：{str(e)}', 'error')
     
-    return render_template('patient_form.html', patient=patient)
+    return render_template('patient/patient_form.html', patient=patient)
 
 
 @patient_bp.route('/patient/delete/<int:id>', methods=['POST'])
 def patient_delete(id):
     """删除病人"""
     try:
-        patient = Patient.query.get_or_404(id)
-        db.session.delete(patient)
-        db.session.commit()
+        patient_services.delete_patient_by_id(id)
         flash('病人信息已删除！', 'success')
     except Exception as e:
         db.session.rollback()
@@ -113,8 +79,8 @@ def patient_delete(id):
 @patient_bp.route('/patient/detail/<int:id>')
 def patient_detail(id):
     """病人详情"""
-    patient = Patient.query.get_or_404(id)
-    return render_template('patient_detail.html', patient=patient)
+    patient = patient_services.get_patient_by_id(id)
+    return render_template('patient/patient_detail.html', patient=patient)
 
 
 # ============= 病历记录管理 =============
@@ -125,17 +91,11 @@ def medical_record_list():
     page = request.args.get('page', 1, type=int)
     patient_id = request.args.get('patient_id', type=int)
     
-    query = MedicalRecord.query
-    if patient_id:
-        query = query.filter_by(patient_id=patient_id)
-    
-    pagination = query.order_by(MedicalRecord.visit_date.desc()).paginate(
-        page=page, per_page=10, error_out=False
-    )
+    pagination = record_services.get_medical_records_with_pagination(page=page, patient_id=patient_id)
     records = pagination.items
     
-    return render_template('medical_record_list.html', 
-                         records=records, 
+    return render_template('patient/medical_record_list.html',
+                         records=records,
                          pagination=pagination,
                          patient_id=patient_id)
 
@@ -145,32 +105,22 @@ def medical_record_add():
     """添加病历"""
     if request.method == 'POST':
         try:
-            record = MedicalRecord(
-                patient_id=request.form.get('patient_id', type=int),
-                doctor_id=request.form.get('doctor_id', type=int),
-                diagnosis=request.form.get('diagnosis'),
-                symptoms=request.form.get('symptoms'),
-                treatment=request.form.get('treatment'),
-                prescription=request.form.get('prescription'),
-                notes=request.form.get('notes')
-            )
-            db.session.add(record)
-            db.session.commit()
+            record_services.add_new_medical_record(request.form)
             flash('病历添加成功！', 'success')
             return redirect(url_for('patient.medical_record_list'))
         except Exception as e:
             db.session.rollback()
             flash(f'添加失败：{str(e)}', 'error')
     
-    patients = Patient.query.all()
-    return render_template('medical_record_form.html', record=None, patients=patients)
+    patients = patient_services.get_all_patients_for_dropdown()
+    return render_template('patient/medical_record_form.html', record=None, patients=patients)
 
 
 @patient_bp.route('/medical-record/detail/<int:id>')
 def medical_record_detail(id):
     """病历详情"""
-    record = MedicalRecord.query.get_or_404(id)
-    return render_template('medical_record_detail.html', record=record)
+    record = record_services.get_medical_record_by_id(id)
+    return render_template('patient/medical_record_detail.html', record=record)
 
 
 # ============= 挂号预约管理 =============
@@ -181,17 +131,11 @@ def appointment_list():
     page = request.args.get('page', 1, type=int)
     status = request.args.get('status', '')
     
-    query = Appointment.query
-    if status:
-        query = query.filter_by(status=status)
-    
-    pagination = query.order_by(Appointment.appointment_date.desc()).paginate(
-        page=page, per_page=10, error_out=False
-    )
+    pagination = appointment_services.get_appointments_with_pagination(page=page, status=status)
     appointments = pagination.items
     
-    return render_template('appointment_list.html', 
-                         appointments=appointments, 
+    return render_template('patient/appointment_list.html',
+                         appointments=appointments,
                          pagination=pagination,
                          status=status)
 
@@ -201,37 +145,26 @@ def appointment_add():
     """添加预约"""
     if request.method == 'POST':
         try:
-            appointment = Appointment(
-                patient_id=request.form.get('patient_id', type=int),
-                doctor_id=request.form.get('doctor_id', type=int),
-                appointment_date=datetime.strptime(request.form.get('appointment_date'), '%Y-%m-%d'),
-                appointment_time=request.form.get('appointment_time'),
-                department=request.form.get('department'),
-                notes=request.form.get('notes')
-            )
-            db.session.add(appointment)
-            db.session.commit()
+            appointment_services.add_new_appointment(request.form)
             flash('预约添加成功！', 'success')
             return redirect(url_for('patient.appointment_list'))
         except Exception as e:
             db.session.rollback()
             flash(f'添加失败：{str(e)}', 'error')
     
-    patients = Patient.query.all()
-    return render_template('appointment_form.html', appointment=None, patients=patients)
+    patients = patient_services.get_all_patients_for_dropdown()
+    return render_template('patient/appointment_form.html', appointment=None, patients=patients)
 
 
 @patient_bp.route('/appointment/update-status/<int:id>', methods=['POST'])
 def appointment_update_status(id):
     """更新预约状态"""
     try:
-        appointment = Appointment.query.get_or_404(id)
-        appointment.status = request.form.get('status')
-        db.session.commit()
+        status = request.form.get('status')
+        appointment_services.update_appointment_status(id, status)
         flash('预约状态更新成功！', 'success')
     except Exception as e:
         db.session.rollback()
         flash(f'更新失败：{str(e)}', 'error')
     
     return redirect(url_for('patient.appointment_list'))
-

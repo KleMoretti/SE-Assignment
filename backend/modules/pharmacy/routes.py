@@ -4,8 +4,8 @@ Pharmacy Management - Routes
 """
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from . import pharmacy_bp
-from models import Medicine, MedicineInventory, MedicinePurchase
-from extensions import db
+from backend.models import Medicine, MedicineInventory, MedicinePurchase
+from backend.extensions import db
 from datetime import datetime
 
 

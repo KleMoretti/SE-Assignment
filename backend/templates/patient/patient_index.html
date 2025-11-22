@@ -1,44 +1,34 @@
 {% extends "base.html" %}
 
-{% block title %}病人管理系统{% endblock %}
+{% block title %}病人管理{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1>病人管理系统</h1>
-    <p>Patient Management System</p>
-</div>
+<div class="container mx-auto mt-10">
+    <h1 class="text-3xl font-bold mb-6">病人管理系统</h1>
+    <p class="mb-8">欢迎使用病人管理系统。请从下面的选项中选择一个开始。</p>
 
-<div class="subsystem-grid">
-    <div class="subsystem-card">
-        <h3>病人基本信息管理</h3>
-        <p>添加、编辑、查询和删除病人基本信息</p>
-        <div class="card-actions">
-            <a href="{{ url_for('patient.patient_list') }}" class="btn btn-secondary">病人列表</a>
-            <a href="{{ url_for('patient.patient_add') }}" class="btn btn-primary">添加病人</a>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- 病人信息管理 -->
+        <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+            <h2 class="text-xl font-semibold mb-4">病人信息管理</h2>
+            <p class="text-gray-600 mb-4">查看、添加、编辑和删除病人的基本信息。</p>
+            <a href="{{ url_for('patient.patient_list') }}" class="text-blue-500 hover:text-blue-700 font-medium">进入病人列表 &rarr;</a>
+        </div>
+
+        <!-- 病历记录管理 -->
+        <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+            <h2 class="text-xl font-semibold mb-4">病历记录管理</h2>
+            <p class="text-gray-600 mb-4">管理病人的就诊记录、诊断和治疗方案。</p>
+            <a href="{{ url_for('patient.medical_record_list') }}" class="text-blue-500 hover:text-blue-700 font-medium">查看病历记录 &rarr;</a>
+        </div>
+
+        <!-- 挂号预约管理 -->
+        <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+            <h2 class="text-xl font-semibold mb-4">挂号预约管理</h2>
+            <p class="text-gray-600 mb-4">处理病人的挂号预约和排班。</p>
+            <a href="{{ url_for('patient.appointment_list') }}" class="text-blue-500 hover:text-blue-700 font-medium">查看预约列表 &rarr;</a>
         </div>
     </div>
-
-    <div class="subsystem-card">
-        <h3>病历记录管理</h3>
-        <p>记录和管理病人的诊疗信息</p>
-        <div class="card-actions">
-            <a href="{{ url_for('patient.medical_record_list') }}" class="btn btn-secondary">病历列表</a>
-            <a href="{{ url_for('patient.medical_record_add') }}" class="btn btn-primary">添加病历</a>
-        </div>
-    </div>
-
-    <div class="subsystem-card">
-        <h3>挂号预约管理</h3>
-        <p>管理病人的预约和挂号信息</p>
-        <div class="card-actions">
-            <a href="{{ url_for('patient.appointment_list') }}" class="btn btn-secondary">预约列表</a>
-            <a href="{{ url_for('patient.appointment_add') }}" class="btn btn-primary">添加预约</a>
-        </div>
-    </div>
-</div>
-
-<div class="back-link">
-    <a href="/">← 返回首页</a>
 </div>
 {% endblock %}
 
