@@ -16,6 +16,9 @@
         <el-button @click="goToSchedule" :icon="Calendar">
           排班管理
         </el-button>
+        <el-button @click="goToLeave" :icon="Calendar">
+          请假管理
+        </el-button>
         <el-button @click="goToPerformance" :icon="TrendCharts">
           绩效管理
         </el-button>
@@ -680,6 +683,10 @@ const goToSchedule = () => {
   router.push('/doctor/schedule')
 }
 
+const goToLeave = () => {
+  router.push('/doctor/leave')
+}
+
 const goToPerformance = () => {
   router.push('/doctor/performance')
 }
@@ -877,10 +884,9 @@ onMounted(() => {
 }
 
 .specialty-tag {
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 100%;
+  white-space: normal;
+  word-break: break-all;
 }
 
 .doctor-actions {

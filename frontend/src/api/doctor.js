@@ -175,6 +175,25 @@ const normalizePerformanceStatistics = (stats = {}) => ({
   totalBonus: stats.total_bonus || 0
 })
 
+const normalizeLeave = (leave = {}) => ({
+  id: leave.id,
+  doctorId: leave.doctor_id,
+  doctorName: leave.doctor_name,
+  leaveType: leave.leave_type,
+  startDate: leave.start_date,
+  endDate: leave.end_date,
+  days: leave.days,
+  reason: leave.reason,
+  status: leave.status,
+  approverId: leave.approver_id,
+  approvalDate: leave.approval_date,
+  approvalNotes: leave.approval_notes,
+  substituteDoctorId: leave.substitute_doctor_id,
+  substituteDoctorName: leave.substitute_doctor_name,
+  createdAt: leave.created_at,
+  updatedAt: leave.updated_at
+})
+
 const buildSchedulePayload = (doctorId, data = {}) => {
   const payload = {
     doctor_id: doctorId,
@@ -185,6 +204,24 @@ const buildSchedulePayload = (doctorId, data = {}) => {
     max_patients: data.maxPatients,
     status: data.status,
     notes: data.notes
+  }
+
+  return removeUndefined(payload)
+}
+
+const buildLeavePayload = (data = {}) => {
+  const trimmedReason = typeof data.reason === 'string' ? data.reason.trim() : data.reason
+
+  const payload = {
+    doctor_id: data.doctorId,
+    leave_type: data.leaveType,
+    start_date: formatDateValue(data.startDate),
+    end_date: formatDateValue(data.endDate),
+    // 如果原因为空字符串或全是空白，则不传给后端，避免触发最小长度校验
+    reason: trimmedReason === '' || trimmedReason === undefined ? undefined : trimmedReason,
+    status: data.status,
+    substitute_doctor_id: data.substituteDoctorId,
+    approval_notes: data.approvalNotes
   }
 
   return removeUndefined(payload)
@@ -342,6 +379,185 @@ export function deleteSchedule(doctorId, scheduleId) {
     url: `/doctor/schedules/${scheduleId}`,
     method: 'delete'
   })
+}
+
+// 按科室和日期范围获取排班总览
+export function getDepartmentSchedules(params = {}) {
+  const {
+    department,
+    startDate,
+    endDate,
+    shift,
+    status = 'available'
+  } = params
+
+  return request({
+    url: '/doctor/schedules/overview',
+    method: 'get',
+    params: removeUndefined({
+      department,
+      start_date: startDate,
+      end_date: endDate,
+      shift,
+      status
+    })
+  }).then((res) => {
+    const data = res?.data || {}
+    const rawList = data.list || data.items || []
+    const list = rawList.map((item) => {
+      const schedule = normalizeSchedule(item)
+      return {
+        ...schedule,
+        department: item.department || item.doctor_department || item.department_name
+      }
+    })
+
+    return {
+      ...res,
+      data: {
+        ...data,
+        list,
+        items: list,
+        total: data.total ?? list.length
+      }
+    }
+  })
+}
+
+// 获取请假列表
+export function getLeaveList(params = {}) {
+  const {
+    page = 1,
+    pageSize = 10,
+    doctorId,
+    status,
+    leaveType,
+    startDate,
+    endDate
+  } = params
+
+  return request({
+    url: '/doctor/leaves',
+    method: 'get',
+    params: removeUndefined({
+      page,
+      per_page: pageSize,
+      doctor_id: doctorId,
+      status,
+      leave_type: leaveType,
+      start_date: startDate,
+      end_date: endDate
+    })
+  }).then((res) => {
+    const data = res?.data || {}
+    const list = (data.list || data.items || []).map(normalizeLeave)
+
+    return {
+      ...res,
+      data: {
+        ...data,
+        list,
+        items: list
+      }
+    }
+  })
+}
+
+// 获取指定医生的请假记录
+export function getDoctorLeaves(doctorId, params = {}) {
+  const { status, startDate, endDate } = params
+
+  return request({
+    url: `/doctor/doctors/${doctorId}/leaves`,
+    method: 'get',
+    params: removeUndefined({
+      status,
+      start_date: startDate,
+      end_date: endDate
+    })
+  }).then((res) => {
+    const data = res?.data || {}
+    const leaves = (data.leaves || data.list || data.items || []).map(normalizeLeave)
+    const doctor = data.doctor ? normalizeDoctorBase(data.doctor) : null
+
+    return {
+      ...res,
+      data: {
+        ...data,
+        doctor,
+        leaves,
+        list: leaves,
+        items: leaves,
+        total: data.total ?? leaves.length
+      }
+    }
+  })
+}
+
+// 创建请假申请
+export function createLeave(data) {
+  return request({
+    url: '/doctor/leaves',
+    method: 'post',
+    data: buildLeavePayload(data)
+  }).then((res) => ({
+    ...res,
+    data: normalizeLeave(res?.data)
+  }))
+}
+
+// 更新请假申请
+export function updateLeave(id, data) {
+  return request({
+    url: `/doctor/leaves/${id}`,
+    method: 'put',
+    data: buildLeavePayload(data)
+  }).then((res) => ({
+    ...res,
+    data: normalizeLeave(res?.data)
+  }))
+}
+
+// 删除请假记录
+export function deleteLeave(id) {
+  return request({
+    url: `/doctor/leaves/${id}`,
+    method: 'delete'
+  })
+}
+
+// 审批通过请假
+export function approveLeave(id, data = {}) {
+  const payload = removeUndefined({
+    approver_id: data.approverId,
+    approval_notes: data.approvalNotes
+  })
+
+  return request({
+    url: `/doctor/leaves/${id}/approve`,
+    method: 'put',
+    data: payload
+  }).then((res) => ({
+    ...res,
+    data: normalizeLeave(res?.data)
+  }))
+}
+
+// 审批拒绝请假
+export function rejectLeave(id, data = {}) {
+  const payload = removeUndefined({
+    approver_id: data.approverId,
+    approval_notes: data.approvalNotes
+  })
+
+  return request({
+    url: `/doctor/leaves/${id}/reject`,
+    method: 'put',
+    data: payload
+  }).then((res) => ({
+    ...res,
+    data: normalizeLeave(res?.data)
+  }))
 }
 
 // 获取医生绩效

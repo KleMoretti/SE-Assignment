@@ -58,6 +58,15 @@ const routes = [
     }
   },
   {
+    path: '/doctor/leave',
+    name: 'DoctorLeave',
+    component: () => import('@/views/doctor/DoctorLeave.vue'),
+    meta: {
+      title: '医生请假管理',
+      requiresAuth: true
+    }
+  },
+  {
     path: '/doctor/performance',
     name: 'DoctorPerformance',
     component: () => import('@/views/doctor/DoctorPerformance.vue'),
