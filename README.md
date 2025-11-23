@@ -70,50 +70,52 @@
 
 ### 前置要求
 
-- **后端开发**: Python 3.8+, MySQL 8.0+
-- **前端开发**: Node.js 16+, npm/yarn
-- **生产部署**: Docker + Docker Compose
+- **后端**: Python 3.8+、MySQL 8.0+
+- **前端**: Node.js 16+、npm
 
-### 开发环境启动
-
-#### 方式一：Docker Compose（推荐）
+### 一键启动开发环境（推荐流程）
 
 ```bash
 # 1. 克隆项目
 git clone <repository-url>
 cd hospital-management-system
 
-# 2. 启动所有服务
-docker-compose up -d
+# 2. 创建并激活虚拟环境（可选但推荐）
+python -m venv venv
+venv\Scripts\activate      # Windows
+# source venv/bin/activate  # macOS / Linux
 
-# 3. 查看服务状态
-docker-compose ps
-```
-
-**访问地址:**
-- 前端应用: http://localhost/
-- 后端API: http://localhost:5000/
-
-#### 方式二：手动启动
-
-```bash
-# 1. 后端启动
+# 3. 安装后端依赖
 cd backend
 pip install -r requirements.txt
-cp ../env.example .env  # 配置环境变量
-python app.py
 
-# 2. 前端启动（新终端）
+# 4. 配置环境变量（在项目根目录）
+cd ..
+copy env.example .env       # Windows
+# cp env.example .env       # macOS / Linux
+
+# 5. 初始化数据库（首次运行需要）
+mysql -u root -p < backend/init_database.sql
+python -c "from backend.app import create_app, db; app = create_app(); app.app_context().push(); db.create_all(); print('✅ 数据库表创建成功')"
+
+# 6. 启动后端API服务
+python backend/app.py
+```
+
+在另一个终端启动前端：
+
+```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-**访问地址:**
-- 前端应用: http://localhost:3000/
-- 后端API: http://localhost:5000/
+**默认访问地址:**
 
-> 💡 **详细安装步骤请查看**: [📖 INSTALLATION.md](INSTALLATION.md)
+- 后端 API: http://localhost:5000/
+- 前端应用: http://localhost:5173/
+
+> 💡 **更详细的环境准备与排错说明请查看**: [📖 INSTALLATION.md](INSTALLATION.md)
 
 ---
 
