@@ -206,6 +206,14 @@ class Doctor(db.Model):
     def __repr__(self):
         return f'<Doctor {self.name}>'
     
+    # 添加索引提高查询性能
+    __table_args__ = (
+        db.Index('idx_doctor_no', 'doctor_no'),
+        db.Index('idx_department', 'department'),
+        db.Index('idx_status', 'status'),
+        db.Index('idx_name', 'name'),
+    )
+    
     def to_dict(self) -> Dict:
         """转换为字典（用于JSON序列化）"""
         return {
@@ -258,7 +266,9 @@ class DoctorSchedule(db.Model):
             'max_patients': self.max_patients,
             'status': self.status,
             'notes': self.notes,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            # 预留字段：已预约人数，当前尚未与挂号系统联动，默认返回0
+            'booked_count': 0
         }
 
 

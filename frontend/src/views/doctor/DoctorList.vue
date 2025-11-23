@@ -16,6 +16,9 @@
         <el-button @click="goToSchedule" :icon="Calendar">
           排班管理
         </el-button>
+        <el-button @click="goToLeave" :icon="Calendar">
+          请假管理
+        </el-button>
         <el-button @click="goToPerformance" :icon="TrendCharts">
           绩效管理
         </el-button>
@@ -24,18 +27,19 @@
 
     <!-- 搜索和筛选区域 -->
     <el-card class="filter-card" shadow="never">
-      <div class="filter-section">
-        <el-input
-          v-model="searchQuery"
-          placeholder="搜索医生姓名、工号..."
-          :prefix-icon="Search"
-          clearable
-          @input="handleSearch"
-          class="search-input"
-        />
-
-        <div class="filter-group">
-          <el-select v-model="filterDepartment" placeholder="全部科室" clearable @change="handleFilter">
+      <el-row :gutter="16" align="middle">
+        <el-col :span="8">
+          <el-input
+            v-model="searchQuery"
+            placeholder="搜索医生姓名、工号..."
+            :prefix-icon="Search"
+            clearable
+            @input="handleSearch"
+            size="default"
+          />
+        </el-col>
+        <el-col :span="4">
+          <el-select v-model="filterDepartment" placeholder="全部科室" clearable @change="handleFilter" style="width: 100%;">
             <el-option
               v-for="dept in departments"
               :key="dept.id"
@@ -43,8 +47,9 @@
               :value="dept.id"
             />
           </el-select>
-
-          <el-select v-model="filterTitle" placeholder="全部职称" clearable @change="handleFilter">
+        </el-col>
+        <el-col :span="4">
+          <el-select v-model="filterTitle" placeholder="全部职称" clearable @change="handleFilter" style="width: 100%;">
             <el-option
               v-for="title in titles"
               :key="title"
@@ -52,22 +57,91 @@
               :value="title"
             />
           </el-select>
-
-          <el-select v-model="filterStatus" placeholder="全部状态" clearable @change="handleFilter">
+        </el-col>
+        <el-col :span="3">
+          <el-select v-model="filterStatus" placeholder="全部状态" clearable @change="handleFilter" style="width: 100%;">
             <el-option label="在职" value="active" />
             <el-option label="离职" value="inactive" />
           </el-select>
+        </el-col>
+        <el-col :span="2">
+          <el-button @click="showAdvancedFilter = !showAdvancedFilter" :icon="Filter" style="width: 100%;">
+            筛选
+          </el-button>
+        </el-col>
+        <el-col :span="3">
+          <el-radio-group v-model="viewMode" size="default" style="width: 100%;">
+            <el-radio-button value="grid" style="width: 50%;">
+              <el-icon><Grid /></el-icon>
+            </el-radio-button>
+            <el-radio-button value="list" style="width: 50%;">
+              <el-icon><List /></el-icon>
+            </el-radio-button>
+          </el-radio-group>
+        </el-col>
+      </el-row>
+
+      <!-- 高级筛选面板 -->
+      <el-collapse-transition>
+        <div v-show="showAdvancedFilter" class="advanced-filter">
+          <el-divider />
+          <el-row :gutter="16" align="middle">
+            <el-col :span="5">
+              <el-input v-model="advancedFilters.minAge" placeholder="最小年龄" type="number" size="default" />
+            </el-col>
+            <el-col :span="5">
+              <el-input v-model="advancedFilters.maxAge" placeholder="最大年龄" type="number" size="default" />
+            </el-col>
+            <el-col :span="5">
+              <el-select v-model="advancedFilters.education" placeholder="学历" clearable style="width: 100%;">
+                <el-option label="本科" value="本科" />
+                <el-option label="硕士" value="硕士" />
+                <el-option label="博士" value="博士" />
+              </el-select>
+            </el-col>
+            <el-col :span="9">
+              <el-space>
+                <el-button type="primary" @click="applyAdvancedFilter">应用筛选</el-button>
+                <el-button @click="resetAdvancedFilter">重置</el-button>
+              </el-space>
+            </el-col>
+          </el-row>
         </div>
-      </div>
+      </el-collapse-transition>
     </el-card>
 
     <!-- 医生列表卡片 -->
-    <div v-loading="loading" element-loading-text="加载中...">
-      <el-empty v-if="!loading && doctorList.length === 0" description="暂无医生数据">
+    <div>
+      <!-- 骨架屏加载 -->
+      <div v-if="loading" class="skeleton-container">
+        <div :class="viewMode === 'grid' ? 'doctor-grid' : 'doctor-list-view'">
+          <el-skeleton
+            v-for="i in pagination.pageSize"
+            :key="i"
+            :loading="true"
+            animated
+            :class="viewMode === 'grid' ? 'skeleton-card' : 'skeleton-list-item'"
+          >
+            <template #template>
+              <div class="skeleton-content">
+                <el-skeleton-item variant="circle" style="width: 60px; height: 60px;" />
+                <div style="flex: 1; margin-left: 16px;">
+                  <el-skeleton-item variant="h3" style="width: 50%;" />
+                  <el-skeleton-item variant="text" style="margin-top: 8px;" />
+                  <el-skeleton-item variant="text" style="margin-top: 8px; width: 70%;" />
+                </div>
+              </div>
+            </template>
+          </el-skeleton>
+        </div>
+      </div>
+
+      <el-empty v-else-if="!loading && doctorList.length === 0" description="暂无医生数据">
         <el-button type="primary" @click="showAddDialog">添加医生</el-button>
       </el-empty>
 
-      <div v-else class="doctor-grid">
+      <!-- 网格视图 -->
+      <div v-else-if="viewMode === 'grid'" class="doctor-grid">
         <el-card
           v-for="doctor in doctorList"
           :key="doctor.id"
@@ -78,12 +152,7 @@
           <div class="doctor-card-content">
             <div class="doctor-header-section">
               <el-avatar :size="60" class="doctor-avatar">
-                <template v-if="doctor.avatar">
-                  <img :src="doctor.avatar" :alt="doctor.name" />
-                </template>
-                <template v-else>
-                  {{ doctor.name.charAt(0) }}
-                </template>
+                {{ doctor.name.charAt(0) }}
               </el-avatar>
 
               <div class="doctor-basic-info">
@@ -114,17 +183,10 @@
                 </div>
               </div>
               <div class="stat-item">
-                <el-icon class="stat-icon"><Star /></el-icon>
+                <el-icon class="stat-icon"><User /></el-icon>
                 <div class="stat-content">
-                  <span class="stat-value">{{ doctor.rating || 'N/A' }}</span>
-                  <span class="stat-label">评分</span>
-                </div>
-              </div>
-              <div class="stat-item">
-                <el-icon class="stat-icon"><Calendar /></el-icon>
-                <div class="stat-content">
-                  <span class="stat-value">{{ doctor.scheduleCount || 0 }}</span>
-                  <span class="stat-label">排班数</span>
+                  <span class="stat-value">{{ doctor.age || '-' }}</span>
+                  <span class="stat-label">年龄</span>
                 </div>
               </div>
             </div>
@@ -146,16 +208,10 @@
 
             <div class="doctor-actions" @click.stop>
               <el-button-group>
-                <el-tooltip content="查看排班" placement="top">
-                  <el-button size="small" :icon="Calendar" @click="viewSchedule(doctor.id)" />
-                </el-tooltip>
-                <el-tooltip content="查看绩效" placement="top">
-                  <el-button size="small" :icon="TrendCharts" @click="viewPerformance(doctor.id)" />
-                </el-tooltip>
-                <el-tooltip content="编辑信息" placement="top">
+                <el-tooltip content="编辑" placement="top">
                   <el-button size="small" :icon="Edit" @click="editDoctor(doctor)" />
                 </el-tooltip>
-                <el-tooltip content="删除医生" placement="top">
+                <el-tooltip content="删除" placement="top">
                   <el-button size="small" :icon="Delete" type="danger" @click="deleteDoctor(doctor.id)" />
                 </el-tooltip>
               </el-button-group>
@@ -163,6 +219,70 @@
           </div>
         </el-card>
       </div>
+
+      <!-- 列表视图 -->
+      <el-table
+        v-else
+        :data="doctorList"
+        stripe
+        border
+        class="doctor-table"
+        height="calc(100vh - 450px)"
+      >
+        <el-table-column label="医生" min-width="180" fixed="left">
+          <template #default="{ row }">
+            <div class="doctor-info-cell">
+              <el-avatar :size="40" class="cell-avatar">
+                {{ row.name.charAt(0) }}
+              </el-avatar>
+              <div class="cell-text">
+                <div class="cell-name">{{ row.name }}</div>
+                <div class="cell-no">工号: {{ row.doctorNo }}</div>
+              </div>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="department" label="科室" min-width="100" />
+        <el-table-column prop="title" label="职称" min-width="110" />
+        <el-table-column prop="phone" label="联系电话" min-width="130" />
+        <el-table-column prop="email" label="邮箱" min-width="180" show-overflow-tooltip />
+        <el-table-column label="患者数" min-width="90" align="center">
+          <template #default="{ row }">
+            <el-tag type="info" size="small">{{ row.patientCount || 0 }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="排班数" min-width="80" align="center">
+          <template #default="{ row }">
+            <el-tag size="small">{{ row.scheduleCount || 0 }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="状态" min-width="80" align="center">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">
+              {{ row.status === 'active' ? '在职' : '离职' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="200" fixed="right" align="center">
+          <template #default="{ row }">
+            <div class="doctor-table-actions">
+              <el-button-group size="small">
+                <el-tooltip content="查看" placement="top">
+                  <el-button :icon="View" @click="viewDoctorDetail(row.id)" size="small">
+                    查看
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="编辑" placement="top">
+                  <el-button :icon="Edit" @click="editDoctor(row)" size="small" circle />
+                </el-tooltip>
+                <el-tooltip content="删除" placement="top">
+                  <el-button :icon="Delete" type="danger" @click="deleteDoctor(row.id)" size="small" circle />
+                </el-tooltip>
+              </el-button-group>
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
     </div>
 
     <!-- 分页 -->
@@ -199,7 +319,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="工号" prop="doctorNo">
-              <el-input v-model="formData.doctorNo" placeholder="请输入工号" />
+              <el-input v-model="formData.doctorNo" placeholder="请输入工号（3-20个字符）" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -215,7 +335,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="年龄" prop="age">
-              <el-input-number v-model="formData.age" :min="20" :max="100" />
+              <el-input-number v-model="formData.age" :min="22" :max="70" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -304,7 +424,8 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  Plus, Calendar, TrendCharts, Search, User, Star, Edit, Delete
+  Plus, Search, User, Star, Edit, Delete,
+  Filter, Grid, List, Calendar, TrendCharts
 } from '@element-plus/icons-vue'
 import { getDoctorList, createDoctor, updateDoctor, deleteDoctor as deleteDoctorApi, getDepartments } from '@/api/doctor'
 
@@ -322,6 +443,15 @@ const searchQuery = ref('')
 const filterDepartment = ref('')
 const filterTitle = ref('')
 const filterStatus = ref('')
+const showAdvancedFilter = ref(false)
+const viewMode = ref('grid') // 'grid' or 'list'
+const selectedDoctors = ref([]) // 保留用于未来扩展
+
+const advancedFilters = reactive({
+  minAge: '',
+  maxAge: '',
+  education: ''
+})
 
 const doctorList = ref([])
 const departments = ref([])
@@ -332,6 +462,36 @@ const pagination = reactive({
   pageSize: 10
 })
 const total = ref(0)
+
+const validateHireDate = (rule, value, callback) => {
+  if (!value) {
+    callback()
+    return
+  }
+
+  let date
+  if (value instanceof Date) {
+    date = value
+  } else {
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.getTime())) {
+      callback(new Error('请选择有效的日期'))
+      return
+    }
+    date = parsed
+  }
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const checkDate = new Date(date)
+  checkDate.setHours(0, 0, 0, 0)
+
+  if (checkDate.getTime() > today.getTime()) {
+    callback(new Error('入职日期不能晚于今天'))
+  } else {
+    callback()
+  }
+}
 
 const formData = reactive({
   name: '',
@@ -350,7 +510,10 @@ const formData = reactive({
 
 const formRules = {
   name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
-  doctorNo: [{ required: true, message: '请输入工号', trigger: 'blur' }],
+  doctorNo: [
+    { required: true, message: '请输入工号', trigger: 'blur' },
+    { min: 3, max: 20, message: '工号长度需在 3-20 个字符之间', trigger: 'blur' }
+  ],
   department: [{ required: true, message: '请选择科室', trigger: 'change' }],
   title: [{ required: true, message: '请选择职称', trigger: 'change' }],
   phone: [
@@ -359,6 +522,9 @@ const formRules = {
   ],
   email: [
     { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
+  ],
+  hireDate: [
+    { validator: validateHireDate, trigger: 'change' }
   ]
 }
 
@@ -372,7 +538,10 @@ const fetchDoctorList = async () => {
       search: searchQuery.value,
       department: filterDepartment.value,
       title: filterTitle.value,
-      status: filterStatus.value
+      status: filterStatus.value,
+      minAge: advancedFilters.minAge || undefined,
+      maxAge: advancedFilters.maxAge || undefined,
+      education: advancedFilters.education || undefined
     }
     const res = await getDoctorList(params)
     doctorList.value = res.data.items || []
@@ -474,9 +643,10 @@ const deleteDoctor = async (id) => {
     ElMessage.success('删除医生成功')
     fetchDoctorList()
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('删除医生失败')
+    if (error === 'cancel') {
+      return
     }
+    console.error('删除医生失败', error)
   }
 }
 
@@ -509,20 +679,43 @@ const viewDoctorDetail = (id) => {
   router.push(`/doctor/detail/${id}`)
 }
 
-const viewSchedule = (id) => {
-  router.push(`/doctor/schedule/${id}`)
-}
-
-const viewPerformance = (id) => {
-  router.push(`/doctor/performance/${id}`)
-}
-
 const goToSchedule = () => {
   router.push('/doctor/schedule')
 }
 
+const goToLeave = () => {
+  router.push('/doctor/leave')
+}
+
 const goToPerformance = () => {
   router.push('/doctor/performance')
+}
+
+const toggleSelection = (doctorId) => {
+  const index = selectedDoctors.value.indexOf(doctorId)
+  if (index > -1) {
+    selectedDoctors.value.splice(index, 1)
+  } else {
+    selectedDoctors.value.push(doctorId)
+  }
+}
+
+const handleSelectionChange = (selection) => {
+  selectedDoctors.value = selection.map(item => item.id)
+}
+
+const applyAdvancedFilter = () => {
+  // Apply advanced filters
+  fetchDoctorList()
+}
+
+const resetAdvancedFilter = () => {
+  Object.assign(advancedFilters, {
+    minAge: '',
+    maxAge: '',
+    education: ''
+  })
+  fetchDoctorList()
 }
 
 // 生命周期
@@ -578,22 +771,6 @@ onMounted(() => {
 
 .filter-card {
   margin-bottom: 24px;
-}
-
-.filter-section {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-}
-
-.search-input {
-  flex: 1;
-  max-width: 400px;
-}
-
-.filter-group {
-  display: flex;
-  gap: 12px;
 }
 
 .doctor-grid {
@@ -707,10 +884,9 @@ onMounted(() => {
 }
 
 .specialty-tag {
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 100%;
+  white-space: normal;
+  word-break: break-all;
 }
 
 .doctor-actions {
@@ -720,9 +896,89 @@ onMounted(() => {
   border-top: 1px solid #ebeef5;
 }
 
+.doctor-table-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
 .pagination-container {
   display: flex;
   justify-content: center;
   padding: 24px 0;
+}
+
+/* 骨架屏样式 */
+.skeleton-container {
+  margin-bottom: 24px;
+}
+
+.skeleton-card {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #ebeef5;
+}
+
+.skeleton-list-item {
+  background: white;
+  padding: 16px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  border: 1px solid #ebeef5;
+}
+
+.skeleton-content {
+  display: flex;
+  align-items: center;
+}
+
+/* 高级筛选 */
+.advanced-filter {
+  padding-top: 16px;
+}
+
+
+/* 列表视图样式 */
+.doctor-list-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.doctor-table {
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.doctor-table :deep(.el-table__body-wrapper) {
+  overflow-x: auto;
+}
+
+.doctor-info-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cell-avatar {
+  flex-shrink: 0;
+}
+
+.cell-text {
+  flex: 1;
+}
+
+.cell-name {
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 4px;
+}
+
+.cell-no {
+  font-size: 12px;
+  color: #909399;
 }
 </style>
