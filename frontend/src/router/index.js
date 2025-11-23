@@ -77,10 +77,20 @@ const routes = [
   },
   {
     path: '/pharmacy',
-    name: 'Pharmacy',
+    name: 'PharmacyInventory',
     component: () => import('@/views/pharmacy/PharmacyIndex.vue'),
     meta: {
-      title: '药房管理',
+      title: '库存管理',
+      requiresAuth: true,
+      adminOnly: true
+    }
+  },
+  {
+    path: '/pharmacy/info',
+    name: 'PharmacyInfo',
+    component: () => import('@/views/pharmacy/PharmacyCatalog.vue'),
+    meta: {
+      title: '药品信息',
       requiresAuth: true
     }
   },
@@ -103,6 +113,7 @@ router.beforeEach((to, from, next) => {
   
   const userStore = useUserStore()
   const requiresAuth = to.meta.requiresAuth !== false // 默认需要认证
+  const requiresAdmin = to.meta.adminOnly === true
   
   // 检查是否需要认证
   if (requiresAuth && !userStore.isLoggedIn) {
@@ -114,6 +125,8 @@ router.beforeEach((to, from, next) => {
   } else if (to.path === '/login' && userStore.isLoggedIn) {
     // 已登录用户访问登录页，重定向到首页
     next({ path: '/' })
+  } else if (requiresAdmin && !userStore.isAdmin) {
+    next({ path: '/pharmacy/info' })
   } else {
     // 正常访问
     next()

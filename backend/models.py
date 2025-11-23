@@ -458,3 +458,48 @@ class MedicinePurchase(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
+
+class MedicationRequest(db.Model):
+    __tablename__ = 'medication_requests'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
+    doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=False)
+    medicine_id = db.Column(db.Integer, db.ForeignKey('medicines.id'), nullable=False)
+    dose = db.Column(db.String(50))
+    usage = db.Column(db.String(100))
+    quantity = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.String(20), default='PENDING')
+    reason = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    approved_at = db.Column(db.DateTime)
+    dispensed_at = db.Column(db.DateTime)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    patient = db.relationship('Patient', foreign_keys=[patient_id])
+    doctor = db.relationship('Doctor', foreign_keys=[doctor_id])
+    medicine = db.relationship('Medicine', foreign_keys=[medicine_id])
+    
+    def __repr__(self):
+        return f'<MedicationRequest {self.id}>'
+    
+    def to_dict(self) -> Dict:
+        return {
+            'id': self.id,
+            'patient_id': self.patient_id,
+            'patient_name': self.patient.name if self.patient else None,
+            'doctor_id': self.doctor_id,
+            'doctor_name': self.doctor.name if self.doctor else None,
+            'medicine_id': self.medicine_id,
+            'medicine_name': self.medicine.name if self.medicine else None,
+            'dose': self.dose,
+            'usage': self.usage,
+            'quantity': self.quantity,
+            'status': self.status,
+            'reason': self.reason,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'approved_at': self.approved_at.isoformat() if self.approved_at else None,
+            'dispensed_at': self.dispensed_at.isoformat() if self.dispensed_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
