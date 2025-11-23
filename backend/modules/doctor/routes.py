@@ -3,6 +3,8 @@
 Doctor Management - Routes
 """
 from flask import render_template, request, redirect, url_for, flash, jsonify
+from flask_jwt_extended import jwt_required, get_jwt
+from functools import wraps
 from . import doctor_bp
 from models import Doctor, DoctorSchedule, DoctorPerformance, Appointment, MedicalRecord
 from .models_extended import DoctorLeave
@@ -38,6 +40,28 @@ def error_response(message='操作失败', code='ERROR', status_code=400):
         'code': code,
         'data': None
     }), status_code
+
+
+# ============= 简单权限控制 =============
+
+def staff_required(fn):
+    """简单的医护/管理员权限检查装饰器
+
+    要求请求已通过 JWT 鉴权，且用户角色不是普通 user。
+    适用于医生子系统中的增删改等敏感操作。
+    """
+    @wraps(fn)
+    @jwt_required()
+    def wrapper(*args, **kwargs):
+        claims = get_jwt() or {}
+        user_role = claims.get('role', 'user')
+
+        if user_role == 'user':
+            return error_response('权限不足，仅限医护或管理员操作', 'FORBIDDEN', 403)
+
+        return fn(*args, **kwargs)
+
+    return wrapper
 
 
 # ============= RESTful API - 医生信息管理 =============
@@ -184,6 +208,7 @@ def get_doctor(doctor_id):
 
 
 @doctor_bp.route('/doctors', methods=['POST'])
+@staff_required
 def create_doctor():
     """创建医生（API）"""
     try:
@@ -228,6 +253,7 @@ def create_doctor():
 
 
 @doctor_bp.route('/doctors/<int:doctor_id>', methods=['PUT'])
+@staff_required
 def update_doctor(doctor_id):
     """更新医生信息（API）"""
     try:
@@ -277,6 +303,7 @@ def update_doctor(doctor_id):
 
 
 @doctor_bp.route('/doctors/<int:doctor_id>', methods=['DELETE'])
+@staff_required
 def delete_doctor(doctor_id):
     """删除医生（API）"""
     try:
@@ -592,6 +619,7 @@ def get_schedule(schedule_id):
 
 
 @doctor_bp.route('/schedules', methods=['POST'])
+@staff_required
 def create_schedule():
     """创建排班（API）"""
     try:
@@ -658,6 +686,7 @@ def create_schedule():
 
 
 @doctor_bp.route('/schedules/<int:schedule_id>', methods=['PUT'])
+@staff_required
 def update_schedule(schedule_id):
     """更新排班（API）"""
     try:
@@ -733,6 +762,7 @@ def update_schedule(schedule_id):
 
 
 @doctor_bp.route('/schedules/<int:schedule_id>', methods=['DELETE'])
+@staff_required
 def delete_schedule(schedule_id):
     """删除排班（API）"""
     try:
@@ -940,6 +970,7 @@ def get_leave(leave_id):
 
 
 @doctor_bp.route('/leaves', methods=['POST'])
+@staff_required
 def create_leave():
     """创建请假申请（API）"""
     try:
@@ -1019,6 +1050,7 @@ def create_leave():
 
 
 @doctor_bp.route('/leaves/<int:leave_id>', methods=['PUT'])
+@staff_required
 def update_leave(leave_id):
     """更新请假申请（API）"""
     try:
@@ -1098,6 +1130,7 @@ def update_leave(leave_id):
 
 
 @doctor_bp.route('/leaves/<int:leave_id>', methods=['DELETE'])
+@staff_required
 def delete_leave(leave_id):
     """删除请假记录（API）"""
     try:
@@ -1132,6 +1165,7 @@ def delete_leave(leave_id):
 
 
 @doctor_bp.route('/leaves/<int:leave_id>/approve', methods=['PUT'])
+@staff_required
 def approve_leave(leave_id):
     """审批通过请假（API）"""
     try:
@@ -1280,6 +1314,7 @@ def approve_leave(leave_id):
 
 
 @doctor_bp.route('/leaves/<int:leave_id>/reject', methods=['PUT'])
+@staff_required
 def reject_leave(leave_id):
     """审批拒绝请假（API）"""
     try:
@@ -1528,6 +1563,7 @@ def get_performance(performance_id):
 
 
 @doctor_bp.route('/performances', methods=['POST'])
+@staff_required
 def create_performance():
     """创建绩效评估（API）"""
     try:
@@ -1608,6 +1644,7 @@ def create_performance():
 
 
 @doctor_bp.route('/performances/<int:performance_id>', methods=['PUT'])
+@staff_required
 def update_performance(performance_id):
     """更新绩效评估（API）"""
     try:
@@ -1650,6 +1687,7 @@ def update_performance(performance_id):
 
 
 @doctor_bp.route('/performances/<int:performance_id>', methods=['DELETE'])
+@staff_required
 def delete_performance(performance_id):
     """删除绩效评估（API）"""
     try:

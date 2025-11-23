@@ -7,513 +7,347 @@
           <div class="header-content">
             <h1 class="page-title">
               <el-icon class="title-icon"><Calendar /></el-icon>
-              医生排班管理
+              科室排班总览
             </h1>
-            <p v-if="doctorInfo" class="doctor-info-text">
-              {{ doctorInfo.name }} - {{ doctorInfo.title }} - {{ doctorInfo.department }}
-            </p>
-            <p v-else class="doctor-info-text">
-              请选择医生查看排班
+            <p class="page-subtitle">
+              按科室和日期查看所有医生的排班安排
             </p>
           </div>
         </template>
         <template #extra>
-          <el-space>
+          <el-space wrap>
             <el-select
-              v-model="selectedDoctorId"
-              placeholder="请选择医生"
+              v-model="selectedDepartment"
+              placeholder="全部科室"
               filterable
               clearable
-              :loading="doctorSelectLoading"
-              style="width: 220px"
-              @change="handleDoctorChange"
+              style="width: 150px"
+              @change="handleDepartmentChange"
             >
+              <el-option label="全部科室" value="" />
               <el-option
-                v-for="item in doctorOptions"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
+                v-for="dept in departmentOptions"
+                :key="dept.value"
+                :label="dept.label"
+                :value="dept.value"
               />
             </el-select>
-            <el-button
-              type="primary"
-              :icon="Plus"
-              @click="showAddScheduleDialog"
-              :disabled="!selectedDoctorId"
-            >
-              添加排班
-            </el-button>
+            <el-radio-group v-model="viewMode" size="small" @change="handleViewModeChange">
+              <el-radio-button label="week">一周</el-radio-button>
+              <el-radio-button label="twoWeeks">两周</el-radio-button>
+            </el-radio-group>
           </el-space>
         </template>
       </el-page-header>
     </div>
 
-    <!-- 日期导航卡片 -->
-    <el-card class="date-nav-card" shadow="never">
-      <div class="date-navigation">
-        <el-button-group>
-          <el-button :icon="ArrowLeft" @click="previousWeek">上一周</el-button>
-          <el-button>
-            <el-icon><Calendar /></el-icon>
-            {{ dateRangeText }}
-          </el-button>
-          <el-button @click="nextWeek">
-            下一周
-            <el-icon><ArrowRight /></el-icon>
-          </el-button>
-        </el-button-group>
-        <el-button type="primary" plain @click="goToday">今天</el-button>
+    <!-- 日期导航与筛选 -->
+    <el-card class="filter-card" shadow="never">
+      <div class="filter-row">
+        <div class="date-navigation">
+          <el-button-group>
+            <el-button :icon="ArrowLeft" @click="previousPeriod">上一{{viewMode === 'week' ? '周' : '期'}}</el-button>
+            <el-button>
+              <el-icon><Calendar /></el-icon>
+              {{ dateRangeText }}
+            </el-button>
+            <el-button @click="nextPeriod">
+              下一{{viewMode === 'week' ? '周' : '期'}}
+              <el-icon><ArrowRight /></el-icon>
+            </el-button>
+          </el-button-group>
+          <el-button type="primary" plain @click="goToday">今天</el-button>
+        </div>
+        <div class="shift-filter">
+          <span class="filter-label">班次筛选：</span>
+          <el-checkbox-group v-model="visibleShifts" size="small" @change="fetchScheduleMatrix">
+            <el-checkbox label="morning">上午</el-checkbox>
+            <el-checkbox label="afternoon">下午</el-checkbox>
+            <el-checkbox label="evening">晚上</el-checkbox>
+          </el-checkbox-group>
+        </div>
       </div>
     </el-card>
 
-    <!-- 排班统计卡片 -->
+    <!-- 统计信息 -->
     <el-row :gutter="16" class="stats-row">
       <el-col :span="6">
-        <el-card shadow="hover" class="stat-card-small">
-          <el-statistic title="本周排班" :value="weekStats.totalSchedules">
+        <el-card shadow="hover" class="stat-card">
+          <el-statistic title="科室医生" :value="stats.totalDoctors">
             <template #prefix>
-              <el-icon style="color: #409eff;"><Calendar /></el-icon>
+              <el-icon style="color: #409eff;"><User /></el-icon>
             </template>
           </el-statistic>
         </el-card>
       </el-col>
       <el-col :span="6">
-        <el-card shadow="hover" class="stat-card-small">
-          <el-statistic title="预约人数" :value="weekStats.bookedPatients">
+        <el-card shadow="hover" class="stat-card">
+          <el-statistic title="总排班" :value="stats.totalSchedules">
             <template #prefix>
-              <el-icon style="color: #67c23a;"><User /></el-icon>
+              <el-icon style="color: #67c23a;"><Calendar /></el-icon>
             </template>
           </el-statistic>
         </el-card>
       </el-col>
       <el-col :span="6">
-        <el-card shadow="hover" class="stat-card-small">
-          <el-statistic title="工作时长" :value="weekStats.totalHours" suffix="小时">
+        <el-card shadow="hover" class="stat-card">
+          <el-statistic title="可预约" :value="stats.availableSchedules">
             <template #prefix>
-              <el-icon style="color: #e6a23c;"><Timer /></el-icon>
+              <el-icon style="color: #e6a23c;"><SuccessFilled /></el-icon>
             </template>
           </el-statistic>
         </el-card>
       </el-col>
       <el-col :span="6">
-        <el-card shadow="hover" class="stat-card-small">
-          <el-statistic title="排班率" :value="weekStats.scheduleRate" suffix="%">
+        <el-card shadow="hover" class="stat-card">
+          <el-statistic title="已约满" :value="stats.fullSchedules">
             <template #prefix>
-              <el-icon style="color: #f56c6c;"><TrendCharts /></el-icon>
+              <el-icon style="color: #f56c6c;"><Warning /></el-icon>
             </template>
           </el-statistic>
         </el-card>
       </el-col>
     </el-row>
 
-    <!-- 排班日历 -->
-    <el-card class="schedule-calendar-card" shadow="never" v-loading="loading">
-      <div class="calendar-container">
-        <el-table :data="scheduleTableData" border stripe class="schedule-table">
-          <el-table-column label="时间" width="100" fixed>
-            <template #default="{ row }">
-              <div class="time-slot">{{ row.time }}</div>
-            </template>
-          </el-table-column>
-
-          <el-table-column
-            v-for="day in weekDays"
-            :key="day.date"
-            :label="day.dayName"
-            align="center"
-          >
-            <template #header>
-              <div class="day-header" :class="{ 'is-today': day.isToday }">
-                <div class="day-name">{{ day.dayName }}</div>
-                <div class="day-date">{{ day.dateText }}</div>
-                <el-tag v-if="day.isToday" size="small" type="primary">今天</el-tag>
-              </div>
-            </template>
-            <template #default="{ row }">
-              <div
-                class="schedule-cell"
-                :class="{ 'has-schedule': getScheduleForSlot(day.date, row.time).length > 0 }"
-                @click="handleSlotClick(day.date, row.time)"
-              >
-                <div
-                  v-for="schedule in getScheduleForSlot(day.date, row.time)"
-                  :key="schedule.id"
-                  class="schedule-item"
-                  :class="`schedule-${schedule.status}`"
+    <!-- 排班矩阵 -->
+    <el-card class="schedule-matrix-card" shadow="never" v-loading="loading">
+      <div class="matrix-container">
+        <div class="matrix-scroll" v-if="matrixData.length > 0">
+          <table class="schedule-matrix">
+            <thead>
+              <tr>
+                <th class="doctor-column-header">医生</th>
+                <th 
+                  v-for="dateCol in dateColumns" 
+                  :key="dateCol.date"
+                  class="date-column-header"
+                  :class="{ 'is-today': dateCol.isToday }"
                 >
-                  <div class="schedule-header">
-                    <el-tag
-                      :type="getScheduleType(schedule.status)"
-                      effect="dark"
-                      size="small"
-                      class="schedule-tag"
+                  <div class="date-header-content">
+                    <div class="date-weekday">{{ dateCol.weekday }}</div>
+                    <div class="date-text">{{ dateCol.monthDay }}</div>
+                    <el-tag v-if="dateCol.isToday" size="small" type="primary" effect="dark">今</el-tag>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in matrixData" :key="row.doctorId" class="doctor-row">
+                <td class="doctor-cell">
+                  <div class="doctor-info">
+                    <div class="doctor-name">{{ row.doctorName }}</div>
+                    <div class="doctor-meta">
+                      <el-tag size="small" type="info" effect="plain">{{ row.doctorDepartment }}</el-tag>
+                      <span class="doctor-title">{{ row.doctorTitle }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td 
+                  v-for="dateCol in dateColumns" 
+                  :key="dateCol.date"
+                  class="schedule-cell"
+                  :class="{ 'has-schedule': getCellSchedules(row.doctorId, dateCol.date).length > 0 }"
+                  @click="handleCellClick(row, dateCol.date)"
+                >
+                  <div class="cell-content">
+                    <div 
+                      v-for="schedule in getCellSchedules(row.doctorId, dateCol.date)"
+                      :key="schedule.id"
+                      class="schedule-badge"
+                      :class="`badge-${schedule.shift}`"
+                      :title="getScheduleTooltip(schedule)"
                     >
-                      {{ getShiftLabel(schedule.type) }}
-                    </el-tag>
-                    <el-dropdown @command="(cmd) => handleScheduleAction(cmd, schedule)" trigger="click">
-                      <el-icon class="schedule-menu"><MoreFilled /></el-icon>
-                      <template #dropdown>
-                        <el-dropdown-menu>
-                          <el-dropdown-item command="edit" :icon="Edit">编辑</el-dropdown-item>
-                          <el-dropdown-item command="copy" :icon="CopyDocument">复制</el-dropdown-item>
-                          <el-dropdown-item command="cancel" :icon="CircleClose" divided>取消</el-dropdown-item>
-                          <el-dropdown-item command="delete" :icon="Delete">删除</el-dropdown-item>
-                        </el-dropdown-menu>
-                      </template>
-                    </el-dropdown>
-                  </div>
-                  <div class="schedule-time-range">
-                    <el-icon><Clock /></el-icon>
-                    {{ schedule.startTime }} - {{ schedule.endTime }}
-                  </div>
-                  <div class="schedule-capacity">
-                    <el-progress
-                      :percentage="getBookingPercentage(schedule)"
-                      :color="getProgressColor(schedule)"
-                      :show-text="false"
-                      style="margin-bottom: 4px;"
-                    />
-                    <div class="capacity-text">
-                      <el-icon><User /></el-icon>
-                      <span>{{ schedule.bookedCount || 0 }}/{{ schedule.maxPatients }}</span>
+                      <el-tag 
+                        :type="getShiftTagType(schedule.shift)" 
+                        size="small" 
+                        effect="dark"
+                        class="shift-tag"
+                      >
+                        {{ getShiftLabel(schedule.shift) }}
+                      </el-tag>
+                      <div class="schedule-time">{{ schedule.startTime }}-{{ schedule.endTime }}</div>
+                      <div class="schedule-status">
+                        <el-icon v-if="schedule.status === 'available'" style="color: #67c23a;"><SuccessFilled /></el-icon>
+                        <el-icon v-if="schedule.status === 'full'" style="color: #e6a23c;"><Warning /></el-icon>
+                        <el-icon v-if="schedule.status === 'cancelled'" style="color: #909399;"><CircleClose /></el-icon>
+                        <span class="patient-count">{{ schedule.bookedCount || 0 }}/{{ schedule.maxPatients }}</span>
+                      </div>
+                    </div>
+                    <div v-if="getCellSchedules(row.doctorId, dateCol.date).length === 0" class="empty-cell">
+                      <span class="empty-text">—</span>
                     </div>
                   </div>
-                  <el-tooltip v-if="schedule.notes" :content="schedule.notes" placement="top">
-                    <div class="schedule-notes">
-                      <el-icon><Document /></el-icon>
-                      <span>{{ schedule.notes.substring(0, 10) }}...</span>
-                    </div>
-                  </el-tooltip>
-                </div>
-                <div v-if="!getScheduleForSlot(day.date, row.time).length" class="empty-slot">
-                  <el-icon class="add-icon"><Plus /></el-icon>
-                  <span class="add-text">点击添加</span>
-                </div>
-              </div>
-            </template>
-          </el-table-column>
-        </el-table>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <el-empty 
+          v-else 
+          description="暂无医生数据" 
+          :image-size="120"
+        />
       </div>
     </el-card>
 
-    <!-- 添加/编辑排班对话框 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="editingSchedule ? '编辑排班' : '添加排班'"
-      width="600px"
-      :close-on-click-modal="false"
+    <!-- 排班详情抽屉 -->
+    <el-drawer
+      v-model="detailDrawerVisible"
+      :title="detailDrawerTitle"
+      size="500px"
+      direction="rtl"
     >
-      <el-form
-        ref="scheduleFormRef"
-        :model="formData"
-        :rules="formRules"
-        label-width="100px"
-      >
-        <el-form-item label="日期" prop="date">
-          <el-date-picker
-            v-model="formData.date"
-            type="date"
-            placeholder="选择日期"
-            style="width: 100%"
-          />
-        </el-form-item>
+      <div v-if="selectedCellData" class="detail-content">
+        <div class="detail-header">
+          <el-descriptions :column="1" border>
+            <el-descriptions-item label="医生">{{ selectedCellData.doctorName }}</el-descriptions-item>
+            <el-descriptions-item label="职称">{{ selectedCellData.doctorTitle }}</el-descriptions-item>
+            <el-descriptions-item label="日期">{{ selectedCellData.date }}</el-descriptions-item>
+          </el-descriptions>
+        </div>
 
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="开始时间" prop="startTime">
-              <el-time-select
-                v-model="formData.startTime"
-                start="08:00"
-                step="00:30"
-                end="22:00"
-                placeholder="开始时间"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="结束时间" prop="endTime">
-              <el-time-select
-                v-model="formData.endTime"
-                start="08:00"
-                step="00:30"
-                end="22:00"
-                placeholder="结束时间"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="班次" prop="type">
-              <el-select v-model="formData.type" placeholder="请选择班次" style="width: 100%">
-                <el-option
-                  v-for="item in SHIFT_OPTIONS"
-                  :key="item.value"
-                  :label="item.label"
-                  :value="item.value"
+        <div class="schedules-list" v-if="selectedCellData.schedules && selectedCellData.schedules.length > 0">
+          <h3 class="list-title">排班明细</h3>
+          <el-card 
+            v-for="schedule in selectedCellData.schedules" 
+            :key="schedule.id"
+            class="schedule-detail-card"
+            shadow="hover"
+          >
+            <div class="schedule-detail-header">
+              <el-tag :type="getShiftTagType(schedule.shift)" effect="dark">
+                {{ getShiftLabel(schedule.shift) }}
+              </el-tag>
+              <el-tag :type="getStatusTagType(schedule.status)" size="small">
+                {{ getStatusLabel(schedule.status) }}
+              </el-tag>
+            </div>
+            <el-descriptions :column="1" size="small" class="schedule-desc">
+              <el-descriptions-item label="时间">
+                <el-icon><Clock /></el-icon>
+                {{ schedule.startTime }} - {{ schedule.endTime }}
+              </el-descriptions-item>
+              <el-descriptions-item label="预约情况">
+                <el-progress 
+                  :percentage="getBookingPercentage(schedule)" 
+                  :color="getProgressColor(schedule)"
+                  :stroke-width="8"
                 />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="最大人数" prop="maxPatients">
-              <el-input-number
-                v-model="formData.maxPatients"
-                :min="1"
-                :max="100"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-form-item label="备注" prop="notes">
-          <el-input
-            v-model="formData.notes"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入备注信息"
-          />
-        </el-form-item>
-      </el-form>
-
-      <template #footer>
-        <el-button @click="closeDialog">取消</el-button>
-        <el-button type="primary" @click="submitSchedule" :loading="submitting">
-          确定
-        </el-button>
-      </template>
-    </el-dialog>
+                <span style="margin-left: 8px;">{{ schedule.bookedCount || 0 }}/{{ schedule.maxPatients }}</span>
+              </el-descriptions-item>
+              <el-descriptions-item label="备注" v-if="schedule.notes">
+                {{ schedule.notes }}
+              </el-descriptions-item>
+            </el-descriptions>
+          </el-card>
+        </div>
+        <el-empty v-else description="当天无排班" :image-size="100" />
+      </div>
+    </el-drawer>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import {
-  Calendar, Plus, ArrowLeft, ArrowRight, Edit, Delete, User, Timer, TrendCharts,
-  Document, CopyDocument, MoreFilled, CircleClose, Clock
+  Calendar, ArrowLeft, ArrowRight, User, Warning, SuccessFilled, CircleClose, Clock
 } from '@element-plus/icons-vue'
-import { getDoctorDetail, getDoctorSchedule, getDoctorList, createSchedule, updateSchedule, deleteSchedule as deleteScheduleApi } from '@/api/doctor'
+import { getDepartments, getDepartmentSchedules, getDoctorList } from '@/api/doctor'
 
 // 路由
 const router = useRouter()
-const route = useRoute()
 
 // 响应式数据
 const loading = ref(false)
-const submitting = ref(false)
-const dialogVisible = ref(false)
-const editingSchedule = ref(null)
-const scheduleFormRef = ref(null)
+const selectedDepartment = ref('')
+const departmentOptions = ref([])
+const viewMode = ref('week') // 'week' | 'twoWeeks'
+const currentPeriodStart = ref(new Date())
+const visibleShifts = ref(['morning', 'afternoon', 'evening'])
 
-const doctorInfo = ref(null)
-const selectedDoctorId = ref(null)
-const doctorOptions = ref([])
-const doctorSelectLoading = ref(false)
-const currentWeekStart = ref(new Date())
+// 排班原始数据
 const scheduleList = ref([])
+const doctorList = ref([])
 
-const weekStats = reactive({
+// 详情抽屉
+const detailDrawerVisible = ref(false)
+const selectedCellData = ref(null)
+
+// 统计数据
+const stats = reactive({
+  totalDoctors: 0,
   totalSchedules: 0,
-  bookedPatients: 0,
-  totalHours: 0,
-  scheduleRate: 0
+  availableSchedules: 0,
+  fullSchedules: 0
 })
 
-const SHIFT_OPTIONS = [
-  { label: '上午班', value: 'morning' },
-  { label: '下午班', value: 'afternoon' },
-  { label: '夜班', value: 'evening' }
-]
-
-const getShiftLabel = (shift) => {
-  const option = SHIFT_OPTIONS.find((item) => item.value === shift)
-  return option ? option.label : (shift || '')
+// 常量
+const SHIFT_LABELS = {
+  morning: '上午',
+  afternoon: '下午',
+  evening: '晚上'
 }
 
-const formData = reactive({
-  date: '',
-  startTime: '',
-  endTime: '',
-  type: '',
-  maxPatients: 10,
-  notes: ''
-})
-
-const formRules = {
-  date: [{ required: true, message: '请选择日期', trigger: 'change' }],
-  startTime: [{ required: true, message: '请选择开始时间', trigger: 'change' }],
-  endTime: [{ required: true, message: '请选择结束时间', trigger: 'change' }],
-  type: [{ required: true, message: '请选择排班类型', trigger: 'change' }],
-  maxPatients: [{ required: true, message: '请输入最大人数', trigger: 'blur' }]
+const STATUS_LABELS = {
+  available: '可预约',
+  full: '已约满',
+  cancelled: '已取消'
 }
-
-// 时间段
-const timeSlots = [
-  '08:00', '09:00', '10:00', '11:00', '12:00',
-  '13:00', '14:00', '15:00', '16:00', '17:00',
-  '18:00', '19:00', '20:00'
-]
 
 // 计算属性
-const dateRangeText = computed(() => {
-  const start = new Date(currentWeekStart.value)
-  const end = new Date(start)
-  end.setDate(end.getDate() + 6)
-  return `${formatDate(start)} - ${formatDate(end)}`
+const daysInPeriod = computed(() => {
+  return viewMode.value === 'week' ? 7 : 14
 })
 
-const weekDays = computed(() => {
-  const days = []
+const dateRangeText = computed(() => {
+  const start = new Date(currentPeriodStart.value)
+  const end = new Date(start)
+  end.setDate(end.getDate() + daysInPeriod.value - 1)
+  return `${formatDate(start)} ~ ${formatDate(end)}`
+})
+
+const dateColumns = computed(() => {
+  const columns = []
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(currentWeekStart.value)
+  for (let i = 0; i < daysInPeriod.value; i++) {
+    const date = new Date(currentPeriodStart.value)
     date.setDate(date.getDate() + i)
-
-    days.push({
-      date: formatDate(date),
-      dayName: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][date.getDay()],
-      dateText: `${date.getMonth() + 1}/${date.getDate()}`,
+    
+    const dateStr = formatDate(date)
+    columns.push({
+      date: dateStr,
+      weekday: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][date.getDay()],
+      monthDay: `${date.getMonth() + 1}/${date.getDate()}`,
       isToday: date.getTime() === today.getTime()
     })
   }
-  return days
+  return columns
 })
 
-const scheduleTableData = computed(() => {
-  return timeSlots.map(time => ({ time }))
+const matrixData = computed(() => {
+  if (doctorList.value.length === 0) {
+    return []
+  }
+
+  return doctorList.value.map(doctor => ({
+    doctorId: doctor.id,
+    doctorName: doctor.name,
+    doctorTitle: doctor.title || '医师',
+    doctorDepartment: doctor.department || '未分配',
+    schedules: scheduleList.value.filter(s => s.doctorId === doctor.id)
+  }))
 })
 
-// 方法
-const getCurrentDoctorId = () => {
-  const idFromRoute = route.params.id || route.query?.doctor_id
-  const id = selectedDoctorId.value || idFromRoute || doctorInfo.value?.id
-  return id || null
-}
+const detailDrawerTitle = computed(() => {
+  if (!selectedCellData.value) return '排班详情'
+  return `${selectedCellData.value.doctorName} - ${selectedCellData.value.date}`
+})
 
-const fetchDoctorInfo = async () => {
-  try {
-    const id = getCurrentDoctorId()
-    if (!id) {
-      doctorInfo.value = null
-      return
-    }
-
-    const res = await getDoctorDetail(id)
-    doctorInfo.value = res.data
-    selectedDoctorId.value = res.data.id
-  } catch (error) {
-    console.error('获取医生信息失败', error)
-  }
-}
-
-const fetchDoctorOptions = async () => {
-  doctorSelectLoading.value = true
-  try {
-    const res = await getDoctorList({ page: 1, pageSize: 100, status: 'active' })
-    const items = res.data.items || []
-    doctorOptions.value = items.map((item) => {
-      const dept = item.department || ''
-      const title = item.title || ''
-      const parts = [item.name, dept, title].filter(Boolean)
-      return {
-        value: item.id,
-        label: parts.join(' - ')
-      }
-    })
-
-    const initialId = route.query?.doctor_id || route.params.id
-    if (initialId && !selectedDoctorId.value) {
-      const numericId = Number(initialId)
-      const idValue = Number.isNaN(numericId) ? initialId : numericId
-      const exists = doctorOptions.value.some((opt) => opt.value === idValue)
-      if (exists) {
-        selectedDoctorId.value = idValue
-      }
-    }
-  } catch (error) {
-    console.error('获取医生列表失败', error)
-  } finally {
-    doctorSelectLoading.value = false
-  }
-}
-
-const fetchScheduleList = async () => {
-  loading.value = true
-  try {
-    const id = getCurrentDoctorId()
-    if (!id) {
-      scheduleList.value = []
-      calculateWeekStats()
-      loading.value = false
-      return
-    }
-
-    const params = {
-      startDate: weekDays.value[0].date,
-      endDate: weekDays.value[6].date
-    }
-    const res = await getDoctorSchedule(id, params)
-    scheduleList.value = res.data.items || []
-    calculateWeekStats()
-  } catch (error) {
-    ElMessage.error('获取排班数据失败')
-  } finally {
-    loading.value = false
-  }
-}
-
-const calculateWeekStats = () => {
-  weekStats.totalSchedules = scheduleList.value.length
-  weekStats.bookedPatients = scheduleList.value.reduce((sum, s) => sum + (s.bookedCount || 0), 0)
-  weekStats.totalHours = scheduleList.value.reduce((sum, s) => {
-    if (!s.startTime || !s.endTime) return sum
-
-    const start = new Date(`2000-01-01 ${s.startTime}`)
-    const end = new Date(`2000-01-01 ${s.endTime}`)
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-      return sum
-    }
-
-    return sum + (end - start) / (1000 * 60 * 60)
-  }, 0)
-  weekStats.scheduleRate = weekStats.totalSchedules > 0 ? Math.round((weekStats.bookedPatients / (weekStats.totalSchedules * 10)) * 100) : 0
-}
-
-const getScheduleForSlot = (date, time) => {
-  return scheduleList.value.filter((schedule) => {
-    if (schedule.date !== date || !schedule.startTime || !schedule.endTime) return false
-
-    const slotHour = parseInt(time.split(':')[0])
-    const [startHour, startMinute] = schedule.startTime.split(':').map(Number)
-    const [endHour, endMinute] = schedule.endTime.split(':').map(Number)
-
-    const slotStart = slotHour
-    const slotEnd = slotHour + 1
-    const scheduleStart = startHour + startMinute / 60
-    const scheduleEnd = endHour + endMinute / 60
-
-    // 只要时间段与当前小时区间有重叠，就在该行显示
-    return scheduleStart < slotEnd && scheduleEnd > slotStart
-  })
-}
-
-const getScheduleType = (status) => {
-  const typeMap = {
-    available: 'success',
-    full: 'warning',
-    cancelled: 'info'
-  }
-  return typeMap[status] || 'info'
-}
-
+// 工具方法
 const formatDate = (date) => {
   const y = date.getFullYear()
   const m = String(date.getMonth() + 1).padStart(2, '0')
@@ -521,175 +355,22 @@ const formatDate = (date) => {
   return `${y}-${m}-${d}`
 }
 
-const previousWeek = () => {
-  const date = new Date(currentWeekStart.value)
-  date.setDate(date.getDate() - 7)
-  currentWeekStart.value = date
-  fetchScheduleList()
+const getShiftLabel = (shift) => SHIFT_LABELS[shift] || shift
+const getStatusLabel = (status) => STATUS_LABELS[status] || status
+
+const getShiftTagType = (shift) => {
+  const typeMap = { morning: 'success', afternoon: 'warning', evening: 'info' }
+  return typeMap[shift] || ''
 }
 
-const nextWeek = () => {
-  const date = new Date(currentWeekStart.value)
-  date.setDate(date.getDate() + 7)
-  currentWeekStart.value = date
-  fetchScheduleList()
-}
-
-const goToday = () => {
-  const today = new Date()
-  today.setDate(today.getDate() - today.getDay())
-  currentWeekStart.value = today
-  fetchScheduleList()
-}
-
-const handleSlotClick = (date, time) => {
-  const schedules = getScheduleForSlot(date, time)
-  if (schedules.length === 0) {
-    showAddScheduleDialog()
-    formData.date = date
-    formData.startTime = time
-  }
-}
-
-const showAddScheduleDialog = () => {
-  const doctorId = getCurrentDoctorId()
-  if (!doctorId) {
-    ElMessage.warning('请先选择医生')
-    return
-  }
-
-  editingSchedule.value = null
-  resetFormData()
-  dialogVisible.value = true
-}
-
-const editSchedule = (schedule) => {
-  editingSchedule.value = schedule
-  Object.assign(formData, {
-    date: schedule.date,
-    startTime: schedule.startTime,
-    endTime: schedule.endTime,
-    type: schedule.type,
-    maxPatients: schedule.maxPatients,
-    notes: schedule.notes
-  })
-  dialogVisible.value = true
-}
-
-const submitSchedule = async () => {
-  if (!scheduleFormRef.value) return
-
-  await scheduleFormRef.value.validate(async (valid) => {
-    if (!valid) return
-
-    submitting.value = true
-    try {
-      const doctorId = getCurrentDoctorId()
-      if (!doctorId) {
-        ElMessage.warning('请先选择医生')
-        submitting.value = false
-        return
-      }
-
-      if (editingSchedule.value) {
-        await updateSchedule(doctorId, editingSchedule.value.id, formData)
-        ElMessage.success('更新排班成功')
-      } else {
-        await createSchedule(doctorId, formData)
-        ElMessage.success('添加排班成功')
-      }
-      closeDialog()
-      fetchScheduleList()
-    } catch (error) {
-      ElMessage.error(editingSchedule.value ? '更新排班失败' : '添加排班失败')
-    } finally {
-      submitting.value = false
-    }
-  })
-}
-
-const deleteSchedule = async (schedule) => {
-  try {
-    await ElMessageBox.confirm('确定要删除该排班吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-
-    const doctorId = getCurrentDoctorId()
-    if (!doctorId) {
-      ElMessage.warning('请先选择医生')
-      return
-    }
-
-    await deleteScheduleApi(doctorId, schedule.id)
-    ElMessage.success('删除排班成功')
-    fetchScheduleList()
-  } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('删除排班失败')
-    }
-  }
-}
-
-const handleScheduleAction = (command, schedule) => {
-  switch (command) {
-    case 'edit':
-      editSchedule(schedule)
-      break
-    case 'copy':
-      copySchedule(schedule)
-      break
-    case 'cancel':
-      cancelSchedule(schedule)
-      break
-    case 'delete':
-      deleteSchedule(schedule)
-      break
-  }
-}
-
-const copySchedule = (schedule) => {
-  editingSchedule.value = null
-  Object.assign(formData, {
-    date: '',
-    startTime: schedule.startTime,
-    endTime: schedule.endTime,
-    type: schedule.type,
-    maxPatients: schedule.maxPatients,
-    notes: schedule.notes
-  })
-  dialogVisible.value = true
-  ElMessage.info('请选择新的排班日期')
-}
-
-const cancelSchedule = async (schedule) => {
-  try {
-    await ElMessageBox.confirm('确定要取消该排班吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-
-    const doctorId = getCurrentDoctorId()
-    if (!doctorId) {
-      ElMessage.warning('请先选择医生')
-      return
-    }
-
-    await updateSchedule(doctorId, schedule.id, { status: 'cancelled' })
-    ElMessage.success('取消排班成功')
-    fetchScheduleList()
-  } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('取消失败')
-    }
-  }
+const getStatusTagType = (status) => {
+  const typeMap = { available: 'success', full: 'warning', cancelled: 'info' }
+  return typeMap[status] || ''
 }
 
 const getBookingPercentage = (schedule) => {
   if (!schedule.maxPatients) return 0
-  return Math.round((schedule.bookedCount || 0) / schedule.maxPatients * 100)
+  return Math.round(((schedule.bookedCount || 0) / schedule.maxPatients) * 100)
 }
 
 const getProgressColor = (schedule) => {
@@ -699,47 +380,186 @@ const getProgressColor = (schedule) => {
   return '#67c23a'
 }
 
-const closeDialog = () => {
-  dialogVisible.value = false
-  resetFormData()
+const getScheduleTooltip = (schedule) => {
+  return `${getShiftLabel(schedule.shift)} ${schedule.startTime}-${schedule.endTime} (${schedule.bookedCount || 0}/${schedule.maxPatients})`
 }
 
-const resetFormData = () => {
-  Object.assign(formData, {
-    date: formatDate(new Date()),
-    startTime: '',
-    endTime: '',
-    type: '',
-    maxPatients: 10,
-    notes: ''
-  })
-  if (scheduleFormRef.value) {
-    scheduleFormRef.value.clearValidate()
+// 数据获取
+const fetchDepartments = async () => {
+  try {
+    const res = await getDepartments()
+    const items = res.data || res || []
+    departmentOptions.value = items.map(item => {
+      // 后端返回的可能是 { id: '内科', name: '内科' } 或直接是字符串
+      const deptName = item.name || item.id || item
+      return {
+        value: deptName,  // 使用科室名称作为 value
+        label: deptName
+      }
+    })
+  } catch (error) {
+    console.error('获取科室列表失败', error)
   }
+}
+
+const fetchDepartmentDoctors = async () => {
+  try {
+    const params = {
+      status: 'active',
+      page: 1,
+      pageSize: 200  // 增加每页数量以支持显示所有医生
+    }
+    
+    // 如果选择了科室，添加科室筛选
+    if (selectedDepartment.value) {
+      params.department = selectedDepartment.value
+      console.log('查询科室医生:', selectedDepartment.value)
+    } else {
+      console.log('查询所有医生')
+    }
+    
+    const res = await getDoctorList(params)
+    doctorList.value = res.data.items || []
+    stats.totalDoctors = doctorList.value.length
+    
+    console.log('获取到医生:', doctorList.value.length, '人')
+    if (doctorList.value.length > 0) {
+      console.log('医生列表:', doctorList.value.map(d => ({ id: d.id, name: d.name, dept: d.department })))
+    }
+  } catch (error) {
+    console.error('获取医生列表失败:', error)
+    doctorList.value = []
+    stats.totalDoctors = 0
+  }
+}
+
+const fetchScheduleMatrix = async () => {
+  loading.value = true
+  try {
+    const params = {
+      startDate: dateColumns.value[0]?.date,
+      endDate: dateColumns.value[dateColumns.value.length - 1]?.date
+      // 不限制 status，获取所有状态的排班
+    }
+    
+    // 如果选择了科室，添加科室筛选
+    if (selectedDepartment.value) {
+      params.department = selectedDepartment.value
+    }
+
+    console.log('查询排班参数:', params)
+    const res = await getDepartmentSchedules(params)
+    const allSchedules = res.data.list || res.data.items || []
+    
+    console.log('后端返回排班数据:', allSchedules.length, '条')
+    if (allSchedules.length > 0) {
+      console.log('第一条排班示例:', allSchedules[0])
+    }
+    
+    // 按班次筛选
+    scheduleList.value = allSchedules.filter(s => 
+      visibleShifts.value.includes(s.shift)
+    )
+    
+    console.log('筛选后排班数据:', scheduleList.value.length, '条')
+    console.log('当前医生列表:', doctorList.value.length, '人')
+    
+    updateStats()
+  } catch (error) {
+    console.error('获取排班数据失败:', error)
+    ElMessage.error('获取排班数据失败')
+    scheduleList.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+const updateStats = () => {
+  stats.totalSchedules = scheduleList.value.length
+  stats.availableSchedules = scheduleList.value.filter(s => s.status === 'available').length
+  stats.fullSchedules = scheduleList.value.filter(s => s.status === 'full').length
+}
+
+// 矩阵单元格数据获取
+const getCellSchedules = (doctorId, date) => {
+  const matches = scheduleList.value.filter(s => {
+    // 后端返回的是驼峰命名 doctorId，不是 doctor_id
+    const doctorMatch = s.doctorId === doctorId
+    const dateMatch = s.date === date
+    
+    return doctorMatch && dateMatch
+  })
+  
+  return matches
+}
+
+// 日期导航
+const previousPeriod = () => {
+  const date = new Date(currentPeriodStart.value)
+  date.setDate(date.getDate() - daysInPeriod.value)
+  currentPeriodStart.value = date
+  fetchScheduleMatrix()
+}
+
+const nextPeriod = () => {
+  const date = new Date(currentPeriodStart.value)
+  date.setDate(date.getDate() + daysInPeriod.value)
+  currentPeriodStart.value = date
+  fetchScheduleMatrix()
+}
+
+const goToday = () => {
+  const today = new Date()
+  const dayOfWeek = today.getDay()
+  const offset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek  // 周一作为一周开始
+  today.setDate(today.getDate() + offset)
+  today.setHours(0, 0, 0, 0)
+  currentPeriodStart.value = today
+  fetchScheduleMatrix()
+}
+
+// 交互处理
+const handleCellClick = (row, date) => {
+  const schedules = getCellSchedules(row.doctorId, date)
+  selectedCellData.value = {
+    doctorId: row.doctorId,
+    doctorName: row.doctorName,
+    doctorTitle: row.doctorTitle,
+    date,
+    schedules
+  }
+  detailDrawerVisible.value = true
+}
+
+const handleDepartmentChange = async () => {
+  console.log('科室切换:', selectedDepartment.value)
+  
+  // 先清空现有数据
+  doctorList.value = []
+  scheduleList.value = []
+  
+  // 先获取医生列表
+  await fetchDepartmentDoctors()
+  
+  // 再获取排班数据
+  await fetchScheduleMatrix()
+  
+  console.log('切换完成 - 医生:', doctorList.value.length, '排班:', scheduleList.value.length)
+}
+
+const handleViewModeChange = () => {
+  goToday()
 }
 
 const goBack = () => {
   router.push('/doctor')
 }
 
-const handleDoctorChange = async (value) => {
-  if (!value) {
-    selectedDoctorId.value = null
-    doctorInfo.value = null
-    scheduleList.value = []
-    calculateWeekStats()
-    return
-  }
-
-  selectedDoctorId.value = value
-  await fetchDoctorInfo()
-  goToday()
-}
-
 // 生命周期
 onMounted(async () => {
-  await fetchDoctorOptions()
-  await fetchDoctorInfo()
+  await fetchDepartments()
+  // 初始化时获取所有医生
+  await fetchDepartmentDoctors()
   goToday()
 })
 </script>
@@ -751,14 +571,15 @@ onMounted(async () => {
   min-height: 100vh;
 }
 
+/* 页面头部 */
 .page-header {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .header-content {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .page-title {
@@ -768,97 +589,192 @@ onMounted(async () => {
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .title-icon {
-  font-size: 28px;
+  font-size: 26px;
   color: #409eff;
 }
 
-.doctor-info-text {
-  font-size: 14px;
+.page-subtitle {
+  font-size: 13px;
   color: #909399;
   margin: 0;
 }
 
-.date-nav-card {
+/* 筛选与导航 */
+.filter-card {
   margin-bottom: 16px;
+}
+
+.filter-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
 }
 
 .date-navigation {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 12px;
 }
 
+.shift-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-label {
+  font-size: 14px;
+  color: #606266;
+  white-space: nowrap;
+}
+
+/* 统计卡片 */
 .stats-row {
   margin-bottom: 16px;
 }
 
-.stat-card-small {
+.stat-card {
   height: 100%;
 }
 
-.schedule-calendar-card {
-  margin-bottom: 24px;
+/* 排班矩阵 */
+.schedule-matrix-card {
+  margin-bottom: 20px;
 }
 
-.calendar-description {
-  font-size: 12px;
-  color: #909399;
-  margin-bottom: 8px;
+.matrix-container {
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
-.calendar-container {
+.matrix-scroll {
+  min-width: 100%;
   overflow-x: auto;
 }
 
-.schedule-table {
+.schedule-matrix {
   width: 100%;
-  min-width: 1200px;
+  border-collapse: collapse;
+  background: white;
+  min-width: 1000px;
 }
 
-.time-slot {
+/* 表头样式 */
+.schedule-matrix thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: white;
+}
+
+.doctor-column-header {
+  min-width: 120px;
+  padding: 16px 12px;
+  text-align: left;
   font-weight: 600;
-  color: #606266;
-  text-align: center;
+  font-size: 14px;
+  color: #303133;
+  background: linear-gradient(135deg, #ecf5ff 0%, #f0f9ff 100%);
+  border: 1px solid #ebeef5;
+  position: sticky;
+  left: 0;
+  z-index: 11;
 }
 
-.day-header {
+.date-column-header {
+  min-width: 140px;
+  padding: 12px 8px;
+  text-align: center;
+  font-weight: 500;
+  background: #fafafa;
+  border: 1px solid #ebeef5;
+}
+
+.date-column-header.is-today {
+  background: linear-gradient(135deg, #ecf5ff 0%, #f0f9ff 100%);
+  border-color: #409eff;
+}
+
+.date-header-content {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: 8px;
 }
 
-.day-header.is-today {
-  background-color: #ecf5ff;
-  border-radius: 8px;
-}
-
-.day-name {
+.date-weekday {
+  font-size: 13px;
   font-weight: 600;
   color: #303133;
 }
 
-.day-date {
+.date-text {
   font-size: 12px;
   color: #909399;
 }
 
-.schedule-cell {
-  min-height: 100px;
+/* 表格行 */
+.doctor-row {
+  transition: background-color 0.2s;
+}
+
+.doctor-row:hover {
+  background-color: #fafafa;
+}
+
+/* 医生列 */
+.doctor-cell {
   padding: 12px;
+  border: 1px solid #ebeef5;
+  background: white;
+  position: sticky;
+  left: 0;
+  z-index: 5;
+}
+
+.doctor-row:hover .doctor-cell {
+  background-color: #fafafa;
+}
+
+.doctor-info {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+}
+
+.doctor-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.doctor-meta {
+  display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.doctor-title {
+  font-size: 12px;
+  color: #909399;
+}
+
+/* 排班单元格 */
+.schedule-cell {
+  padding: 8px;
+  border: 1px solid #ebeef5;
+  min-height: 80px;
+  vertical-align: top;
   cursor: pointer;
-  transition: all 0.3s;
-  position: relative;
+  transition: all 0.2s;
+  background: white;
 }
 
 .schedule-cell:hover {
@@ -866,111 +782,133 @@ onMounted(async () => {
 }
 
 .schedule-cell.has-schedule {
+  background-color: #fafcff;
+}
+
+.schedule-cell.has-schedule:hover {
+  background-color: #ecf5ff;
+}
+
+.cell-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 60px;
+}
+
+/* 排班徽章 */
+.schedule-badge {
   padding: 8px;
-  justify-content: flex-start;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e6f7ff 100%);
+  border-left: 3px solid #409eff;
+  transition: all 0.2s;
 }
 
-.schedule-item {
-  width: 100%;
-  padding: 12px;
-  background: linear-gradient(135deg, #ecf5ff 0%, #f0f9ff 100%);
-  border-radius: 8px;
-  border-left: 4px solid #409eff;
-  transition: all 0.3s;
-  position: relative;
+.schedule-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.15);
 }
 
-.schedule-item:hover {
-  box-shadow: 0 4px 12px 0 rgba(64, 158, 255, 0.2);
-  transform: translateY(-2px);
+.schedule-badge.badge-morning {
+  border-left-color: #67c23a;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e6f7ff 100%);
 }
 
-.schedule-item.schedule-cancelled {
-  opacity: 0.6;
-  background: linear-gradient(135deg, #f4f4f5 0%, #f5f7fa 100%);
+.schedule-badge.badge-afternoon {
+  border-left-color: #e6a23c;
+  background: linear-gradient(135deg, #fdf6ec 0%, #fef0e0 100%);
+}
+
+.schedule-badge.badge-evening {
   border-left-color: #909399;
+  background: linear-gradient(135deg, #f4f4f5 0%, #e9e9eb 100%);
 }
 
-.schedule-item.schedule-full {
-  border-left-color: #f56c6c;
-  background: linear-gradient(135deg, #fef0f0 0%, #fff5f5 100%);
-}
-
-.schedule-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.schedule-menu {
-  cursor: pointer;
-  color: #909399;
-  font-size: 16px;
-  transition: color 0.3s;
-}
-
-.schedule-menu:hover {
-  color: #409eff;
-}
-
-.schedule-tag {
-  font-size: 12px;
-}
-
-.schedule-time-range {
-  font-size: 13px;
-  color: #606266;
-  font-weight: 500;
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.schedule-capacity {
+.shift-tag {
+  font-size: 11px;
   margin-bottom: 4px;
 }
 
-.capacity-text {
-  font-size: 12px;
+.schedule-time {
+  font-size: 11px;
   color: #606266;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.schedule-status {
   display: flex;
   align-items: center;
   gap: 4px;
-  justify-content: space-between;
-}
-
-.schedule-notes {
-  font-size: 12px;
+  font-size: 11px;
   color: #909399;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 4px;
-  font-style: italic;
 }
 
-.empty-slot {
+.patient-count {
+  margin-left: auto;
+}
+
+/* 空单元格 */
+.empty-cell {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  min-height: 60px;
   color: #c0c4cc;
-  transition: all 0.3s;
 }
 
-.schedule-cell:hover .empty-slot {
-  color: #409eff;
+.empty-text {
+  font-size: 16px;
+  color: #dcdfe6;
 }
 
-.add-icon {
-  font-size: 24px;
+/* 详情抽屉 */
+.detail-content {
+  padding: 0;
 }
 
-.add-text {
-  font-size: 12px;
+.detail-header {
+  margin-bottom: 20px;
 }
 
+.schedules-list {
+  margin-top: 20px;
+}
+
+.list-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.schedule-detail-card {
+  margin-bottom: 12px;
+}
+
+.schedule-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.schedule-desc {
+  margin-top: 8px;
+}
+
+/* 响应式 */
+@media (max-width: 1200px) {
+  .schedule-matrix {
+    min-width: 1400px;
+  }
+  
+  .date-column-header {
+    min-width: 120px;
+  }
+}
 </style>
 

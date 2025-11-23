@@ -56,35 +56,46 @@ git --version     # 应输出: git version 2.x.x
 
 ## 快速开始（5分钟）
 
-### 🚀 超快速安装（适合有经验的开发者）
+### 🚀 一次性启动整个系统（后端 + 前端）
 
 ```bash
 # 1. 克隆项目
 git clone <repository-url>
 cd hospital-management-system
 
-# 2. 安装后端依赖
+# 2. 创建并激活虚拟环境（推荐）
+python -m venv venv
+venv\Scripts\activate      # Windows
+# source venv/bin/activate  # macOS / Linux
+
+# 3. 安装后端依赖
+cd backend
 pip install -r requirements.txt
 
-# 3. 配置环境变量
-cp env.template .env
-# 编辑.env文件，配置MySQL连接信息
+# 4. 在项目根目录配置环境变量
+cd ..
+copy env.example .env       # Windows
+# cp env.example .env       # macOS / Linux
+# 编辑 .env，配置 MySQL 连接信息
 
-# 4. 初始化数据库
-mysql -u root -p < init_database.sql
-python -c "from app import create_app, db; app = create_app(); app.app_context().push(); db.create_all()"
+# 5. 初始化数据库（首次运行需要）
+mysql -u root -p < backend/init_database.sql
+python -c "from backend.app import create_app, db; app = create_app(); app.app_context().push(); db.create_all(); print('✅ 数据库表创建成功')"
 
-# 5. 启动后端服务
-python app.py
+# 6. 启动后端服务
+python backend/app.py
+```
 
-# 6. 启动前端（可选，新终端）
+在**新终端**启动前端：
+
+```bash
 cd frontend
 npm install
 npm run dev
 ```
 
 **访问系统:**
-- 后端API: http://localhost:5000/
+- 后端 API: http://localhost:5000/
 - 前端应用: http://localhost:5173/
 
 ---
@@ -961,17 +972,17 @@ sudo certbot renew --dry-run
 
 ```bash
 # 1. 激活虚拟环境
-source venv/bin/activate  # macOS/Linux
-venv\Scripts\activate     # Windows
+venv\Scripts\activate       # Windows
+# source venv/bin/activate   # macOS / Linux
 
-# 2. 启动后端（终端1）
-python app.py
+# 2. 启动后端（终端1，在项目根目录）
+python backend/app.py
 
 # 3. 启动前端（终端2）
 cd frontend
 npm run dev
 
-# 4. 开始开发...
+# 4. 打开浏览器访问 http://localhost:5173/ 开始开发...
 ```
 
 ### 数据库迁移

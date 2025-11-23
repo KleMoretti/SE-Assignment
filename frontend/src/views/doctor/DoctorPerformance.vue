@@ -138,12 +138,16 @@
         <el-card shadow="never" class="data-table-card">
           <template #header>
             <div class="table-header">
-              <h3 class="section-title">详细绩效数据</h3>
+              <h3 class="section-title">{{ timeRange === 'year' ? '年度绩效数据' : '详细绩效数据' }}</h3>
               <el-button type="primary" plain :icon="Download" size="small" @click="exportTableData">导出</el-button>
             </div>
           </template>
           <el-table :data="displayDetails" stripe style="width: 100%;" :row-style="{ height: '48px' }" :cell-style="{ padding: '12px 8px' }">
-            <el-table-column prop="date" label="日期" width="80" align="center" />
+            <el-table-column prop="date" :label="timeRange === 'year' ? '月份' : '日期'" width="80" align="center">
+              <template #default="{ row }">
+                <span>{{ formatDateLabel(row.date) }}</span>
+              </template>
+            </el-table-column>
             <el-table-column prop="patients" label="接诊" width="80" align="center" />
             <el-table-column prop="satisfaction" label="满意度" min-width="120" align="center">
               <template #default="{ row }">
@@ -178,7 +182,7 @@ const route = useRoute()
 // 响应式数据
 const loading = ref(false)
 const doctorInfo = ref(null)
-const timeRange = ref('month')
+const timeRange = ref('year')  // 默认显示年度视图
 const tableSearch = ref('')
 
 const performance = reactive({
@@ -209,30 +213,47 @@ const chartPoints = computed(() => {
     ]
   }
 
-  // 本年度视图：优先使用真实绩效数据
-  const items = performanceDetails.value || []
-  if (items.length && timeRange.value === 'year') {
-    return items.map((item) => ({
-      label: item.date.slice(5), // 只取月份部分 '01', '02'...
-      value: item.patients || 0
-    }))
+  // 本年度视图：生成完整的12个月数据
+  if (timeRange.value === 'year') {
+    // 创建12个月的完整数组
+    const monthlyData = Array.from({ length: 12 }, (_, i) => {
+      const monthNum = String(i + 1).padStart(2, '0')
+      return { label: monthNum, value: 0 }
+    })
+    
+    // 用真实数据填充（如果有的话）
+    const items = performanceDetails.value || []
+    items.forEach((item) => {
+      const monthStr = item.date.slice(-2)  // 取月份部分 '01', '02'...
+      const monthIndex = parseInt(monthStr, 10) - 1
+      if (monthIndex >= 0 && monthIndex < 12) {
+        monthlyData[monthIndex] = {
+          label: monthStr,
+          value: item.patients || 0
+        }
+      }
+    })
+    
+    // 如果没有任何真实数据，使用示例数据
+    if (items.length === 0) {
+      return [
+        { label: '01', value: 120 },
+        { label: '02', value: 140 },
+        { label: '03', value: 160 },
+        { label: '04', value: 150 },
+        { label: '05', value: 170 },
+        { label: '06', value: 180 },
+        { label: '07', value: 190 },
+        { label: '08', value: 200 },
+        { label: '09', value: 185 },
+        { label: '10', value: 195 },
+        { label: '11', value: 210 },
+        { label: '12', value: 220 }
+      ]
+    }
+    
+    return monthlyData
   }
-
-  // 本年度无数据：使用静态12月示例
-  return [
-    { label: '1月', value: 120 },
-    { label: '2月', value: 140 },
-    { label: '3月', value: 160 },
-    { label: '4月', value: 150 },
-    { label: '5月', value: 170 },
-    { label: '6月', value: 180 },
-    { label: '7月', value: 190 },
-    { label: '8月', value: 200 },
-    { label: '9月', value: 185 },
-    { label: '10月', value: 195 },
-    { label: '11月', value: 210 },
-    { label: '12月', value: 220 }
-  ]
 })
 
 const chartSvgPoints = computed(() => {
@@ -379,6 +400,16 @@ const loadPerformanceData = async () => {
 const formatCurrency = (value) => {
   if (!value) return '0'
   return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+}
+
+const formatDateLabel = (dateStr) => {
+  if (timeRange.value === 'year') {
+    // 年度视图：显示 '1月', '2月', ..., '12月'
+    const monthNum = parseInt(dateStr.slice(-2), 10)  // 取最后两位并转为数字
+    return `${monthNum}月`
+  }
+  // 月度视图：显示原始标签（周一、周二等）
+  return dateStr
 }
 
 const goBack = () => {

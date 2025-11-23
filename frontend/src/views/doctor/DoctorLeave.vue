@@ -431,10 +431,14 @@ const fetchDepartments = async () => {
   try {
     const res = await getDepartments()
     const items = res.data || res
-    departmentOptions.value = (items || []).map((item) => ({
-      value: item.value || item.code || item,
-      label: item.label || item.name || item
-    }))
+    departmentOptions.value = (items || []).map((item) => {
+      const value = item.value || item.code || item.id || item.name || item
+      const label = item.label || item.name || value
+      return {
+        value,
+        label
+      }
+    })
   } catch (error) {
     console.error('获取科室列表失败', error)
   }

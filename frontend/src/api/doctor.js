@@ -320,8 +320,8 @@ export function getDoctorSchedule(doctorId, params = {}) {
     url: `/doctor/doctors/${doctorId}/schedules`,
     method: 'get',
     params: removeUndefined({
-      start_date: startDate,
-      end_date: endDate,
+      start_date: formatDateValue(startDate),
+      end_date: formatDateValue(endDate),
       status,
       shift: type
     })
@@ -396,8 +396,8 @@ export function getDepartmentSchedules(params = {}) {
     method: 'get',
     params: removeUndefined({
       department,
-      start_date: startDate,
-      end_date: endDate,
+      start_date: formatDateValue(startDate),
+      end_date: formatDateValue(endDate),
       shift,
       status
     })
@@ -445,8 +445,8 @@ export function getLeaveList(params = {}) {
       doctor_id: doctorId,
       status,
       leave_type: leaveType,
-      start_date: startDate,
-      end_date: endDate
+      start_date: formatDateValue(startDate),
+      end_date: formatDateValue(endDate)
     })
   }).then((res) => {
     const data = res?.data || {}
@@ -472,8 +472,8 @@ export function getDoctorLeaves(doctorId, params = {}) {
     method: 'get',
     params: removeUndefined({
       status,
-      start_date: startDate,
-      end_date: endDate
+      start_date: formatDateValue(startDate),
+      end_date: formatDateValue(endDate)
     })
   }).then((res) => {
     const data = res?.data || {}
