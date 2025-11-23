@@ -37,3 +37,26 @@ export function deleteMedicine(id) {
     method: 'delete'
   })
 }
+
+export function getMedicationRequestList(params) {
+  return request({
+    url: '/pharmacy/medication-requests',
+    method: 'get',
+    params
+  })
+}
+
+export function approveMedicationRequest(id) {
+  return request({
+    url: `/pharmacy/medication-requests/${id}/approve`,
+    method: 'post'
+  })
+}
+
+export function rejectMedicationRequest(id, data) {
+  return request({
+    url: `/pharmacy/medication-requests/${id}/reject`,
+    method: 'post',
+    data
+  })
+}

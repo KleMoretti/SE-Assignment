@@ -4,7 +4,7 @@ Pharmacy Management - Routes
 """
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from . import pharmacy_bp
-from models import Medicine, MedicineInventory, MedicinePurchase
+from models import Medicine, MedicineInventory, MedicinePurchase, MedicationRequest
 from extensions import db
 from datetime import datetime
 
@@ -365,6 +365,91 @@ def purchase_receive(id):
         flash(f'收货失败：{str(e)}', 'error')
     
     return redirect(url_for('pharmacy.purchase_list'))
+
+
+@pharmacy_bp.route('/medication-requests', methods=['GET'])
+def get_medication_requests():
+    try:
+        status = request.args.get('status', 'PENDING')
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+
+        query = MedicationRequest.query
+        if status:
+            query = query.filter_by(status=status)
+
+        pagination = query.order_by(MedicationRequest.created_at.asc()).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+
+        items = [req.to_dict() for req in pagination.items]
+
+        return success_response({
+            'items': items,
+            'total': pagination.total,
+            'page': page,
+            'per_page': per_page,
+            'pages': pagination.pages
+        })
+    except Exception as e:
+        return error_response(f'获取用药申请列表失败：{str(e)}', 'GET_MEDICATION_REQUESTS_ERROR', 500)
+
+
+@pharmacy_bp.route('/medication-requests/<int:request_id>/approve', methods=['POST'])
+def approve_medication_request(request_id):
+    try:
+        medication_request = MedicationRequest.query.get(request_id)
+        if not medication_request:
+            return error_response('用药申请不存在', 'MEDICATION_REQUEST_NOT_FOUND', 404)
+
+        if medication_request.status != 'PENDING':
+            return error_response('当前状态不可审核', 'INVALID_MEDICATION_REQUEST_STATUS')
+
+        inventory = MedicineInventory.query.filter_by(medicine_id=medication_request.medicine_id).first()
+        if not inventory:
+            return error_response('该药品暂无库存记录', 'INVENTORY_NOT_FOUND')
+
+        if inventory.quantity < medication_request.quantity:
+            return error_response('库存不足，无法通过审核', 'INSUFFICIENT_STOCK')
+
+        inventory.quantity -= medication_request.quantity
+        now = datetime.utcnow()
+        medication_request.status = 'APPROVED'
+        medication_request.approved_at = now
+        medication_request.dispensed_at = now
+        medication_request.updated_at = now
+
+        db.session.commit()
+
+        return success_response(medication_request.to_dict(), '审核通过并完成库存扣减', 'MEDICATION_REQUEST_APPROVED')
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'审核用药申请失败：{str(e)}', 'APPROVE_MEDICATION_REQUEST_ERROR', 500)
+
+
+@pharmacy_bp.route('/medication-requests/<int:request_id>/reject', methods=['POST'])
+def reject_medication_request(request_id):
+    try:
+        medication_request = MedicationRequest.query.get(request_id)
+        if not medication_request:
+            return error_response('用药申请不存在', 'MEDICATION_REQUEST_NOT_FOUND', 404)
+
+        if medication_request.status != 'PENDING':
+            return error_response('当前状态不可拒绝', 'INVALID_MEDICATION_REQUEST_STATUS')
+
+        data = request.get_json() or {}
+        reason = data.get('reason') or '管理员拒绝'
+
+        medication_request.status = 'REJECTED'
+        medication_request.reason = reason
+        medication_request.updated_at = datetime.utcnow()
+
+        db.session.commit()
+
+        return success_response(medication_request.to_dict(), '用药申请已拒绝', 'MEDICATION_REQUEST_REJECTED')
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'拒绝用药申请失败：{str(e)}', 'REJECT_MEDICATION_REQUEST_ERROR', 500)
 
 
 @pharmacy_bp.route('/medicines', methods=['GET'])
