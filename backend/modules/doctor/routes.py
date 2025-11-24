@@ -4,10 +4,12 @@ Doctor Management - Routes
 """
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from . import doctor_bp
-from backend.models import Doctor, DoctorSchedule, DoctorPerformance, Appointment, MedicalRecord
+from backend.models import Doctor, DoctorSchedule, DoctorPerformance, Appointment, MedicalRecord, Patient, Medicine, MedicationRequest
 from backend.extensions import db
 from datetime import datetime, date
 from sqlalchemy import func, extract
+from modules.doctor.models_extended import DoctorLeave
+from modules.doctor.utils import calculate_leave_days
 
 
 # ============= 统一响应格式 =============
@@ -684,6 +686,60 @@ def get_doctor_schedules(doctor_id):
         return error_response(f'获取医生排班失败：{str(e)}', 'GET_DOCTOR_SCHEDULES_ERROR', 500)
 
 
+@doctor_bp.route('/schedules/overview', methods=['GET'])
+def get_schedules_overview():
+    """按科室和日期范围获取排班总览（API）"""
+    try:
+        department = request.args.get('department', '', type=str)
+        start_date_str = request.args.get('start_date', '', type=str)
+        end_date_str = request.args.get('end_date', '', type=str)
+        shift = request.args.get('shift', '', type=str)
+        status = request.args.get('status', '', type=str)
+
+        query = db.session.query(DoctorSchedule, Doctor).join(Doctor, DoctorSchedule.doctor_id == Doctor.id)
+
+        if department:
+            query = query.filter(Doctor.department == department)
+
+        if start_date_str:
+            try:
+                start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return error_response('开始日期格式错误，应为YYYY-MM-DD', 'INVALID_DATE_FORMAT')
+            query = query.filter(DoctorSchedule.date >= start_date)
+
+        if end_date_str:
+            try:
+                end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return error_response('结束日期格式错误，应为YYYY-MM-DD', 'INVALID_DATE_FORMAT')
+            query = query.filter(DoctorSchedule.date <= end_date)
+
+        if shift:
+            query = query.filter(DoctorSchedule.shift == shift)
+
+        if status:
+            query = query.filter(DoctorSchedule.status == status)
+
+        results = query.order_by(DoctorSchedule.date.asc(), Doctor.id.asc()).all()
+        items = []
+        for schedule, doctor in results:
+            data = schedule.to_dict()
+            data['doctor_name'] = doctor.name
+            data['doctor_department'] = doctor.department
+            data['doctor_title'] = doctor.title
+            items.append(data)
+
+        return success_response({
+            'list': items,
+            'items': items,
+            'total': len(items)
+        })
+    
+    except Exception as e:
+        return error_response(f'获取排班总览失败：{str(e)}', 'GET_SCHEDULES_OVERVIEW_ERROR', 500)
+
+
 # ============= 传统视图 - 排班管理 =============
 
 @doctor_bp.route('/schedules-list')
@@ -1077,6 +1133,434 @@ def get_performances_statistics():
         return error_response(f'获取绩效统计失败：{str(e)}', 'GET_PERFORMANCE_STATISTICS_ERROR', 500)
 
 
+@doctor_bp.route('/leaves', methods=['GET'])
+def get_leaves():
+    """获取请假列表（API）"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        doctor_id = request.args.get('doctor_id', type=int)
+        status = request.args.get('status', '', type=str)
+        leave_type = request.args.get('leave_type', '', type=str)
+        start_date_str = request.args.get('start_date', '', type=str)
+        end_date_str = request.args.get('end_date', '', type=str)
+
+        query = DoctorLeave.query
+
+        if doctor_id:
+            query = query.filter_by(doctor_id=doctor_id)
+
+        if status:
+            query = query.filter_by(status=status)
+
+        if leave_type:
+            query = query.filter_by(leave_type=leave_type)
+
+        if start_date_str:
+            try:
+                start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return error_response('开始日期格式错误，应为YYYY-MM-DD', 'INVALID_DATE_FORMAT')
+            query = query.filter(DoctorLeave.start_date >= start_date)
+
+        if end_date_str:
+            try:
+                end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return error_response('结束日期格式错误，应为YYYY-MM-DD', 'INVALID_DATE_FORMAT')
+            query = query.filter(DoctorLeave.end_date <= end_date)
+
+        pagination = query.order_by(DoctorLeave.start_date.desc()).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+
+        items = [leave.to_dict() for leave in pagination.items]
+
+        return success_response({
+            'list': items,
+            'items': items,
+            'total': pagination.total,
+            'page': page,
+            'per_page': per_page,
+            'pages': pagination.pages
+        })
+    
+    except Exception as e:
+        return error_response(f'获取请假列表失败：{str(e)}', 'GET_LEAVES_ERROR', 500)
+
+
+@doctor_bp.route('/leaves/<int:leave_id>', methods=['GET'])
+def get_leave(leave_id):
+    """获取请假详情（API）"""
+    try:
+        leave = DoctorLeave.query.get(leave_id)
+        if not leave:
+            return error_response('请假记录不存在', 'LEAVE_NOT_FOUND', 404)
+        
+        return success_response(leave.to_dict())
+    
+    except Exception as e:
+        return error_response(f'获取请假详情失败：{str(e)}', 'GET_LEAVE_ERROR', 500)
+
+
+@doctor_bp.route('/leaves', methods=['POST'])
+def create_leave():
+    """创建请假申请（API）"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return error_response('请求数据不能为空', 'INVALID_DATA')
+        
+        required_fields = ['doctor_id', 'leave_type', 'start_date', 'end_date']
+        for field in required_fields:
+            if not data.get(field):
+                return error_response(f'缺少必填字段：{field}', 'MISSING_FIELD')
+        
+        doctor = Doctor.query.get(data['doctor_id'])
+        if not doctor:
+            return error_response('医生不存在', 'DOCTOR_NOT_FOUND', 404)
+        
+        try:
+            start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
+            end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
+        except ValueError:
+            return error_response('日期格式错误，应为YYYY-MM-DD', 'INVALID_DATE_FORMAT')
+        
+        if end_date < start_date:
+            return error_response('结束日期不能早于开始日期', 'INVALID_DATE_RANGE')
+        
+        days = calculate_leave_days(start_date, end_date)
+        
+        leave = DoctorLeave(
+            doctor_id=data['doctor_id'],
+            leave_type=data['leave_type'],
+            start_date=start_date,
+            end_date=end_date,
+            days=days,
+            reason=data.get('reason'),
+            status=data.get('status', 'pending'),
+            substitute_doctor_id=data.get('substitute_doctor_id'),
+            approval_notes=data.get('approval_notes')
+        )
+        
+        db.session.add(leave)
+        db.session.commit()
+        
+        return success_response(leave.to_dict(), '请假申请创建成功', 'LEAVE_CREATED')
+    
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'创建请假申请失败：{str(e)}', 'CREATE_LEAVE_ERROR', 500)
+
+
+@doctor_bp.route('/leaves/<int:leave_id>', methods=['PUT'])
+def update_leave(leave_id):
+    """更新请假申请（API）"""
+    try:
+        leave = DoctorLeave.query.get(leave_id)
+        if not leave:
+            return error_response('请假记录不存在', 'LEAVE_NOT_FOUND', 404)
+        
+        data = request.get_json()
+        if not data:
+            return error_response('请求数据不能为空', 'INVALID_DATA')
+        
+        if 'doctor_id' in data:
+            doctor = Doctor.query.get(data['doctor_id'])
+            if not doctor:
+                return error_response('医生不存在', 'DOCTOR_NOT_FOUND', 404)
+            leave.doctor_id = data['doctor_id']
+        
+        if 'leave_type' in data:
+            leave.leave_type = data['leave_type']
+        
+        start_date = leave.start_date
+        end_date = leave.end_date
+        
+        if 'start_date' in data:
+            try:
+                start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
+            except ValueError:
+                return error_response('开始日期格式错误，应为YYYY-MM-DD', 'INVALID_DATE_FORMAT')
+        
+        if 'end_date' in data:
+            try:
+                end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
+            except ValueError:
+                return error_response('结束日期格式错误，应为YYYY-MM-DD', 'INVALID_DATE_FORMAT')
+        
+        if start_date and end_date:
+            if end_date < start_date:
+                return error_response('结束日期不能早于开始日期', 'INVALID_DATE_RANGE')
+            leave.start_date = start_date
+            leave.end_date = end_date
+            leave.days = calculate_leave_days(start_date, end_date)
+        
+        if 'reason' in data:
+            leave.reason = data['reason']
+        
+        if 'status' in data:
+            leave.status = data['status']
+        
+        if 'substitute_doctor_id' in data:
+            leave.substitute_doctor_id = data['substitute_doctor_id']
+        
+        if 'approval_notes' in data:
+            leave.approval_notes = data['approval_notes']
+        
+        db.session.commit()
+        
+        return success_response(leave.to_dict(), '请假申请更新成功', 'LEAVE_UPDATED')
+    
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'更新请假申请失败：{str(e)}', 'UPDATE_LEAVE_ERROR', 500)
+
+
+@doctor_bp.route('/leaves/<int:leave_id>', methods=['DELETE'])
+def delete_leave(leave_id):
+    """删除请假记录（API）"""
+    try:
+        leave = DoctorLeave.query.get(leave_id)
+        if not leave:
+            return error_response('请假记录不存在', 'LEAVE_NOT_FOUND', 404)
+        
+        db.session.delete(leave)
+        db.session.commit()
+        
+        return success_response(None, '请假记录删除成功', 'LEAVE_DELETED')
+    
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'删除请假记录失败：{str(e)}', 'DELETE_LEAVE_ERROR', 500)
+
+
+@doctor_bp.route('/leaves/<int:leave_id>/approve', methods=['PUT'])
+def approve_leave(leave_id):
+    """审批通过请假申请（API）"""
+    try:
+        leave = DoctorLeave.query.get(leave_id)
+        if not leave:
+            return error_response('请假记录不存在', 'LEAVE_NOT_FOUND', 404)
+        
+        data = request.get_json() or {}
+        approver_id = data.get('approver_id')
+        approval_notes = data.get('approval_notes')
+        
+        leave.status = 'approved'
+        leave.approver_id = approver_id
+        leave.approval_notes = approval_notes
+        leave.approval_date = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return success_response(leave.to_dict(), '请假审批通过', 'LEAVE_APPROVED')
+    
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'审批请假失败：{str(e)}', 'APPROVE_LEAVE_ERROR', 500)
+
+
+@doctor_bp.route('/leaves/<int:leave_id>/reject', methods=['PUT'])
+def reject_leave(leave_id):
+    """审批拒绝请假申请（API）"""
+    try:
+        leave = DoctorLeave.query.get(leave_id)
+        if not leave:
+            return error_response('请假记录不存在', 'LEAVE_NOT_FOUND', 404)
+        
+        data = request.get_json() or {}
+        approver_id = data.get('approver_id')
+        approval_notes = data.get('approval_notes')
+        
+        leave.status = 'rejected'
+        leave.approver_id = approver_id
+        leave.approval_notes = approval_notes
+        leave.approval_date = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return success_response(leave.to_dict(), '请假审批已拒绝', 'LEAVE_REJECTED')
+    
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'拒绝请假失败：{str(e)}', 'REJECT_LEAVE_ERROR', 500)
+
+
+@doctor_bp.route('/doctors/<int:doctor_id>/leaves', methods=['GET'])
+def get_doctor_leaves(doctor_id):
+    """获取指定医生的请假记录（API）"""
+    try:
+        doctor = Doctor.query.get(doctor_id)
+        if not doctor:
+            return error_response('医生不存在', 'DOCTOR_NOT_FOUND', 404)
+        
+        status = request.args.get('status', '', type=str)
+        start_date_str = request.args.get('start_date', '', type=str)
+        end_date_str = request.args.get('end_date', '', type=str)
+        
+        query = DoctorLeave.query.filter_by(doctor_id=doctor_id)
+        
+        if status:
+            query = query.filter_by(status=status)
+        
+        if start_date_str:
+            try:
+                start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return error_response('开始日期格式错误，应为YYYY-MM-DD', 'INVALID_DATE_FORMAT')
+            query = query.filter(DoctorLeave.start_date >= start_date)
+        
+        if end_date_str:
+            try:
+                end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return error_response('结束日期格式错误，应为YYYY-MM-DD', 'INVALID_DATE_FORMAT')
+            query = query.filter(DoctorLeave.end_date <= end_date)
+        
+        leaves = query.order_by(DoctorLeave.start_date.desc()).all()
+        items = [leave.to_dict() for leave in leaves]
+        
+        return success_response({
+            'doctor': doctor.to_dict(),
+            'leaves': items,
+            'list': items,
+            'items': items,
+            'total': len(items)
+        })
+    
+    except Exception as e:
+        return error_response(f'获取医生请假记录失败：{str(e)}', 'GET_DOCTOR_LEAVES_ERROR', 500)
+
+
+# ============= RESTful API - 医生用药申请管理 =============
+
+@doctor_bp.route('/medication-requests', methods=['GET'])
+def get_medication_requests():
+    """获取用药申请列表（API）"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        doctor_id = request.args.get('doctor_id', type=int)
+        patient_id = request.args.get('patient_id', type=int)
+        status = request.args.get('status', '', type=str)
+        
+        query = MedicationRequest.query
+        
+        if doctor_id:
+            query = query.filter_by(doctor_id=doctor_id)
+        if patient_id:
+            query = query.filter_by(patient_id=patient_id)
+        if status:
+            query = query.filter_by(status=status)
+        
+        pagination = query.order_by(MedicationRequest.created_at.desc()).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+        
+        items = [req.to_dict() for req in pagination.items]
+        
+        return success_response({
+            'items': items,
+            'total': pagination.total,
+            'page': page,
+            'per_page': per_page,
+            'pages': pagination.pages
+        })
+    
+    except Exception as e:
+        return error_response(f'获取用药申请列表失败：{str(e)}', 'GET_MEDICATION_REQUESTS_ERROR', 500)
+
+
+@doctor_bp.route('/medication-requests', methods=['POST'])
+def create_medication_request():
+    """创建用药申请（API）"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return error_response('请求数据不能为空', 'INVALID_DATA')
+        
+        required_fields = ['patient_id', 'doctor_id', 'medicine_id', 'quantity']
+        for field in required_fields:
+            if not data.get(field):
+                return error_response(f'缺少必填字段：{field}', 'MISSING_FIELD')
+        
+        try:
+            quantity = int(data.get('quantity'))
+        except (TypeError, ValueError):
+            return error_response('数量必须为正整数', 'INVALID_QUANTITY')
+        
+        if quantity <= 0:
+            return error_response('数量必须大于0', 'INVALID_QUANTITY')
+        
+        patient = Patient.query.get(data['patient_id'])
+        if not patient:
+            return error_response('病人不存在', 'PATIENT_NOT_FOUND', 404)
+        
+        doctor = Doctor.query.get(data['doctor_id'])
+        if not doctor:
+            return error_response('医生不存在', 'DOCTOR_NOT_FOUND', 404)
+        
+        medicine = Medicine.query.get(data['medicine_id'])
+        if not medicine:
+            return error_response('药品不存在', 'MEDICINE_NOT_FOUND', 404)
+        
+        medication_request = MedicationRequest(
+            patient_id=data['patient_id'],
+            doctor_id=data['doctor_id'],
+            medicine_id=data['medicine_id'],
+            dose=data.get('dose'),
+            usage=data.get('usage'),
+            quantity=quantity,
+            status='PENDING',
+            reason=data.get('reason')
+        )
+        
+        db.session.add(medication_request)
+        db.session.commit()
+        
+        return success_response(medication_request.to_dict(), '用药申请创建成功', 'MEDICATION_REQUEST_CREATED')
+    
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'创建用药申请失败：{str(e)}', 'CREATE_MEDICATION_REQUEST_ERROR', 500)
+
+
+@doctor_bp.route('/doctors/<int:doctor_id>/medication-requests', methods=['GET'])
+def get_doctor_medication_requests(doctor_id):
+    """获取指定医生的用药申请（API）"""
+    try:
+        doctor = Doctor.query.get(doctor_id)
+        if not doctor:
+            return error_response('医生不存在', 'DOCTOR_NOT_FOUND', 404)
+        
+        status = request.args.get('status', '', type=str)
+        patient_id = request.args.get('patient_id', type=int)
+        
+        query = MedicationRequest.query.filter_by(doctor_id=doctor_id)
+        
+        if status:
+            query = query.filter_by(status=status)
+        if patient_id:
+            query = query.filter_by(patient_id=patient_id)
+        
+        requests = query.order_by(MedicationRequest.created_at.desc()).all()
+        items = [req.to_dict() for req in requests]
+        
+        return success_response({
+            'doctor': doctor.to_dict(),
+            'requests': items,
+            'list': items,
+            'items': items,
+            'total': len(items)
+        })
+    
+    except Exception as e:
+        return error_response(f'获取医生用药申请失败：{str(e)}', 'GET_DOCTOR_MEDICATION_REQUESTS_ERROR', 500)
+
+
 # ============= 传统视图 - 绩效管理 =============
 
 @doctor_bp.route('/performances-list')
@@ -1166,26 +1650,30 @@ def get_departments():
             Doctor.department.isnot(None),
             Doctor.department != ''
         ).distinct().all()
+        
+        default_departments = [
+            {'id': '内科', 'name': '内科'},
+            {'id': '外科', 'name': '外科'},
+            {'id': '儿科', 'name': '儿科'},
+            {'id': '妇产科', 'name': '妇产科'},
+            {'id': '骨科', 'name': '骨科'},
+            {'id': '神经科', 'name': '神经科'},
+            {'id': '皮肤科', 'name': '皮肤科'},
+            {'id': '眼科', 'name': '眼科'},
+            {'id': '耳鼻喉科', 'name': '耳鼻喉科'},
+            {'id': '口腔科', 'name': '口腔科'},
+            {'id': '急诊科', 'name': '急诊科'},
+            {'id': '中医科', 'name': '中医科'}
+        ]
 
-        # 转换为列表格式
-        departments = [{'id': dept[0], 'name': dept[0]} for dept in departments_query]
+        existing_ids = {item['id'] for item in default_departments}
+        for dept in departments_query:
+            name = dept[0]
+            if name and name not in existing_ids:
+                default_departments.append({'id': name, 'name': name})
+                existing_ids.add(name)
 
-        # 如果没有科室数据，返回默认科室列表
-        if not departments:
-            departments = [
-                {'id': '内科', 'name': '内科'},
-                {'id': '外科', 'name': '外科'},
-                {'id': '儿科', 'name': '儿科'},
-                {'id': '妇产科', 'name': '妇产科'},
-                {'id': '骨科', 'name': '骨科'},
-                {'id': '神经科', 'name': '神经科'},
-                {'id': '皮肤科', 'name': '皮肤科'},
-                {'id': '眼科', 'name': '眼科'},
-                {'id': '耳鼻喉科', 'name': '耳鼻喉科'},
-                {'id': '口腔科', 'name': '口腔科'},
-                {'id': '急诊科', 'name': '急诊科'},
-                {'id': '中医科', 'name': '中医科'}
-            ]
+        departments = default_departments
 
         return success_response(departments)
 

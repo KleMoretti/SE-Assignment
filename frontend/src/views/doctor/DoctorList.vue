@@ -22,6 +22,9 @@
         <el-button @click="goToPerformance" :icon="TrendCharts">
           绩效管理
         </el-button>
+        <el-button @click="goToMedicationRequests" :icon="TrendCharts">
+          开药申请
+        </el-button>
       </div>
     </div>
 
@@ -689,6 +692,10 @@ const goToLeave = () => {
 
 const goToPerformance = () => {
   router.push('/doctor/performance')
+}
+
+const goToMedicationRequests = () => {
+  router.push('/doctor/medication-requests')
 }
 
 const toggleSelection = (doctorId) => {
