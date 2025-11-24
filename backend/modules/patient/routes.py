@@ -3,7 +3,6 @@
 Patient Management - Routes
 """
 from flask import render_template, request, redirect, url_for, flash, jsonify
-from flask_login import current_user, login_required
 from backend.models import User, Patient
 from . import patient_bp
 from backend.extensions import db
@@ -379,7 +378,6 @@ def api_create_medical_record():
 # --- 新增：病人关系管理 API ---
 
 @patient_bp.route('/managed-patients', methods=['GET'])
-@login_required
 def api_get_managed_patients():
     """获取当前用户可管理的所有病人列表（自己和家人）"""
     try:
@@ -392,7 +390,6 @@ def api_get_managed_patients():
 
 
 @patient_bp.route('/managed-patients/add', methods=['POST'])
-@login_required
 def api_add_managed_patient():
     """为当前用户添加一个可管理的病人（家人）"""
     try:
