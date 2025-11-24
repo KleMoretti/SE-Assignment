@@ -256,10 +256,13 @@ def purchase_list():
     """采购列表"""
     page = request.args.get('page', 1, type=int)
     status = request.args.get('status', '')
+    priority = request.args.get('priority', '')
     
     query = MedicinePurchase.query
     if status:
         query = query.filter_by(status=status)
+    if priority:
+        query = query.filter_by(priority=priority)
     
     pagination = query.order_by(MedicinePurchase.purchase_date.desc()).paginate(
         page=page, per_page=10, error_out=False
@@ -274,6 +277,7 @@ def purchase_list():
                          purchases=purchases, 
                          pagination=pagination,
                          status=status,
+                         priority=priority,
                          total_purchases=total_purchases,
                          pending_count=pending_count)
 
@@ -286,6 +290,7 @@ def purchase_add():
             quantity = request.form.get('quantity', type=int)
             unit_price = request.form.get('unit_price', type=float)
             total_price = quantity * unit_price
+            priority = request.form.get('priority') or 'medium'
             
             # 生成采购单号
             purchase_no = f"PO{datetime.now().strftime('%Y%m%d%H%M%S')}"
@@ -297,6 +302,7 @@ def purchase_add():
                 quantity=quantity,
                 unit_price=unit_price,
                 total_price=total_price,
+                priority=priority,
                 purchaser=request.form.get('purchaser'),
                 notes=request.form.get('notes')
             )
@@ -330,8 +336,13 @@ def purchase_receive(id):
     try:
         purchase = MedicinePurchase.query.get_or_404(id)
         
+        # 仅允许对待处理的采购单进行收货操作，防止重复入库
+        if purchase.status != 'pending':
+            flash('当前采购单状态不允许重复收货处理', 'warning')
+            return redirect(url_for('pharmacy.purchase_list'))
+        
         # 更新采购状态
-        purchase.status = 'received'
+        purchase.status = 'completed'
         purchase.actual_delivery_date = datetime.now().date()
         
         # 获取批次和日期信息
@@ -357,6 +368,20 @@ def purchase_receive(id):
                 inventory.production_date = datetime.strptime(prod_date_str, '%Y-%m-%d').date()
             if exp_date_str:
                 inventory.expiry_date = datetime.strptime(exp_date_str, '%Y-%m-%d').date()
+        else:
+            # 若库存中不存在该药品的记录，则视为新药入库
+            inventory = MedicineInventory(
+                medicine_id=purchase.medicine_id,
+                quantity=purchase.quantity
+            )
+            inventory.last_restock_date = datetime.now()
+            if batch_no:
+                inventory.batch_no = batch_no
+            if prod_date_str:
+                inventory.production_date = datetime.strptime(prod_date_str, '%Y-%m-%d').date()
+            if exp_date_str:
+                inventory.expiry_date = datetime.strptime(exp_date_str, '%Y-%m-%d').date()
+            db.session.add(inventory)
         
         db.session.commit()
         flash('收货成功，库存已更新！', 'success')
@@ -365,6 +390,206 @@ def purchase_receive(id):
         flash(f'收货失败：{str(e)}', 'error')
     
     return redirect(url_for('pharmacy.purchase_list'))
+
+
+@pharmacy_bp.route('/purchase-orders', methods=['GET'])
+def get_purchase_orders():
+    """获取采购列表（API）"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        status = request.args.get('status', '')
+        priority = request.args.get('priority', '')
+        
+        query = MedicinePurchase.query
+        if status:
+            query = query.filter_by(status=status)
+        if priority:
+            query = query.filter_by(priority=priority)
+        
+        pagination = query.order_by(MedicinePurchase.purchase_date.desc()).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+        items = [p.to_dict() for p in pagination.items]
+        
+        # 统计信息
+        total_purchases = MedicinePurchase.query.count()
+        pending_count = MedicinePurchase.query.filter_by(status='pending').count()
+        
+        return success_response({
+            'items': items,
+            'total': pagination.total,
+            'page': page,
+            'per_page': per_page,
+            'pages': pagination.pages,
+            'stats': {
+                'total_purchases': total_purchases,
+                'pending_count': pending_count
+            }
+        })
+    except Exception as e:
+        return error_response(f'获取采购列表失败：{str(e)}', 'GET_PURCHASE_ORDERS_ERROR', 500)
+
+
+@pharmacy_bp.route('/purchase-orders', methods=['POST'])
+def create_purchase_order():
+    """创建采购单（API）"""
+    try:
+        data = request.get_json() or {}
+        
+        medicine_id = data.get('medicine_id')
+        quantity = data.get('quantity')
+        unit_price = data.get('unit_price')
+        
+        if not quantity or not unit_price:
+            return error_response('缺少必填字段：quantity / unit_price', 'MISSING_FIELD')
+        
+        try:
+            quantity = int(quantity)
+            unit_price = float(unit_price)
+        except (TypeError, ValueError):
+            return error_response('数量或单价格式错误', 'INVALID_NUMBER')
+        
+        # 处理药品：已有药品 或 新药品
+        medicine = None
+        if medicine_id:
+            medicine = Medicine.query.get(medicine_id)
+            if not medicine:
+                return error_response('所选药品不存在', 'MEDICINE_NOT_FOUND', 404)
+        else:
+            medicine_no = data.get('medicine_no')
+            medicine_name = data.get('medicine_name') or data.get('name')
+            category = data.get('category')
+            
+            if not medicine_no or not medicine_name or not category:
+                return error_response('新药品必须提供：药品编号、药品名称、分类', 'MISSING_NEW_MEDICINE_FIELD')
+            
+            # 若编号已存在则复用原有药品，避免重复创建
+            existing = Medicine.query.filter_by(medicine_no=medicine_no).first()
+            if existing:
+                medicine = existing
+            else:
+                medicine = Medicine(
+                    medicine_no=medicine_no,
+                    name=medicine_name,
+                    category=category,
+                    price=unit_price,
+                    status='active'
+                )
+                db.session.add(medicine)
+                db.session.flush()
+        
+        medicine_id = medicine.id if medicine else medicine_id
+        total_price = quantity * unit_price
+        priority = data.get('priority') or 'medium'
+        
+        # 生成采购单号
+        purchase_no = f"PO{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        
+        purchase = MedicinePurchase(
+            purchase_no=purchase_no,
+            medicine_id=medicine_id,
+            supplier=data.get('supplier'),
+            quantity=quantity,
+            unit_price=unit_price,
+            total_price=total_price,
+            priority=priority,
+            purchaser=data.get('purchaser'),
+            notes=data.get('notes')
+        )
+        
+        exp_date_str = data.get('expected_delivery_date')
+        if exp_date_str:
+            try:
+                purchase.expected_delivery_date = datetime.strptime(exp_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return error_response('预计到货日期格式错误，应为YYYY-MM-DD', 'INVALID_DATE_FORMAT')
+        
+        db.session.add(purchase)
+        db.session.commit()
+        
+        return success_response(purchase.to_dict(), '采购单创建成功', 'PURCHASE_CREATED')
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'创建采购单失败：{str(e)}', 'CREATE_PURCHASE_ORDER_ERROR', 500)
+
+
+@pharmacy_bp.route('/purchase-orders/<int:purchase_id>', methods=['GET'])
+def get_purchase_order_detail(purchase_id):
+    """获取采购单详情（API）"""
+    try:
+        purchase = MedicinePurchase.query.get(purchase_id)
+        if not purchase:
+            return error_response('采购单不存在', 'PURCHASE_NOT_FOUND', 404)
+        return success_response(purchase.to_dict())
+    except Exception as e:
+        return error_response(f'获取采购单详情失败：{str(e)}', 'GET_PURCHASE_ORDER_ERROR', 500)
+
+
+@pharmacy_bp.route('/purchase-orders/<int:purchase_id>/receive', methods=['POST'])
+def receive_purchase_order(purchase_id):
+    """确认收货（API）"""
+    try:
+        purchase = MedicinePurchase.query.get(purchase_id)
+        if not purchase:
+            return error_response('采购单不存在', 'PURCHASE_NOT_FOUND', 404)
+        
+        if purchase.status != 'pending':
+            return error_response('当前采购单状态不允许重复收货处理', 'INVALID_PURCHASE_STATUS')
+        
+        data = request.get_json() or {}
+        batch_no = data.get('batch_no')
+        prod_date_str = data.get('production_date')
+        exp_date_str = data.get('expiry_date')
+        
+        if not prod_date_str or not exp_date_str:
+            return error_response('收货时必须提供生产日期和过期日期', 'MISSING_DATE_FIELD')
+        
+        try:
+            prod_date = datetime.strptime(prod_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return error_response('生产日期格式错误，应为YYYY-MM-DD', 'INVALID_DATE_FORMAT')
+        
+        try:
+            exp_date = datetime.strptime(exp_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return error_response('过期日期格式错误，应为YYYY-MM-DD', 'INVALID_DATE_FORMAT')
+        
+        # 更新采购状态
+        purchase.status = 'completed'
+        purchase.actual_delivery_date = datetime.now().date()
+        
+        if batch_no:
+            purchase.batch_no = batch_no
+        purchase.production_date = prod_date
+        purchase.expiry_date = exp_date
+        
+        # 更新库存（逻辑与表单版保持一致）
+        inventory = MedicineInventory.query.filter_by(medicine_id=purchase.medicine_id).first()
+        if inventory:
+            inventory.quantity += purchase.quantity
+            inventory.last_restock_date = datetime.now()
+            if batch_no:
+                inventory.batch_no = batch_no
+            inventory.production_date = prod_date
+            inventory.expiry_date = exp_date
+        else:
+            inventory = MedicineInventory(
+                medicine_id=purchase.medicine_id,
+                quantity=purchase.quantity
+            )
+            inventory.last_restock_date = datetime.now()
+            if batch_no:
+                inventory.batch_no = batch_no
+            inventory.production_date = prod_date
+            inventory.expiry_date = exp_date
+            db.session.add(inventory)
+        
+        db.session.commit()
+        return success_response(purchase.to_dict(), '收货成功，库存已更新', 'PURCHASE_RECEIVED')
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'收货失败：{str(e)}', 'RECEIVE_PURCHASE_ORDER_ERROR', 500)
 
 
 @pharmacy_bp.route('/medication-requests', methods=['GET'])

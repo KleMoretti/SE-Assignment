@@ -247,7 +247,7 @@ const goToInfo = () => {
 }
 
 const goToPurchase = () => {
-  ElMessage.info('采购管理模块开发中')
+  router.push('/pharmacy/purchase')
 }
 
 const handleShowDetail = async (row) => {
