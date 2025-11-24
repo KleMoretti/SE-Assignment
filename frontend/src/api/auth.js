@@ -68,6 +68,27 @@ export function changePassword(data) {
 }
 
 /**
+ * 检查病人信息是否完整
+ */
+export function checkPatientInfo() {
+  return request({
+    url: '/auth/check-patient-info',
+    method: 'get'
+  })
+}
+
+/**
+ * 完善病人信息
+ */
+export function completePatientInfo(data) {
+  return request({
+    url: '/auth/complete-patient-info',
+    method: 'post',
+    data
+  })
+}
+
+/**
  * 获取用户列表（管理员）
  */
 export function getUsers(params) {
@@ -98,4 +119,3 @@ export function deleteUser(userId) {
     method: 'delete'
   })
 }
-

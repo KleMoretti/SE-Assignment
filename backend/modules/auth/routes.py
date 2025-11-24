@@ -79,27 +79,70 @@ def register():
         if User.query.filter_by(username=data['username']).first():
             return error_response('用户名已存在', 'USERNAME_EXISTS')
         
-        # 检查邮箱是否已存在
-        if data.get('email'):
-            if User.query.filter_by(email=data['email']).first():
+        # 处理邮箱字段：空字符串转为None，避免唯一约束冲突
+        email = data.get('email')
+        email = email if email and email.strip() else None
+        
+        # 检查邮箱是否已存在（只检查非空邮箱）
+        if email:
+            if User.query.filter_by(email=email).first():
                 return error_response('邮箱已被使用', 'EMAIL_EXISTS')
         
         # 密码长度验证
         if len(data['password']) < 6:
             return error_response('密码长度至少6位', 'PASSWORD_TOO_SHORT')
         
+        # 处理其他可选字段：空字符串转为None
+        phone = data.get('phone')
+        phone = phone if phone and phone.strip() else None
+        
+        real_name = data.get('real_name')
+        real_name = real_name if real_name and real_name.strip() else None
+        
+        department = data.get('department')
+        department = department if department and department.strip() else None
+        
         # 创建用户
         user = User(
             username=data['username'],
-            email=data.get('email'),
-            phone=data.get('phone'),
-            real_name=data.get('real_name'),
+            email=email,
+            phone=phone,
+            real_name=real_name,
             role=data.get('role', 'user'),
-            department=data.get('department')
+            department=department
         )
         user.set_password(data['password'])
         
         db.session.add(user)
+        db.session.flush()  # 获取用户ID
+
+        # 如果是普通用户，自动创建病人记录
+        if user.role == 'user' and phone:
+            from backend.models import Patient, PatientUserLink
+            from backend.modules.patient.patient_services import generate_patient_no
+
+            # 生成病人编号
+            patient_no = generate_patient_no()
+
+            # 创建病人记录（基础信息）
+            patient = Patient(
+                patient_no=patient_no,
+                name=real_name or data['username'],  # 使用真实姓名或用户名
+                gender='未知',  # 默认未知，后续完善
+                phone=phone,
+                age=None,
+                id_card=None,
+                address=None,
+                emergency_contact=None,
+                emergency_phone=None
+            )
+            db.session.add(patient)
+            db.session.flush()  # 获取病人ID
+
+            # 创建用户-病人关联
+            link = PatientUserLink(user_id=user.id, patient_id=patient.id)
+            db.session.add(link)
+
         db.session.commit()
         
         return success_response(
@@ -411,3 +454,118 @@ def delete_user(user_id):
         db.session.rollback()
         return error_response(f'删除用户失败：{str(e)}', 'DELETE_USER_ERROR', 500)
 
+
+# ============= 病人信息管理 =============
+
+@auth_bp.route('/check-patient-info', methods=['GET'])
+@jwt_required()
+def check_patient_info():
+    """检查当前用户的病人信息是否完整"""
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+
+        if not user:
+            return error_response('用户不存在', 'USER_NOT_FOUND', 404)
+
+        # 只有普通用户才需要检查病人信息
+        if user.role != 'user':
+            return success_response({
+                'has_patient_info': False,
+                'is_complete': True,
+                'patient': None
+            }, '非普通用户，无需病人信息')
+
+        # 查找关联的病人记录
+        from backend.models import PatientUserLink, Patient
+        link = PatientUserLink.query.filter_by(user_id=user.id).first()
+
+        if not link:
+            return success_response({
+                'has_patient_info': False,
+                'is_complete': False,
+                'patient': None
+            }, '未找到病人信息')
+
+        patient = link.patient
+
+        # 检查信息是否完整
+        is_complete = all([
+            patient.name and patient.name != user.username,
+            patient.gender and patient.gender != '未知',
+            patient.age is not None,
+            patient.id_card,
+            patient.address
+        ])
+
+        return success_response({
+            'has_patient_info': True,
+            'is_complete': is_complete,
+            'patient': patient.to_dict()
+        }, '病人信息检查完成')
+
+    except Exception as e:
+        return error_response(f'检查病人信息失败：{str(e)}', 'CHECK_PATIENT_ERROR', 500)
+
+
+@auth_bp.route('/complete-patient-info', methods=['POST'])
+@jwt_required()
+def complete_patient_info():
+    """完善病人信息"""
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+
+        if not user:
+            return error_response('用户不存在', 'USER_NOT_FOUND', 404)
+
+        if user.role != 'user':
+            return error_response('只有普通用户才能完善病人信息', 'INVALID_ROLE')
+
+        data = request.get_json()
+        if not data:
+            return error_response('请求数据不能为空', 'INVALID_DATA')
+
+        # 查找关联的病人记录
+        from backend.models import PatientUserLink, Patient
+        link = PatientUserLink.query.filter_by(user_id=user.id).first()
+
+        if not link:
+            return error_response('未找到病人信息', 'PATIENT_NOT_FOUND', 404)
+
+        patient = link.patient
+
+        # 更新病人信息
+        if 'name' in data:
+            patient.name = data['name']
+        if 'gender' in data:
+            patient.gender = data['gender']
+        if 'age' in data:
+            try:
+                patient.age = int(data['age'])
+            except (TypeError, ValueError):
+                patient.age = None
+        if 'id_card' in data:
+            patient.id_card = data['id_card']
+        if 'address' in data:
+            patient.address = data['address']
+        if 'emergency_contact' in data:
+            patient.emergency_contact = data['emergency_contact']
+        if 'emergency_phone' in data:
+            patient.emergency_phone = data['emergency_phone']
+
+        # 同步更新用户的真实姓名
+        if 'name' in data:
+            user.real_name = data['name']
+
+        db.session.commit()
+
+        return success_response(
+            patient.to_dict(),
+            '病人信息完善成功',
+            'PATIENT_INFO_COMPLETED'
+        )
+
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'完善病人信息失败：{str(e)}', 'COMPLETE_PATIENT_ERROR', 500)

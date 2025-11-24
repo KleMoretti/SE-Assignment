@@ -91,11 +91,42 @@
               />
             </el-form-item>
 
-            <el-form-item prop="email">
+            <el-form-item prop="role">
+              <el-select
+                v-model="registerForm.role"
+                placeholder="请选择角色"
+                size="large"
+                style="width: 100%"
+              >
+                <el-option label="普通用户" value="user" />
+                <el-option label="医生" value="doctor" />
+                <el-option label="管理员" value="admin" />
+              </el-select>
+            </el-form-item>
+
+            <!-- 管理员和医生需要输入口令 -->
+            <el-form-item v-if="registerForm.role === 'admin' || registerForm.role === 'doctor'" prop="accessCode">
               <el-input
-                v-model="registerForm.email"
-                placeholder="请输入邮箱（选填）"
-                prefix-icon="Message"
+                v-model="registerForm.accessCode"
+                type="password"
+                placeholder="请输入注册口令"
+                prefix-icon="Key"
+                size="large"
+                show-password
+              >
+                <template #append>
+                  <el-tooltip content="管理员和医生注册需要特殊口令" placement="top">
+                    <el-icon><QuestionFilled /></el-icon>
+                  </el-tooltip>
+                </template>
+              </el-input>
+            </el-form-item>
+
+            <el-form-item prop="phone">
+              <el-input
+                v-model="registerForm.phone"
+                placeholder="请输入手机号"
+                prefix-icon="Phone"
                 size="large"
                 clearable
               />
@@ -134,14 +165,19 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { QuestionFilled } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { register } from '@/api/auth'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
+
+// 注册口令
+const ACCESS_CODE = 'hospitalmanager121121'
 
 onMounted(() => {
   console.log('Login page mounted successfully!')
@@ -176,13 +212,43 @@ const registerForm = reactive({
   username: '',
   password: '',
   confirmPassword: '',
-  email: '',
+  role: 'user',
+  accessCode: '',
+  phone: '',
   real_name: ''
+})
+
+// 监听角色变化，清空口令
+watch(() => registerForm.role, (newRole) => {
+  if (newRole === 'user') {
+    registerForm.accessCode = ''
+  }
 })
 
 const validateConfirmPassword = (rule, value, callback) => {
   if (value !== registerForm.password) {
     callback(new Error('两次输入的密码不一致'))
+  } else {
+    callback()
+  }
+}
+
+const validateAccessCode = (rule, value, callback) => {
+  const role = registerForm.role
+  if ((role === 'admin' || role === 'doctor') && !value) {
+    callback(new Error('管理员和医生注册需要输入口令'))
+  } else if ((role === 'admin' || role === 'doctor') && value !== ACCESS_CODE) {
+    callback(new Error('口令错误，请联系系统管理员'))
+  } else {
+    callback()
+  }
+}
+
+const validatePhone = (rule, value, callback) => {
+  if (!value) {
+    callback(new Error('请输入手机号'))
+  } else if (!/^1[3-9]\d{9}$/.test(value)) {
+    callback(new Error('请输入正确的手机号格式'))
   } else {
     callback()
   }
@@ -201,8 +267,14 @@ const registerRules = {
     { required: true, message: '请确认密码', trigger: 'blur' },
     { validator: validateConfirmPassword, trigger: 'blur' }
   ],
-  email: [
-    { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
+  role: [
+    { required: true, message: '请选择角色', trigger: 'change' }
+  ],
+  accessCode: [
+    { validator: validateAccessCode, trigger: 'blur' }
+  ],
+  phone: [
+    { required: true, validator: validatePhone, trigger: 'blur' }
   ]
 }
 
@@ -221,8 +293,23 @@ const handleLogin = async () => {
       if (result.success) {
         ElMessage.success(result.message || '登录成功')
         
-        // 跳转到首页
-        router.push('/')
+        // 根据用户角色跳转
+        const userRole = userStore.userInfo?.role
+        let redirectPath = '/'
+
+        if (userRole === 'user') {
+          // 普通用户跳转到门户
+          redirectPath = '/portal'
+        } else if (userRole === 'admin' || userRole === 'doctor') {
+          // 管理员和医生跳转到管理系统首页
+          redirectPath = route.query.redirect || '/'
+        }
+
+        // 使用 push 跳转，并传递需要检查病人信息的标志
+        router.push({
+          path: redirectPath,
+          query: { checkPatientInfo: userRole === 'user' ? '1' : '0' }
+        })
       } else {
         ElMessage.error(result.message || '登录失败')
       }
@@ -244,7 +331,8 @@ const handleRegister = async () => {
     loading.value = true
     
     try {
-      const { confirmPassword, ...data } = registerForm
+      // 移除确认密码和口令字段
+      const { confirmPassword, accessCode, ...data } = registerForm
       const response = await register(data)
       
       if (response.success) {
@@ -334,4 +422,3 @@ const handleRegister = async () => {
   display: none;
 }
 </style>
-

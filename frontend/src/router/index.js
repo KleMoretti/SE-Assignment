@@ -158,6 +158,15 @@ const routes = [
     }
   },
   {
+    path: '/portal/profile',
+    name: 'PortalProfile',
+    component: () => import('@/views/portal/ProfileManagement.vue'),
+    meta: {
+      title: '个人信息管理',
+      requiresAuth: true // 需要登录才能访问
+    }
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     redirect: '/'
@@ -186,8 +195,13 @@ router.beforeEach((to, from, next) => {
       query: { redirect: to.fullPath } // 保存原始路径，登录后跳转回去
     })
   } else if (to.path === '/login' && userStore.isLoggedIn) {
-    // 已登录用户访问登录页，重定向到首页
-    next({ path: '/' })
+    // 已登录用户访问登录页，根据角色重定向
+    const userRole = userStore.userInfo?.role
+    if (userRole === 'user') {
+      next({ path: '/portal' })
+    } else {
+      next({ path: '/' })
+    }
   } else if (requiresAdmin && !userStore.isAdmin) {
     next({ path: '/pharmacy/info' })
   } else {
