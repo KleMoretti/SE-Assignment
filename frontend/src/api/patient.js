@@ -105,7 +105,7 @@ export function getMedicalRecordList(params) {
  */
 export function getManagedPatients() {
   return request({
-    url: '/patient/managed-patients',
+    url: '/patient/portal/managed-patients',
     method: 'get'
   })
 }
@@ -117,7 +117,7 @@ export function getManagedPatients() {
  */
 export function addManagedPatient(data) {
   return request({
-    url: '/patient/managed-patients/add',
+    url: '/patient/portal/family-members/add',
     method: 'post',
     data
   })
