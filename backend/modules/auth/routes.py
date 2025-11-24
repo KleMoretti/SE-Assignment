@@ -162,11 +162,15 @@ def login():
             'department': user.department
         }
         
+        # 注意：根据最新JWT规范，sub(Subject)必须为字符串
+        # 因此在创建Token时将用户ID转换为字符串，避免"Subject must be a string"错误
+        identity = str(user.id)
+        
         access_token = create_access_token(
-            identity=user.id,
+            identity=identity,
             additional_claims=additional_claims
         )
-        refresh_token = create_refresh_token(identity=user.id)
+        refresh_token = create_refresh_token(identity=identity)
         
         return success_response({
             'user': user.to_dict(),
@@ -198,8 +202,10 @@ def refresh():
             'department': user.department
         }
         
+        # 刷新Token时也确保JWT Subject为字符串类型，避免"Subject must be a string"错误
+        new_identity = str(user.id)
         access_token = create_access_token(
-            identity=user.id,
+            identity=new_identity,
             additional_claims=additional_claims
         )
         
