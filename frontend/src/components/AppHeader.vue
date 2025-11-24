@@ -7,8 +7,8 @@
         </router-link>
         <nav class="flex items-center space-x-6">
           <router-link to="/" class="hover:text-blue-200">首页</router-link>
-          <router-link to="/patient" class="hover:text-blue-200">病人管理</router-link>
-          
+          <router-link :to="{ name: 'PatientList' }" class="hover:text-blue-200">病人管理</router-link>
+
           <!-- 医生管理下拉菜单 -->
           <el-dropdown @command="handleCommand">
             <span class="el-dropdown-link hover:text-blue-200 cursor-pointer">

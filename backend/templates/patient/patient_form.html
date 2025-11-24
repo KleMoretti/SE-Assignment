@@ -1,67 +1,91 @@
 {% extends "base.html" %}
 
-{% block title %}{% if patient %}编辑病人{% else %}添加病人{% endif %}{% endblock %}
+{% block title %}{{ '编辑' if patient else '添加' }}病人{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1>{% if patient %}编辑病人信息{% else %}添加新病人{% endif %}</h1>
+<div class="container mx-auto mt-10">
+    <h1 class="text-3xl font-bold mb-6">{{ '编辑' if patient else '添加' }}病人信息</h1>
+
+    <div class="bg-white shadow-md rounded-lg p-8">
+        <form method="post">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- 病人编号 -->
+                <div>
+                    <label for="patient_no" class="block text-sm font-medium text-gray-700">病人编号</label>
+                    <input type="text" name="patient_no" id="patient_no" value="{{ patient.patient_no if patient else '' }}" required
+                           class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+
+                <!-- 姓名 -->
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700">姓名</label>
+                    <input type="text" name="name" id="name" value="{{ patient.name if patient else '' }}" required
+                           class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+
+                <!-- 性别 -->
+                <div>
+                    <label for="gender" class="block text-sm font-medium text-gray-700">性别</label>
+                    <select name="gender" id="gender" required
+                            class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        <option value="男" {% if patient and patient.gender == '男' %}selected{% endif %}>男</option>
+                        <option value="女" {% if patient and patient.gender == '女' %}selected{% endif %}>女</option>
+                        <option value="其他" {% if patient and patient.gender == '其他' %}selected{% endif %}>其他</option>
+                    </select>
+                </div>
+
+                <!-- 年龄 -->
+                <div>
+                    <label for="age" class="block text-sm font-medium text-gray-700">年龄</label>
+                    <input type="number" name="age" id="age" value="{{ patient.age if patient else '' }}"
+                           class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+
+                <!-- 身份证号 -->
+                <div>
+                    <label for="id_card" class="block text-sm font-medium text-gray-700">身份证号</label>
+                    <input type="text" name="id_card" id="id_card" value="{{ patient.id_card if patient else '' }}"
+                           class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+
+                <!-- 联系电话 -->
+                <div>
+                    <label for="phone" class="block text-sm font-medium text-gray-700">联系电话</label>
+                    <input type="tel" name="phone" id="phone" value="{{ patient.phone if patient else '' }}"
+                           class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+
+                <!-- 住址 -->
+                <div class="md:col-span-2">
+                    <label for="address" class="block text-sm font-medium text-gray-700">住址</label>
+                    <input type="text" name="address" id="address" value="{{ patient.address if patient else '' }}"
+                           class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+
+                <!-- 紧急联系人 -->
+                <div>
+                    <label for="emergency_contact" class="block text-sm font-medium text-gray-700">紧急联系人</label>
+                    <input type="text" name="emergency_contact" id="emergency_contact" value="{{ patient.emergency_contact if patient else '' }}"
+                           class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+
+                <!-- 紧急联系电话 -->
+                <div>
+                    <label for="emergency_phone" class="block text-sm font-medium text-gray-700">紧急联系电话</label>
+                    <input type="tel" name="emergency_phone" id="emergency_phone" value="{{ patient.emergency_phone if patient else '' }}"
+                           class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+            </div>
+
+            <div class="mt-8 flex justify-end">
+                <a href="{{ url_for('patient.view_patient_list') }}" class="bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded mr-4 hover:bg-gray-300">
+                    取消
+                </a>
+                <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    保存
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
-
-<form method="post" class="form">
-    <div class="form-group">
-        <label for="patient_no">病人编号 *</label>
-        <input type="text" id="patient_no" name="patient_no" value="{{ patient.patient_no if patient else '' }}" required {% if patient %}readonly{% endif %}>
-    </div>
-
-    <div class="form-row">
-        <div class="form-group">
-            <label for="name">姓名 *</label>
-            <input type="text" id="name" name="name" value="{{ patient.name if patient else '' }}" required>
-        </div>
-        <div class="form-group">
-            <label for="gender">性别 *</label>
-            <select id="gender" name="gender" required>
-                <option value="男" {% if patient and patient.gender == '男' %}selected{% endif %}>男</option>
-                <option value="女" {% if patient and patient.gender == '女' %}selected{% endif %}>女</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="age">年龄</label>
-            <input type="number" id="age" name="age" value="{{ patient.age if patient else '' }}">
-        </div>
-    </div>
-
-    <div class="form-row">
-        <div class="form-group">
-            <label for="phone">联系电话</label>
-            <input type="text" id="phone" name="phone" value="{{ patient.phone if patient else '' }}">
-        </div>
-        <div class="form-group">
-            <label for="id_card">身份证号</label>
-            <input type="text" id="id_card" name="id_card" value="{{ patient.id_card if patient else '' }}">
-        </div>
-    </div>
-
-    <div class="form-group">
-        <label for="address">住址</label>
-        <input type="text" id="address" name="address" value="{{ patient.address if patient else '' }}">
-    </div>
-
-    <div class="form-row">
-        <div class="form-group">
-            <label for="emergency_contact">紧急联系人</label>
-            <input type="text" id="emergency_contact" name="emergency_contact" value="{{ patient.emergency_contact if patient else '' }}">
-        </div>
-        <div class="form-group">
-            <label for="emergency_phone">紧急联系电话</label>
-            <input type="text" id="emergency_phone" name="emergency_phone" value="{{ patient.emergency_phone if patient else '' }}">
-        </div>
-    </div>
-
-    <div class="form-actions">
-        <button type="submit" class="btn btn-primary">保存</button>
-        <a href="{{ url_for('patient.patient_list') }}" class="btn btn-secondary">取消</a>
-    </div>
-</form>
 {% endblock %}
-
