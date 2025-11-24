@@ -131,6 +131,33 @@ const routes = [
     }
   },
   {
+    path: '/portal',
+    name: 'PortalIndex',
+    component: () => import('@/views/portal/PortalIndex.vue'),
+    meta: {
+      title: '病人服务门户',
+      requiresAuth: false // Temporarily false for development
+    }
+  },
+  {
+    path: '/portal/appointment-booking',
+    name: 'PortalAppointmentBooking',
+    component: () => import('@/views/portal/AppointmentBooking.vue'),
+    meta: {
+      title: '在线预约挂号',
+      requiresAuth: false // Temporarily false for development
+    }
+  },
+  {
+    path: '/portal/family-management',
+    name: 'PortalFamilyManagement',
+    component: () => import('@/views/portal/FamilyManagement.vue'),
+    meta: {
+      title: '家庭成员管理',
+      requiresAuth: false // Temporarily false for development
+    }
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     redirect: '/'

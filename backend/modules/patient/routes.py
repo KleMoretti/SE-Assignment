@@ -3,6 +3,8 @@
 Patient Management - Routes
 """
 from flask import render_template, request, redirect, url_for, flash, jsonify
+from flask_login import current_user, login_required
+from backend.models import User, Patient
 from . import patient_bp
 from backend.extensions import db
 from . import patient_services, record_services, appointment_services
@@ -372,4 +374,58 @@ def api_create_medical_record():
     except Exception as e:
         db.session.rollback()
         return error_response(f'创建病历失败: {str(e)}', 'CREATE_RECORD_ERROR', 500)
+
+
+# --- 新增：病人关系管理 API ---
+
+@patient_bp.route('/managed-patients', methods=['GET'])
+@login_required
+def api_get_managed_patients():
+    """获取当前用户可管理的所有病人列表（自己和家人）"""
+    try:
+        # current_user 是通过 flask_login 获取的当前登录用户
+        managed_patients = current_user.managed_patients.all()
+        patients_data = [p.to_dict() for p in managed_patients]
+        return success_response(patients_data)
+    except Exception as e:
+        return error_response(f'获取可管理病人列表失败: {str(e)}', 'GET_MANAGED_PATIENTS_ERROR', 500)
+
+
+@patient_bp.route('/managed-patients/add', methods=['POST'])
+@login_required
+def api_add_managed_patient():
+    """为当前用户添加一个可管理的病人（家人）"""
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+
+        if not username or not password:
+            return error_response('必须提供用户名和密码', 'INVALID_DATA')
+
+        # 1. 验证家人账户
+        family_member_user = User.query.filter_by(username=username).first()
+        if not family_member_user or not family_member_user.check_password(password):
+            return error_response('家人账户的用户名或密码不正确', 'AUTH_FAILED')
+
+        # 2. 找到家人账户关联的病人档案
+        #    我们假设每个用户账户都通过 PatientUserLink 关联了一个病人档案
+        if not family_member_user.patient_link:
+            return error_response('该用户没有关联的病人档案，无法添加', 'NO_PATIENT_PROFILE')
+
+        family_member_patient = family_member_user.patient_link.patient
+
+        # 3. 检查是否已经添加过
+        if family_member_patient in current_user.managed_patients:
+            return error_response('该病人已经是您的家庭成员，请勿重复添加', 'ALREADY_ADDED')
+
+        # 4. 添加到当前用户的可管理列表
+        current_user.managed_patients.append(family_member_patient)
+        db.session.commit()
+
+        return success_response(family_member_patient.to_dict(), '家庭成员添加成功', 'MEMBER_ADDED')
+
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'添加家庭成员失败: {str(e)}', 'ADD_MEMBER_ERROR', 500)
 

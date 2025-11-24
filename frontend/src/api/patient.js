@@ -90,3 +90,27 @@ export function getMedicalRecordList(params) {
     params
   })
 }
+
+/**
+ * 获取当前用户可管理的所有病人列表
+ * @returns {Promise}
+ */
+export function getManagedPatients() {
+  return request({
+    url: '/patient/managed-patients',
+    method: 'get'
+  })
+}
+
+/**
+ * 添加家庭成员
+ * @param {Object} data 包含 username 和 password
+ * @returns {Promise}
+ */
+export function addManagedPatient(data) {
+  return request({
+    url: '/patient/managed-patients/add',
+    method: 'post',
+    data
+  })
+}
