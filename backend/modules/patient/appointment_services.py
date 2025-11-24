@@ -2,7 +2,7 @@
 挂号预约管理服务
 Appointment Management Services
 """
-from backend.models import Appointment
+from backend.models import Appointment, Patient
 from backend.extensions import db
 from datetime import datetime
 
@@ -20,9 +20,22 @@ def get_appointments_with_pagination(page, per_page=10, status=''):
 
 def add_new_appointment(form_data):
     """添加新预约"""
+    patient_id = form_data.get('patient_id')
+    doctor_id = form_data.get('doctor_id')
+
+    # 验证 patient_id 是否存在
+    if patient_id:
+        patient = Patient.query.get(patient_id)
+        if not patient:
+            # 如果前端传来的 patient_id 无效，则拒绝创建
+            raise ValueError(f"无效的病人ID: {patient_id}，找不到对应的病人档案。")
+    else:
+        # 如果前端没有传来 patient_id，也拒绝创建
+        raise ValueError("创建预约必须提供病人ID。")
+
     appointment = Appointment(
-        patient_id=form_data.get('patient_id', type=int),
-        doctor_id=form_data.get('doctor_id', type=int),
+        patient_id=patient_id,
+        doctor_id=doctor_id,
         appointment_date=datetime.strptime(form_data.get('appointment_date'), '%Y-%m-%d'),
         appointment_time=form_data.get('appointment_time'),
         department=form_data.get('department'),
@@ -44,4 +57,3 @@ def update_appointment_status(appointment_id, status):
     appointment.status = status
     db.session.commit()
     return appointment
-

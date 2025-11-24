@@ -73,6 +73,15 @@ export function getAppointmentList(params) {
   })
 }
 
+// 新增挂号预约
+export function addAppointment(data) {
+  return request({
+    url: '/patient/appointments',
+    method: 'post',
+    data
+  })
+}
+
 // 获取病历记录列表（分页 + 可按病人过滤）
 export function getMedicalRecordList(params) {
   return request({

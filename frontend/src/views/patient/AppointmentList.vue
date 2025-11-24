@@ -49,6 +49,10 @@ const handleCurrentChange = (newPage) => {
   fetchData()
 }
 
+const goToAddAppointment = () => {
+  router.push({ name: 'AppointmentForm' })
+}
+
 // Lifecycle
 onMounted(() => {
   fetchData()
@@ -73,7 +77,7 @@ onMounted(() => {
           <el-button type="primary" :icon="Search" @click="handleSearch">搜索</el-button>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" :icon="Plus">新增预约</el-button>
+          <el-button type="primary" :icon="Plus" @click="goToAddAppointment">新增预约</el-button>
         </el-form-item>
       </el-form>
     </div>

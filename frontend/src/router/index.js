@@ -48,6 +48,12 @@ const routes = [
         name: 'MedicalRecordList',
         component: () => import('@/views/patient/MedicalRecordList.vue'),
         meta: { title: '病历记录管理', requiresAuth: true }
+      },
+      {
+        path: 'appointments/add',
+        name: 'AppointmentForm',
+        component: () => import('@/views/patient/AppointmentForm.vue'),
+        meta: { title: '在线挂号', requiresAuth: true }
       }
     ]
   },
