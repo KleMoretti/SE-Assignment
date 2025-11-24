@@ -189,11 +189,12 @@ class Appointment(db.Model):
     
     def __repr__(self):
         return f'<Appointment {self.id}>'
-    
+
     def to_dict(self) -> Dict:
         """转换为字典（用于JSON序列化）"""
         return {
             'id': self.id,
+            'appointment_no': str(self.id),  # 使用id作为预约号
             'patient_id': self.patient_id,
             'patient_name': self.patient.name if self.patient else None,
             'doctor_id': self.doctor_id,

@@ -3,7 +3,7 @@
 Patient Management - Routes
 """
 from flask import render_template, request, redirect, url_for, flash, jsonify
-from backend.models import User, Patient
+from backend.models import User
 from . import patient_bp
 from backend.extensions import db
 from . import patient_services, record_services, appointment_services
@@ -177,10 +177,20 @@ def view_appointment_add():
             return redirect(url_for('patient.view_appointment_list'))
         except Exception as e:
             db.session.rollback()
-            flash(f'添加失败：{str(e)}', 'error')
-    
+            flash(f'创建预约失败: {str(e)}', 'error')
+
+    from backend.models import Doctor
+    from datetime import date
+
     patients = patient_services.get_all_patients_for_dropdown()
-    return render_template('patient/appointment_form.html', appointment=None, patients=patients)
+    doctors = Doctor.query.filter_by(status='active').order_by(Doctor.department, Doctor.name).all()
+    today = date.today().strftime('%Y-%m-%d')
+
+    return render_template('patient/appointment_form.html',
+                         appointment=None,
+                         patients=patients,
+                         doctors=doctors,
+                         today=today)
 
 
 @patient_bp.route('/appointments/update-status/<int:id>', methods=['POST'])
@@ -332,6 +342,19 @@ def api_update_appointment_status(id):
         return error_response(f'更新预约状态失败: {str(e)}', 'UPDATE_APPOINTMENT_STATUS_ERROR', 500)
 
 
+@patient_bp.route('/appointments/<int:id>/cancel', methods=['PUT', 'POST'])
+def api_cancel_appointment(id):
+    """取消预约 (API)"""
+    try:
+        appointment = appointment_services.cancel_appointment(id)
+        return success_response(appointment.to_dict(), '预约已取消', 'APPOINTMENT_CANCELLED')
+    except ValueError as e:
+        return error_response(str(e), 'CANCEL_FAILED', 400)
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'取消预约失败: {str(e)}', 'CANCEL_APPOINTMENT_ERROR', 500)
+
+
 # --- 病历记录管理 API ---
 
 @patient_bp.route('/medical-records', methods=['GET'])
@@ -425,4 +448,3 @@ def api_add_managed_patient():
     except Exception as e:
         db.session.rollback()
         return error_response(f'添加家庭成员失败: {str(e)}', 'ADD_MEMBER_ERROR', 500)
-

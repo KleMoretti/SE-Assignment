@@ -82,6 +82,14 @@ export function addAppointment(data) {
   })
 }
 
+// 取消预约
+export function cancelAppointment(id) {
+  return request({
+    url: `/patient/appointments/${id}/cancel`,
+    method: 'put'
+  })
+}
+
 // 获取病历记录列表（分页 + 可按病人过滤）
 export function getMedicalRecordList(params) {
   return request({

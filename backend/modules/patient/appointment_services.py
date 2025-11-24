@@ -57,3 +57,16 @@ def update_appointment_status(appointment_id, status):
     appointment.status = status
     db.session.commit()
     return appointment
+
+
+def cancel_appointment(appointment_id):
+    """取消预约"""
+    appointment = get_appointment_by_id(appointment_id)
+    if appointment.status == 'cancelled':
+        raise ValueError("该预约已被取消")
+    if appointment.status == 'completed':
+        raise ValueError("已完成的预约不能取消")
+
+    appointment.status = 'cancelled'
+    db.session.commit()
+    return appointment

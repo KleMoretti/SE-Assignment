@@ -1,8 +1,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { getAppointmentList } from '@/api/patient'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { getAppointmentList, cancelAppointment } from '@/api/patient'
 import { Search, Plus } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -53,6 +53,62 @@ const goToAddAppointment = () => {
   router.push({ name: 'AppointmentForm' })
 }
 
+// 取消预约
+const handleCancelAppointment = async (row) => {
+  // 检查预约状态
+  if (row.status === 'cancelled') {
+    ElMessage.warning('该预约已被取消')
+    return
+  }
+  if (row.status === 'completed') {
+    ElMessage.warning('已完成的预约不能取消')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确定要取消预约号为 ${row.appointment_no} 的预约吗？`,
+      '取消预约',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+
+    await cancelAppointment(row.id)
+    ElMessage.success('预约已取消')
+    fetchData() // 刷新列表
+  } catch (error) {
+    if (error !== 'cancel') {
+      const errorMsg = error.response?.data?.message || '取消预约失败'
+      ElMessage.error(errorMsg)
+    }
+  }
+}
+
+// 获取状态标签类型
+const getStatusType = (status) => {
+  const statusMap = {
+    pending: 'warning',
+    confirmed: 'primary',
+    completed: 'success',
+    cancelled: 'info'
+  }
+  return statusMap[status] || 'info'
+}
+
+// 获取状态文本
+const getStatusText = (status) => {
+  const statusMap = {
+    pending: '待确认',
+    confirmed: '已确认',
+    completed: '已完成',
+    cancelled: '已取消'
+  }
+  return statusMap[status] || status
+}
+
 // Lifecycle
 onMounted(() => {
   fetchData()
@@ -84,15 +140,35 @@ onMounted(() => {
 
     <!-- Table Area -->
     <el-table v-loading="loading" :data="tableData" border stripe style="width: 100%">
-      <el-table-column prop="appointment_no" label="预约号" width="150" />
-      <el-table-column prop="patient_name" label="病人姓名" width="120" />
-      <el-table-column prop="doctor_name" label="医生姓名" width="120" />
-      <el-table-column prop="appointment_time" label="预约时间" width="180" />
-      <el-table-column prop="status" label="状态" width="100" />
-      <el-table-column label="操作" width="200" fixed="right">
+      <el-table-column prop="appointment_no" label="预约号" width="120" />
+      <el-table-column prop="patient_name" label="病人姓名" min-width="120" />
+      <el-table-column prop="doctor_name" label="医生姓名" min-width="120" />
+      <el-table-column prop="department" label="科室" min-width="100" />
+      <el-table-column label="预约日期" min-width="120">
+        <template #default="{ row }">
+          {{ row.appointment_date ? row.appointment_date.split('T')[0] : '-' }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="appointment_time" label="预约时间" width="100" />
+      <el-table-column prop="notes" label="备注" min-width="150" show-overflow-tooltip />
+      <el-table-column label="状态" width="100" align="center">
+        <template #default="{ row }">
+          <el-tag :type="getStatusType(row.status)" size="small">
+            {{ getStatusText(row.status) }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="180" fixed="right" align="center">
         <template #default="{ row }">
           <el-button type="primary" size="small">详情</el-button>
-          <el-button type="danger" size="small">取消预约</el-button>
+          <el-button
+            v-if="row.status !== 'completed' && row.status !== 'cancelled'"
+            type="danger"
+            size="small"
+            @click="handleCancelAppointment(row)"
+          >
+            取消
+          </el-button>
         </template>
       </el-table-column>
     </el-table>
