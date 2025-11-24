@@ -6,6 +6,27 @@ from backend.models import Appointment, Patient
 from backend.extensions import db
 from datetime import datetime
 
+def generate_appointment_no():
+    """生成预约编号 格式: AP + 年月日 + 4位顺序号（从0000开始）"""
+    date_str = datetime.now().strftime('%Y%m%d')
+    prefix = f'AP{date_str}'
+
+    # 查找当天最大的预约编号
+    last_appointment = Appointment.query.filter(
+        Appointment.appointment_no.like(f'{prefix}%')
+    ).order_by(Appointment.appointment_no.desc()).first()
+
+    if last_appointment:
+        # 提取最后四位数字并加1
+        last_num = int(last_appointment.appointment_no[-4:])
+        new_num = last_num + 1
+    else:
+        # 当天第一个预约，从0000开始
+        new_num = 0
+
+    # 格式化为4位数字（补零）
+    return f'{prefix}{new_num:04d}'
+
 def get_appointments_with_pagination(page, per_page=10, status=''):
     """获取预约列表（分页和状态过滤）"""
     query = Appointment.query
@@ -33,7 +54,11 @@ def add_new_appointment(form_data):
         # 如果前端没有传来 patient_id，也拒绝创建
         raise ValueError("创建预约必须提供病人ID。")
 
+    # 生成唯一的预约编号
+    appointment_no = generate_appointment_no()
+
     appointment = Appointment(
+        appointment_no=appointment_no,
         patient_id=patient_id,
         doctor_id=doctor_id,
         appointment_date=datetime.strptime(form_data.get('appointment_date'), '%Y-%m-%d'),

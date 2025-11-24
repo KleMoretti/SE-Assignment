@@ -87,6 +87,31 @@ const handleCancelAppointment = async (row) => {
   }
 }
 
+// 查看预约详情
+const handleViewDetail = (row) => {
+  ElMessageBox.alert(
+    `
+    <div style="text-align: left;">
+      <p><strong>预约号：</strong>${row.appointment_no}</p>
+      <p><strong>病人姓名：</strong>${row.patient_name}</p>
+      <p><strong>医生姓名：</strong>${row.doctor_name}</p>
+      <p><strong>科室：</strong>${row.department}</p>
+      <p><strong>预约日期：</strong>${row.appointment_date ? row.appointment_date.split('T')[0] : '-'}</p>
+      <p><strong>预约时间：</strong>${row.appointment_time || '-'}</p>
+      <p><strong>状态：</strong>${getStatusText(row.status)}</p>
+      <p><strong>备注：</strong>${row.notes || '无'}</p>
+      <p><strong>创建时间：</strong>${row.created_at ? row.created_at.split('T')[0] + ' ' + row.created_at.split('T')[1].split('.')[0] : '-'}</p>
+    </div>
+    `,
+    '预约详情',
+    {
+      confirmButtonText: '关闭',
+      dangerouslyUseHTMLString: true,
+      customClass: 'appointment-detail-dialog'
+    }
+  )
+}
+
 // 获取状态标签类型
 const getStatusType = (status) => {
   const statusMap = {
@@ -160,7 +185,7 @@ onMounted(() => {
       </el-table-column>
       <el-table-column label="操作" width="180" fixed="right" align="center">
         <template #default="{ row }">
-          <el-button type="primary" size="small">详情</el-button>
+          <el-button type="primary" size="small" @click="handleViewDetail(row)">详情</el-button>
           <el-button
             v-if="row.status !== 'completed' && row.status !== 'cancelled'"
             type="danger"
@@ -191,5 +216,14 @@ onMounted(() => {
 <style scoped>
 .el-form--inline .el-form-item {
   margin-bottom: 0;
+}
+
+:deep(.appointment-detail-dialog) {
+  width: 500px;
+}
+
+:deep(.appointment-detail-dialog .el-message-box__message p) {
+  line-height: 1.8;
+  margin: 8px 0;
 }
 </style>

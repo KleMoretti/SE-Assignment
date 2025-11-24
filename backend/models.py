@@ -178,6 +178,7 @@ class Appointment(db.Model):
     __tablename__ = 'appointments'
     
     id = db.Column(db.Integer, primary_key=True)
+    appointment_no = db.Column(db.String(20), unique=True, nullable=False, comment='预约编号')
     patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
     doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=False)
     appointment_date = db.Column(db.DateTime, nullable=False, comment='预约日期')
@@ -188,13 +189,13 @@ class Appointment(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     def __repr__(self):
-        return f'<Appointment {self.id}>'
+        return f'<Appointment {self.appointment_no}>'
 
     def to_dict(self) -> Dict:
         """转换为字典（用于JSON序列化）"""
         return {
             'id': self.id,
-            'appointment_no': str(self.id),  # 使用id作为预约号
+            'appointment_no': self.appointment_no,  # 使用 appointment_no 字段
             'patient_id': self.patient_id,
             'patient_name': self.patient.name if self.patient else None,
             'doctor_id': self.doctor_id,

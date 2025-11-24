@@ -16,7 +16,7 @@ def get_patients_with_pagination(page, per_page=10, search=''):
             (Patient.phone.like(f'%{search}%'))
         )
 
-    pagination = query.order_by(Patient.created_at.desc()).paginate(
+    pagination = query.order_by(Patient.patient_no.asc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
     return pagination
