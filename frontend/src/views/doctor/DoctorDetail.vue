@@ -14,12 +14,7 @@
         <div class="doctor-header">
           <div class="header-left">
             <el-avatar :size="100" class="doctor-avatar-large">
-              <template v-if="doctor.avatar">
-                <img :src="doctor.avatar" :alt="doctor.name" />
-              </template>
-              <template v-else>
-                {{ doctor.name?.charAt(0) }}
-              </template>
+              {{ doctor.name?.charAt(0) }}
             </el-avatar>
 
             <div class="header-info">
@@ -55,79 +50,15 @@
           </div>
 
           <div class="header-actions">
-            <el-button type="primary" :icon="Calendar" @click="viewSchedule">
-              查看排班
-            </el-button>
-            <el-button :icon="TrendCharts" @click="viewPerformance">
-              查看绩效
-            </el-button>
-            <el-button :icon="Edit" @click="editDoctor">
-              编辑信息
+            <el-button type="primary" @click="goBack" style="width: 100%;">
+              返回列表
             </el-button>
           </div>
         </div>
       </el-card>
 
-      <!-- 统计卡片 -->
-      <el-row :gutter="16" class="stats-section">
-        <el-col :span="6">
-          <el-card shadow="hover" class="stat-card">
-            <div class="stat-content">
-              <div class="stat-icon" style="background: #ecf5ff; color: #409eff;">
-                <el-icon :size="32"><User /></el-icon>
-              </div>
-              <div class="stat-info">
-                <p class="stat-label">总患者数</p>
-                <p class="stat-value">{{ doctor?.patientCount || 0 }}</p>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card shadow="hover" class="stat-card">
-            <div class="stat-content">
-              <div class="stat-icon" style="background: #fef0e6; color: #e6a23c;">
-                <el-icon :size="32"><Star /></el-icon>
-              </div>
-              <div class="stat-info">
-                <p class="stat-label">医生评分</p>
-                <p class="stat-value">{{ doctor?.rating || 'N/A' }}</p>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card shadow="hover" class="stat-card">
-            <div class="stat-content">
-              <div class="stat-icon" style="background: #e1f3f8; color: #17a2b8;">
-                <el-icon :size="32"><Calendar /></el-icon>
-              </div>
-              <div class="stat-info">
-                <p class="stat-label">今日预约</p>
-                <p class="stat-value">{{ doctor?.todayAppointments || 0 }}</p>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card shadow="hover" class="stat-card">
-            <div class="stat-content">
-              <div class="stat-icon" style="background: #f0f9ff; color: #67c23a;">
-                <el-icon :size="32"><Document /></el-icon>
-              </div>
-              <div class="stat-info">
-                <p class="stat-label">从业年限</p>
-                <p class="stat-value">{{ doctor?.yearsOfExperience || 0 }}年</p>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
-      </el-row>
-
-      <!-- 详细信息 Tabs -->
-      <el-card class="detail-tabs-card" shadow="never">
-        <el-tabs v-model="activeTab">
-          <el-tab-pane label="基本信息" name="basic">
+      <!-- 详细信息 -->
+      <el-card class="detail-card" shadow="never">
             <div class="info-section">
               <h3 class="section-title">联系方式</h3>
               <el-descriptions :column="2" border>
@@ -147,7 +78,6 @@
               <el-descriptions :column="2" border>
                 <el-descriptions-item label="职称">{{ doctor?.title }}</el-descriptions-item>
                 <el-descriptions-item label="所属科室">{{ doctor?.department }}</el-descriptions-item>
-                <el-descriptions-item label="执业证号">{{ doctor?.licenseNumber || '未设置' }}</el-descriptions-item>
                 <el-descriptions-item label="学历">{{ doctor?.education || '未设置' }}</el-descriptions-item>
               </el-descriptions>
             </div>
@@ -167,56 +97,17 @@
               </div>
               <el-empty v-else description="暂无专长信息" :image-size="80" />
             </div>
-
-            <div class="info-section">
-              <h3 class="section-title">个人简介</h3>
-              <p class="bio-text">{{ doctor?.bio || '暂无个人简介' }}</p>
-            </div>
-          </el-tab-pane>
-
-          <el-tab-pane label="排班信息" name="schedule">
-            <div class="schedule-preview">
-              <el-calendar>
-                <template #date-cell="{ data }">
-                  <div class="calendar-day">
-                    {{ data.day.split('-').slice(2).join('-') }}
-                  </div>
-                </template>
-              </el-calendar>
-              <div class="view-more">
-                <el-button type="primary" link @click="viewSchedule">
-                  查看完整排班 <el-icon><ArrowRight /></el-icon>
-                </el-button>
-              </div>
-            </div>
-          </el-tab-pane>
-
-          <el-tab-pane label="绩效记录" name="performance">
-            <div class="performance-preview">
-              <el-empty description="绩效数据">
-                <el-button type="primary" @click="viewPerformance">查看完整绩效</el-button>
-              </el-empty>
-            </div>
-          </el-tab-pane>
-
-          <el-tab-pane label="患者评价" name="reviews">
-            <div class="reviews-section">
-              <el-empty description="暂无患者评价" :image-size="100" />
-            </div>
-          </el-tab-pane>
-        </el-tabs>
       </el-card>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
-  Calendar, TrendCharts, Edit, User, Phone, Message, OfficeBuilding,
-  Star, Document, ArrowRight
+  User, Phone, Message, OfficeBuilding
 } from '@element-plus/icons-vue'
 import { getDoctorDetail } from '@/api/doctor'
 
@@ -227,7 +118,6 @@ const route = useRoute()
 // 响应式数据
 const loading = ref(false)
 const doctor = ref(null)
-const activeTab = ref('basic')
 
 // 方法
 const fetchDoctorDetail = async () => {
@@ -245,20 +135,7 @@ const fetchDoctorDetail = async () => {
 }
 
 const goBack = () => {
-  router.back()
-}
-
-const viewSchedule = () => {
-  router.push(`/doctor/schedule/${doctor.value.id}`)
-}
-
-const viewPerformance = () => {
-  router.push(`/doctor/performance/${doctor.value.id}`)
-}
-
-const editDoctor = () => {
-  // 跳转到编辑页面或打开编辑对话框
-  ElMessage.info('编辑功能开发中')
+  router.push('/doctor')
 }
 
 // 生命周期
@@ -400,7 +277,7 @@ onMounted(() => {
   margin: 0;
 }
 
-.detail-tabs-card {
+.detail-card {
   margin-bottom: 24px;
 }
 
@@ -432,22 +309,6 @@ onMounted(() => {
   color: #606266;
   line-height: 1.8;
   margin: 0;
-}
-
-.schedule-preview,
-.performance-preview,
-.reviews-section {
-  min-height: 300px;
-}
-
-.view-more {
-  text-align: center;
-  margin-top: 24px;
-}
-
-.calendar-day {
-  text-align: center;
-  padding: 4px;
 }
 </style>
 

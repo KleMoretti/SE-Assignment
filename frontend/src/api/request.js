@@ -52,19 +52,25 @@ request.interceptors.response.use(
   (error) => {
     // 统一错误处理
     if (error.response) {
-      const { status, data } = error.response
+      const { status, data, config } = error.response
 
       switch (status) {
         case 400:
           ElMessage.error(data?.message || '请求参数错误')
           break
         case 401:
-          ElMessage.error('登录已过期，请重新登录')
-          // 清除token并跳转到登录页
-          localStorage.removeItem('token')
-          localStorage.removeItem('refreshToken')
-          localStorage.removeItem('userInfo')
-          router.push('/login')
+          // 区分登录失败与token过期
+          if (config && config.url === '/auth/login') {
+            // 登录接口返回401，通常是用户名或密码错误
+            ElMessage.error(data?.message || '用户名或密码错误')
+          } else {
+            ElMessage.error('登录已过期，请重新登录')
+            // 清除token并跳转到登录页
+            localStorage.removeItem('token')
+            localStorage.removeItem('refreshToken')
+            localStorage.removeItem('userInfo')
+            router.push('/login')
+          }
           break
         case 403:
           ElMessage.error(data?.message || '权限不足')

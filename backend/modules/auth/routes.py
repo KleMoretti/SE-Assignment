@@ -139,9 +139,14 @@ def login():
         if not user:
             return error_response('用户名或密码错误', 'INVALID_CREDENTIALS', 401)
         
-        # 验证密码
+        # 验证密码（兼容早期明文密码存储的用户数据）
         if not user.check_password(password):
-            return error_response('用户名或密码错误', 'INVALID_CREDENTIALS', 401)
+            # 兼容处理：如果数据库中 password_hash 字段恰好等于明文密码，视为旧数据，自动迁移为哈希存储
+            if user.password_hash == password:
+                user.set_password(password)
+                db.session.commit()
+            else:
+                return error_response('用户名或密码错误', 'INVALID_CREDENTIALS', 401)
         
         # 检查用户是否激活
         if not user.is_active:
