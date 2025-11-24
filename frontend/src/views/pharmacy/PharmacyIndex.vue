@@ -236,6 +236,15 @@ const isNearExpiry = (row) => {
 }
 
 const tableRowClassName = ({ row }) => {
+  // 已过期 - 最高优先级，红色高亮
+  if (isExpired(row)) {
+    return 'expired-row'
+  }
+  // 即将过期 - 次高优先级，橙色高亮
+  if (isNearExpiry(row)) {
+    return 'near-expiry-row'
+  }
+  // 库存不足 - 黄色高亮
   if (isLowStock(row)) {
     return 'low-stock-row'
   }
@@ -864,7 +873,42 @@ onMounted(() => {
   padding-right: 4px;
 }
 
-:deep(.low-stock-row) {
-  background-color: #fff7e6;
+/* 已过期 - 红色高亮 */
+:deep(.el-table__row.expired-row) {
+  background-color: #ffe6e6 !important;
+}
+
+:deep(.el-table__row.expired-row > td) {
+  background-color: #ffe6e6 !important;
+}
+
+:deep(.el-table__row.expired-row:hover > td) {
+  background-color: #ffcccc !important;
+}
+
+/* 即将过期 - 橙色高亮 */
+:deep(.el-table__row.near-expiry-row) {
+  background-color: #fff3e0 !important;
+}
+
+:deep(.el-table__row.near-expiry-row > td) {
+  background-color: #fff3e0 !important;
+}
+
+:deep(.el-table__row.near-expiry-row:hover > td) {
+  background-color: #ffe0b3 !important;
+}
+
+/* 库存不足 - 黄色高亮 */
+:deep(.el-table__row.low-stock-row) {
+  background-color: #fff7e6 !important;
+}
+
+:deep(.el-table__row.low-stock-row > td) {
+  background-color: #fff7e6 !important;
+}
+
+:deep(.el-table__row.low-stock-row:hover > td) {
+  background-color: #ffe6b3 !important;
 }
 </style>
