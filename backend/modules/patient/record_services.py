@@ -2,8 +2,8 @@
 病历记录管理服务
 Medical Record Management Services
 """
-from backend.models import MedicalRecord
-from backend.extensions import db
+from models import MedicalRecord
+from extensions import db
 
 def get_medical_records_with_pagination(page, per_page=10, patient_id=None):
     """获取病历列表（分页和过滤）"""

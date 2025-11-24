@@ -2,8 +2,8 @@
 挂号预约管理服务
 Appointment Management Services
 """
-from backend.models import Appointment
-from backend.extensions import db
+from models import Appointment
+from extensions import db
 from datetime import datetime
 
 def get_appointments_with_pagination(page, per_page=10, status=''):
