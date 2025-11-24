@@ -11,8 +11,8 @@ from flask_jwt_extended import (
     get_jwt
 )
 from . import auth_bp
-from models import User
-from extensions import db
+from backend.models import User
+from backend.extensions import db
 from datetime import datetime
 from functools import wraps
 

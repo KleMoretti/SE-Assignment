@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% from "macros.html" import render_pagination %}
+
+{% block title %}病历记录{% endblock %}
+
+{% block content %}
+<div class="container mx-auto mt-10">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">病历记录</h1>
+        <a href="{{ url_for('patient.view_medical_record_add') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+            添加新病历
+        </a>
+    </div>
+
+    <!-- 提示信息 -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="bg-{{ 'green' if category == 'success' else 'red' }}-100 border border-{{ 'green' if category == 'success' else 'red' }}-400 text-{{ 'green' if category == 'success' else 'red' }}-700 px-4 py-3 rounded relative mb-4" role="alert">
+                    <span class="block sm:inline">{{ message }}</span>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <table class="min-w-full leading-normal">
+            <thead>
+                <tr>
+                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">病人姓名</th>
+                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">主治医生</th>
+                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">就诊日期</th>
+                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">诊断</th>
+                    <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                        <a href="{{ url_for('patient.view_patient_detail', id=record.patient.id) }}" class="text-blue-500 hover:underline">{{ record.patient.name }}</a>
+                    </td>
+                    <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">{{ record.doctor.real_name or 'N/A' }}</td>
+                    <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">{{ record.visit_date.strftime('%Y-%m-%d') }}</td>
+                    <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">{{ record.diagnosis | truncate(30) }}</td>
+                    <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                        <a href="{{ url_for('patient.view_medical_record_detail', id=record.id) }}" class="text-indigo-600 hover:text-indigo-900">查看详情</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center py-10 text-gray-500">没有找到病历记录。</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 分页 -->
+    <div class="mt-6">
+        {{ render_pagination(pagination, 'patient.view_medical_record_list', patient_id=patient_id) }}
+    </div>
+</div>
+{% endblock %}

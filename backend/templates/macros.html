@@ -1,0 +1,45 @@
+{% macro render_pagination(pagination, endpoint) %}
+<div class="flex items-center justify-between mt-6">
+    <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+        <div>
+            <p class="text-sm text-gray-700">
+                显示第
+                <span class="font-medium">{{ pagination.first }}</span>
+                到
+                <span class="font-medium">{{ pagination.last }}</span>
+                条, 共
+                <span class="font-medium">{{ pagination.total }}</span>
+                条记录
+            </p>
+        </div>
+        <div>
+            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                <a href="{{ url_for(endpoint, page=pagination.prev_num, **kwargs) if pagination.has_prev else '#' }}"
+                   class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 {% if not pagination.has_prev %}cursor-not-allowed opacity-50{% endif %}">
+                    <span class="sr-only">上一页</span>
+                    &laquo;
+                </a>
+
+                {% for page in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page %}
+                        <a href="{{ url_for(endpoint, page=page, **kwargs) }}"
+                           class="relative inline-flex items-center px-4 py-2 border text-sm font-medium {% if page == pagination.page %} z-10 bg-blue-50 border-blue-500 text-blue-600 {% else %} bg-white border-gray-300 text-gray-500 hover:bg-gray-50 {% endif %}">
+                            {{ page }}
+                        </a>
+                    {% else %}
+                        <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                            ...
+                        </span>
+                    {% endif %}
+                {% endfor %}
+
+                <a href="{{ url_for(endpoint, page=pagination.next_num, **kwargs) if pagination.has_next else '#' }}"
+                   class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 {% if not pagination.has_next %}cursor-not-allowed opacity-50{% endif %}">
+                    <span class="sr-only">下一页</span>
+                    &raquo;
+                </a>
+            </nav>
+        </div>
+    </div>
+</div>
+{% endmacro %}

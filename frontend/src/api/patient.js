@@ -63,3 +63,21 @@ export function deletePatient(id) {
     method: 'delete'
   })
 }
+
+// 获取挂号预约列表（分页 + 状态过滤）
+export function getAppointmentList(params) {
+  return request({
+    url: '/patient/appointments',
+    method: 'get',
+    params
+  })
+}
+
+// 获取病历记录列表（分页 + 可按病人过滤）
+export function getMedicalRecordList(params) {
+  return request({
+    url: '/patient/medical-records',
+    method: 'get',
+    params
+  })
+}

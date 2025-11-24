@@ -27,13 +27,15 @@ else:
 from flask import Flask, render_template, jsonify
 from flask_cors import CORS
 from config import Config
-from extensions import db, jwt
+from backend.extensions import db, jwt
 
 
 def create_app(config_class=Config):
     """应用工厂函数"""
     app = Flask(__name__)
     app.config.from_object(config_class)
+
+    print('>>> [create_app] Flask app created:', app.name)  # 加这一行
     
     # 初始化扩展
     db.init_app(app)
