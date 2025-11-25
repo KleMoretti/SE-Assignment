@@ -74,8 +74,10 @@ class PatientUserLink(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False, comment='用户ID')
     patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), unique=True, nullable=False, comment='病人ID')
 
-    user = db.relationship('User', backref=db.backref('patient_link', uselist=False, cascade='all, delete-orphan'))
-    patient = db.relationship('Patient', backref=db.backref('user_link', uselist=False, cascade='all, delete-orphan'))
+    # 使用模块限定名，避免 registry 中出现多重定义时的歧义
+    user = db.relationship('backend.models.User', backref=db.backref('patient_link', uselist=False, cascade='all, delete-orphan'))
+    # 使用模块限定名，避免在 registry 中出现多个同名类时的歧义
+    patient = db.relationship('backend.models.Patient', backref=db.backref('user_link', uselist=False, cascade='all, delete-orphan'))
 
     def __repr__(self):
         return f'<PatientUserLink user_id={self.user_id} patient_id={self.patient_id}>'
@@ -89,7 +91,7 @@ patient_relations = db.Table('patient_relations',
 
 # 在 User 模型中动态添加关系，避免直接修改原模型代码
 User.managed_patients = db.relationship(
-    'Patient',
+    'backend.models.Patient',
     secondary=patient_relations,
     backref=db.backref('managed_by_users', lazy='dynamic'),
     lazy='dynamic'
@@ -551,4 +553,3 @@ class MedicationRequest(db.Model):
             'dispensed_at': self.dispensed_at.isoformat() if self.dispensed_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
-

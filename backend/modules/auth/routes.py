@@ -11,8 +11,9 @@ from flask_jwt_extended import (
     get_jwt
 )
 from . import auth_bp
-from models import User
-from extensions import db
+# 使用模块限定导入，避免通过不同导入路径重复注册模型导致 SQLAlchemy mapper 冲突
+from backend.models import User
+from backend.extensions import db
 from datetime import datetime
 from functools import wraps
 

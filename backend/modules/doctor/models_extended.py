@@ -36,8 +36,9 @@ class DoctorQualification(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # 关系
-    doctor = db.relationship('Doctor', backref=db.backref('qualifications', lazy='dynamic'))
-    
+    # 使用模块限定名，避免在 declarative registry 中出现重复类名冲突
+    doctor = db.relationship('backend.models.Doctor', backref=db.backref('qualifications', lazy='dynamic'))
+
     # 索引
     __table_args__ = (
         db.Index('idx_doctor_qualification', 'doctor_id', 'qualification_type'),
@@ -98,9 +99,10 @@ class DoctorLeave(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # 关系
-    doctor = db.relationship('Doctor', foreign_keys=[doctor_id], backref=db.backref('leaves', lazy='dynamic'))
-    substitute_doctor = db.relationship('Doctor', foreign_keys=[substitute_doctor_id])
-    
+    # 使用模块限定名，避免在 declarative registry 中出现重复类名冲突
+    doctor = db.relationship('backend.models.Doctor', foreign_keys=[doctor_id], backref=db.backref('leaves', lazy='dynamic'))
+    substitute_doctor = db.relationship('backend.models.Doctor', foreign_keys=[substitute_doctor_id])
+
     # 索引
     __table_args__ = (
         db.Index('idx_doctor_leave', 'doctor_id', 'start_date'),
