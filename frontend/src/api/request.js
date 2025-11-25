@@ -14,15 +14,15 @@ const request = axios.create({
 // 请求拦截器
 request.interceptors.request.use(
   (config) => {
-    // 从localStorage获取token并添加到请求头
-    const token = localStorage.getItem('token')
+    // 从sessionStorage获取token并添加到请求头
+    const token = sessionStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
     
     // 如果是刷新token的请求，使用refresh_token
     if (config.url === '/auth/refresh') {
-      const refreshToken = localStorage.getItem('refreshToken')
+      const refreshToken = sessionStorage.getItem('refreshToken')
       if (refreshToken) {
         config.headers.Authorization = `Bearer ${refreshToken}`
       }
@@ -66,9 +66,9 @@ request.interceptors.response.use(
           } else {
             ElMessage.error('登录已过期，请重新登录')
             // 清除token并跳转到登录页
-            localStorage.removeItem('token')
-            localStorage.removeItem('refreshToken')
-            localStorage.removeItem('userInfo')
+            sessionStorage.removeItem('token')
+            sessionStorage.removeItem('refreshToken')
+            sessionStorage.removeItem('userInfo')
             router.push('/login')
           }
           break

@@ -7,9 +7,9 @@ import { login, getCurrentUser } from '@/api/auth'
 import router from '@/router'
 
 export const useUserStore = defineStore('user', () => {
-  // 状态
-  const token = ref(localStorage.getItem('token') || '')
-  const refreshToken = ref(localStorage.getItem('refreshToken') || '')
+  // 状态 - 使用 sessionStorage 实现每个标签页独立登录
+  const token = ref(sessionStorage.getItem('token') || '')
+  const refreshToken = ref(sessionStorage.getItem('refreshToken') || '')
   const userInfo = ref(null)
   
   // 计算属性
@@ -25,13 +25,13 @@ export const useUserStore = defineStore('user', () => {
     refreshToken.value = newRefreshToken
     
     if (newToken) {
-      localStorage.setItem('token', newToken)
+      sessionStorage.setItem('token', newToken)
       if (newRefreshToken) {
-        localStorage.setItem('refreshToken', newRefreshToken)
+        sessionStorage.setItem('refreshToken', newRefreshToken)
       }
     } else {
-      localStorage.removeItem('token')
-      localStorage.removeItem('refreshToken')
+      sessionStorage.removeItem('token')
+      sessionStorage.removeItem('refreshToken')
     }
   }
   
@@ -41,9 +41,9 @@ export const useUserStore = defineStore('user', () => {
   function setUserInfo(info) {
     userInfo.value = info
     if (info) {
-      localStorage.setItem('userInfo', JSON.stringify(info))
+      sessionStorage.setItem('userInfo', JSON.stringify(info))
     } else {
-      localStorage.removeItem('userInfo')
+      sessionStorage.removeItem('userInfo')
     }
   }
   
@@ -98,10 +98,10 @@ export const useUserStore = defineStore('user', () => {
   }
   
   /**
-   * 初始化（从localStorage恢复）
+   * 初始化（从sessionStorage恢复）
    */
   function init() {
-    const savedUserInfo = localStorage.getItem('userInfo')
+    const savedUserInfo = sessionStorage.getItem('userInfo')
     if (savedUserInfo) {
       try {
         userInfo.value = JSON.parse(savedUserInfo)
