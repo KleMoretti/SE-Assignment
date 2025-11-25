@@ -17,6 +17,43 @@
       <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
         <el-row :gutter="16">
           <el-col :span="8">
+            <el-form-item label="开药医生" prop="doctorId">
+              <template v-if="userStore.isAdmin">
+                <el-select
+                  v-model="form.doctorId"
+                  filterable
+                  clearable
+                  placeholder="请选择医生"
+                  :loading="doctorLoading"
+                  style="width: 100%"
+                  @change="handleDoctorChange"
+                >
+                  <el-option
+                    v-for="item in doctorOptions"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  />
+                </el-select>
+              </template>
+              <template v-else-if="userStore.isDoctor">
+                <el-input
+                  :model-value="currentDoctorDisplay"
+                  disabled
+                />
+              </template>
+              <template v-else>
+                <el-input
+                  model-value="仅管理员和医生可以提交用药申请"
+                  disabled
+                />
+              </template>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="16">
+          <el-col :span="8">
             <el-form-item label="就诊病人" prop="patientId">
               <el-select
                 v-model="form.patientId"
@@ -164,7 +201,7 @@ import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { getPatientList } from '@/api/patient'
 import { getMedicineList } from '@/api/pharmacy'
-import { getMedicationRequestList, createMedicationRequest } from '@/api/doctor'
+import { getMedicationRequestList, createMedicationRequest, getDoctorList } from '@/api/doctor'
 
 const userStore = useUserStore()
 
@@ -172,6 +209,7 @@ const formRef = ref(null)
 const submitting = ref(false)
 
 const form = reactive({
+  doctorId: undefined,
   patientId: undefined,
   medicineId: undefined,
   quantity: 1,
@@ -181,10 +219,14 @@ const form = reactive({
 })
 
 const rules = {
+  doctorId: [{ required: true, message: '请选择开药医生', trigger: 'change' }],
   patientId: [{ required: true, message: '请选择病人', trigger: 'change' }],
   medicineId: [{ required: true, message: '请选择药品', trigger: 'change' }],
   quantity: [{ required: true, message: '请输入数量', trigger: 'change' }]
 }
+
+const doctorOptions = ref([])
+const doctorLoading = ref(false)
 
 const patientOptions = ref([])
 const patientLoading = ref(false)
@@ -205,7 +247,43 @@ const filters = reactive({
   status: ''
 })
 
-const currentDoctorId = computed(() => userStore.userInfo?.id)
+const currentDoctorId = computed(() => {
+  if (userStore.isDoctor) {
+    return userStore.userInfo?.id
+  }
+  if (userStore.isAdmin) {
+    return form.doctorId
+  }
+  return null
+})
+
+const currentDoctorDisplay = computed(() => {
+  const user = userStore.userInfo
+  if (!user) return ''
+  const name = user.real_name || user.username || ''
+  const doctorNo = user.username || ''
+  if (doctorNo && doctorNo !== name) {
+    return `${name}（${doctorNo}）`
+  }
+  return name
+})
+
+const loadDoctorOptions = async () => {
+  if (!userStore.isAdmin) return
+  doctorLoading.value = true
+  try {
+    const res = await getDoctorList({ status: 'active', pageSize: 200 })
+    const items = res.data?.items || []
+    doctorOptions.value = items.map((item) => ({
+      value: item.id,
+      label: `${item.name}（${item.doctorNo || ''}）`
+    }))
+  } catch (error) {
+    ElMessage.error('加载医生列表失败')
+  } finally {
+    doctorLoading.value = false
+  }
+}
 
 const loadMedicines = async () => {
   medicineLoading.value = true
@@ -280,6 +358,11 @@ const fetchRequestList = async () => {
   }
 }
 
+const handleDoctorChange = () => {
+  pagination.page = 1
+  fetchRequestList()
+}
+
 const handleFilterChange = () => {
   pagination.page = 1
   fetchRequestList()
@@ -309,7 +392,11 @@ const resetForm = () => {
 const submitForm = async () => {
   if (!formRef.value) return
   if (!currentDoctorId.value) {
-    ElMessage.error('当前登录用户不是医生，无法提交用药申请')
+    if (userStore.isAdmin) {
+      ElMessage.error('请选择开药医生后再提交用药申请')
+    } else {
+      ElMessage.error('当前登录用户不是医生，无法提交用药申请')
+    }
     return
   }
 
@@ -364,6 +451,12 @@ const goBack = () => {
 }
 
 onMounted(async () => {
+  if (userStore.isDoctor && currentDoctorId.value) {
+    form.doctorId = currentDoctorId.value
+  }
+  if (userStore.isAdmin) {
+    await loadDoctorOptions()
+  }
   await loadMedicines()
   await fetchRequestList()
 })

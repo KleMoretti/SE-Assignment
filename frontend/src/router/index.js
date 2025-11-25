@@ -18,7 +18,8 @@ const routes = [
     component: () => import('@/views/Home.vue'),
     meta: {
       title: '首页',
-      requiresAuth: true // 需要认证
+      requiresAuth: true, // 需要认证
+      adminOnly: true
     }
   },
   {
@@ -76,6 +77,16 @@ const routes = [
     }
   },
   {
+    path: '/doctor/dashboard',
+    name: 'DoctorDashboard',
+    component: () => import('@/views/doctor/DoctorDashboard.vue'),
+    meta: {
+      title: '医生工作台',
+      requiresAuth: true,
+      doctorOnly: true
+    }
+  },
+  {
     path: '/doctor/detail/:id',
     name: 'DoctorDetail',
     component: () => import('@/views/doctor/DoctorDetail.vue'),
@@ -108,6 +119,15 @@ const routes = [
     component: () => import('@/views/doctor/DoctorPerformance.vue'),
     meta: {
       title: '医生绩效管理',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/doctor/medication-requests',
+    name: 'DoctorMedicationRequest',
+    component: () => import('@/views/doctor/DoctorMedicationRequest.vue'),
+    meta: {
+      title: '医生开药申请',
       requiresAuth: true
     }
   },
@@ -196,6 +216,7 @@ router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
   const requiresAuth = to.meta.requiresAuth !== false // 默认需要认证
   const requiresAdmin = to.meta.adminOnly === true
+  const requiresDoctor = to.meta.doctorOnly === true
   
   // 检查是否需要认证
   if (requiresAuth && !userStore.isLoggedIn) {
@@ -209,11 +230,31 @@ router.beforeEach((to, from, next) => {
     const userRole = userStore.userInfo?.role
     if (userRole === 'user') {
       next({ path: '/portal' })
+    } else if (userRole === 'doctor') {
+      next({ path: '/doctor/dashboard' })
     } else {
       next({ path: '/' })
     }
   } else if (requiresAdmin && !userStore.isAdmin) {
-    next({ path: '/pharmacy/info' })
+    // 非管理员访问管理员专属页面，根据角色跳转到各自的主页
+    const userRole = userStore.userInfo?.role
+    if (userRole === 'doctor') {
+      next({ path: '/doctor/dashboard' })
+    } else if (userRole === 'user') {
+      next({ path: '/portal' })
+    } else {
+      next({ path: '/login' })
+    }
+  } else if (requiresDoctor && !userStore.isDoctor) {
+    // 非医生访问医生专属页面，根据角色跳转到对应主页
+    const userRole = userStore.userInfo?.role
+    if (userRole === 'admin') {
+      next({ path: '/' })
+    } else if (userRole === 'user') {
+      next({ path: '/portal' })
+    } else {
+      next({ path: '/login' })
+    }
   } else {
     // 正常访问
     next()

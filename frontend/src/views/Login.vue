@@ -298,14 +298,16 @@ const handleLogin = async () => {
         let redirectPath = '/'
 
         if (userRole === 'user') {
-          // 普通用户跳转到门户
+          // 普通用户进入病人门户
           redirectPath = '/portal'
-        } else if (userRole === 'admin' || userRole === 'doctor') {
-          // 管理员和医生跳转到管理系统首页
+        } else if (userRole === 'doctor') {
+          // 医生始终进入医生工作台，而不是管理首页
+          redirectPath = '/doctor/dashboard'
+        } else if (userRole === 'admin') {
+          // 管理员可根据 redirect 返回原页面，否则进入管理首页
           redirectPath = route.query.redirect || '/'
         }
 
-        // 使用 push 跳转，并传递需要检查病人信息的标志
         router.push({
           path: redirectPath,
           query: { checkPatientInfo: userRole === 'user' ? '1' : '0' }
