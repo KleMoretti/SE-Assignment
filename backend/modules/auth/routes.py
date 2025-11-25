@@ -142,6 +142,9 @@ def register():
             # 创建用户-病人关联
             link = PatientUserLink(user_id=user.id, patient_id=patient.id)
             db.session.add(link)
+            
+            # 将病人添加到用户的可管理列表（用于家庭成员管理和在线挂号）
+            user.managed_patients.append(patient)
 
         if user.role == 'doctor':
             from backend.models import Doctor, DoctorUserLink
@@ -153,13 +156,13 @@ def register():
             if existing_doctor:
                 doctor = existing_doctor
             else:
+                # 医生注册时只创建基本记录，详细信息需要后续完善
+                # 这样可以确保首次登录时会弹出完善信息的弹窗
                 doctor = Doctor(
                     doctor_no=doctor_no,
                     name=real_name or data['username'],
-                    gender=data.get('gender'),
-                    phone=phone,
-                    email=email,
-                    department=department,
+                    # 不在注册时填充 gender, phone, email, department, title 等字段
+                    # 这些字段留空，让医生首次登录时完善
                     status='active'
                 )
                 db.session.add(doctor)
@@ -648,8 +651,16 @@ def check_doctor_info():
 
         doctor = link.doctor
 
-        # 检查信息是否完整（必填字段：doctor_no, name）
-        is_complete = bool(doctor.doctor_no and doctor.name)
+        # 检查信息是否完整（必填字段：doctor_no, name, gender, department, title, phone）
+        # 这些是医生执业必须的基本信息
+        is_complete = all([
+            doctor.doctor_no,
+            doctor.name,
+            doctor.gender,
+            doctor.department,
+            doctor.title,
+            doctor.phone
+        ])
 
         return success_response({
             'has_doctor_info': True,

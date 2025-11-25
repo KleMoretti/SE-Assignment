@@ -161,3 +161,15 @@ export function cancelPortalAppointment(appointmentId) {
     method: 'put'
   })
 }
+
+/**
+ * 获取指定病人的病历记录列表（病人端）
+ * @param {number} patientId 病人ID
+ * @returns {Promise}
+ */
+export function getPatientMedicalRecords(patientId) {
+  return request({
+    url: `/patient/portal/patients/${patientId}/medical-records`,
+    method: 'get'
+  })
+}

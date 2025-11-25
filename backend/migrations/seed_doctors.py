@@ -17,10 +17,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
-from app import create_app  # noqa: E402
-from extensions import db  # noqa: E402
-from models import Doctor, DoctorSchedule, DoctorPerformance  # noqa: E402
-from modules.doctor.models_extended import (  # noqa: E402
+from backend.app import create_app  # noqa: E402
+from backend.extensions import db  # noqa: E402
+from backend.models import Doctor, DoctorSchedule, DoctorPerformance  # noqa: E402
+from backend.modules.doctor.models_extended import (  # noqa: E402
     DoctorLeave,
     DoctorQualification,
     DoctorScheduleTemplate,

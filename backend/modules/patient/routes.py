@@ -466,11 +466,35 @@ def portal_add_family_member():
 def portal_get_patient_appointments(patient_id):
     """获取指定病人的预约列表"""
     try:
+        from backend.models import User, DoctorUserLink, Appointment
         user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user:
+            return error_response('用户不存在', 'USER_NOT_FOUND', 404)
 
-        # 验证权限
-        managed_patients = portal_services.get_managed_patients(user_id)
-        if patient_id not in [p.id for p in managed_patients]:
+        # 权限验证：普通用户检查 managed_patients，医生检查是否有该病人的预约记录
+        has_permission = False
+        
+        if user.role == 'user':
+            # 普通用户：检查是否在可管理列表中
+            managed_patients = portal_services.get_managed_patients(user_id)
+            has_permission = patient_id in [p.id for p in managed_patients]
+        elif user.role == 'doctor':
+            # 医生：检查是否有该病人的预约记录
+            doctor_link = DoctorUserLink.query.filter_by(user_id=user_id).first()
+            if doctor_link and doctor_link.doctor:
+                doctor_id = doctor_link.doctor.id
+                has_appointment = Appointment.query.filter_by(
+                    patient_id=patient_id,
+                    doctor_id=doctor_id
+                ).first() is not None
+                has_permission = has_appointment
+        elif user.role == 'admin':
+            # 管理员：有所有权限
+            has_permission = True
+        
+        if not has_permission:
             return error_response('您没有权限查看此病人的预约', 'FORBIDDEN', 403)
 
         status = request.args.get('status', None)
@@ -487,11 +511,42 @@ def portal_get_patient_appointments(patient_id):
 def portal_get_patient_medical_records(patient_id):
     """获取指定病人的病历记录"""
     try:
+        from backend.models import User, DoctorUserLink
         user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user:
+            return error_response('用户不存在', 'USER_NOT_FOUND', 404)
 
-        # 验证权限
-        managed_patients = portal_services.get_managed_patients(user_id)
-        if patient_id not in [p.id for p in managed_patients]:
+        # 权限验证：普通用户检查 managed_patients，医生检查是否有该病人的病历记录
+        has_permission = False
+        
+        if user.role == 'user':
+            # 普通用户：检查是否在可管理列表中
+            managed_patients = portal_services.get_managed_patients(user_id)
+            has_permission = patient_id in [p.id for p in managed_patients]
+        elif user.role == 'doctor':
+            # 医生：检查是否有该病人的病历记录或预约记录
+            from backend.models import MedicalRecord, Appointment
+            doctor_link = DoctorUserLink.query.filter_by(user_id=user_id).first()
+            if doctor_link and doctor_link.doctor:
+                doctor_id = doctor_link.doctor.id
+                # 检查是否有病历记录
+                has_medical_record = MedicalRecord.query.filter_by(
+                    patient_id=patient_id,
+                    doctor_id=doctor_id
+                ).first() is not None
+                # 检查是否有预约记录
+                has_appointment = Appointment.query.filter_by(
+                    patient_id=patient_id,
+                    doctor_id=doctor_id
+                ).first() is not None
+                has_permission = has_medical_record or has_appointment
+        elif user.role == 'admin':
+            # 管理员：有所有权限
+            has_permission = True
+        
+        if not has_permission:
             return error_response('您没有权限查看此病人的病历', 'FORBIDDEN', 403)
 
         records = portal_services.get_patient_medical_records(patient_id)
