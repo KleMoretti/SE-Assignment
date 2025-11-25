@@ -119,7 +119,7 @@ def register():
         # 如果是普通用户，自动创建病人记录
         if user.role == 'user' and phone:
             from backend.models import Patient, PatientUserLink
-            from modules.patient.patient_services import generate_patient_no
+            from backend.modules.patient.patient_services import generate_patient_no
 
             # 生成病人编号
             patient_no = generate_patient_no()
