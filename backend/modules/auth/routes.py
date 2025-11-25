@@ -140,9 +140,13 @@ def register():
             db.session.add(patient)
             db.session.flush()  # 获取病人ID
 
-            # 创建用户-病人关联
+            # 创建用户-病人一对一关联
             link = PatientUserLink(user_id=user.id, patient_id=patient.id)
             db.session.add(link)
+
+            # 【关键修复】将病人添加到用户的可管理列表（多对多关系）
+            # 这样用户才能在"就诊人"列表中看到自己
+            user.managed_patients.append(patient)
 
         db.session.commit()
         

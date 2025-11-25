@@ -72,7 +72,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getDoctorList } from '@/api/doctor'
-import { getManagedPatients, addAppointment } from '@/api/patient'
+import { getManagedPatients, createPortalAppointment } from '@/api/patient'
 import { ArrowLeft } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -105,7 +105,7 @@ const departments = ref([])
 // --- Methods ---
 const fetchData = async () => {
   try {
-    // In a real app, these would be parallel requests
+    // 并行请求获取数据
     const patientRes = await getManagedPatients()
     managedPatients.value = patientRes.data || []
 
@@ -120,22 +120,9 @@ const fetchData = async () => {
 }
 
 onMounted(() => {
-  // As login is not implemented, we use mock data.
-  // Replace with fetchData() later.
-  // fetchData()
-
-  // --- Mock Data ---
-  managedPatients.value = [
-    { id: 1, name: '张三 (我)' },
-    { id: 2, name: '张小美 (女儿)' }
-  ]
-  allDoctors.value = [
-    { id: 1, name: '王医生', department: '内科' },
-    { id: 2, name: '李医生', department: '外科' },
-    { id: 3, name: '赵医生', department: '内科' }
-  ]
-  departments.value = ['内科', '外科', '儿科', '妇科']
-});
+  // 连接真实数据库
+  fetchData()
+})
 
 const handleDepartmentChange = (selectedDept) => {
   form.doctor_id = null
@@ -155,11 +142,11 @@ const submitForm = () => {
     if (valid) {
       submitLoading.value = true
       try {
-        await addAppointment(form)
+        await createPortalAppointment(form)
         ElMessage.success('预约成功！')
-        router.push({ name: 'PortalIndex' }) // Or a dedicated "My Appointments" page
+        router.push({ name: 'PortalIndex' })
       } catch (error) {
-        // Error is handled by interceptor
+        console.error('预约失败:', error)
       } finally {
         submitLoading.value = false
       }
@@ -196,4 +183,3 @@ const resetForm = () => {
   padding: 20px 20px 0 0;
 }
 </style>
-

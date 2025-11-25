@@ -8,8 +8,8 @@ from backend.models import Doctor, DoctorSchedule, DoctorPerformance, Appointmen
 from backend.extensions import db
 from datetime import datetime, date
 from sqlalchemy import func, extract
-from modules.doctor.models_extended import DoctorLeave
-from modules.doctor.utils import calculate_leave_days
+from backend.modules.doctor.models_extended import DoctorLeave
+from backend.modules.doctor.utils import calculate_leave_days
 
 
 # ============= 统一响应格式 =============

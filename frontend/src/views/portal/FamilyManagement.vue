@@ -81,16 +81,9 @@ const fetchManagedPatients = async () => {
 }
 
 onMounted(() => {
-  // For now, we use mock data as login is not implemented
-  // In a real scenario, you would call fetchManagedPatients()
-  // fetchManagedPatients()
-
-  // --- Mock Data ---
-  managedPatients.value = [
-    { id: 1, name: '张三 (我)', patient_no: 'P00000001', gender: '男', age: 30, phone: '13800138000' },
-    { id: 2, name: '张小美 (女儿)', patient_no: 'P00000002', gender: '女', age: 5, phone: '13800138001' }
-  ]
-});
+  // 连接真实数据库
+  fetchManagedPatients()
+})
 
 const goBack = () => {
   router.push({ name: 'PortalIndex' })
@@ -116,9 +109,10 @@ const handleAddMember = () => {
         managedPatients.value.push(res.data)
         ElMessage.success('家庭成员添加成功！')
         addDialogVisible.value = false
+        // 重新加载列表
+        fetchManagedPatients()
       } catch (error) {
-        // Error message is already handled by the request interceptor
-        // ElMessage.error(error.message || '添加失败，请检查用户名和密码')
+        console.error('添加家庭成员失败:', error)
       } finally {
         addLoading.value = false
       }
@@ -146,4 +140,3 @@ const handleAddMember = () => {
   font-size: 14px;
 }
 </style>
-
