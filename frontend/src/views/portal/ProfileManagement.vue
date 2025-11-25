@@ -1,183 +1,178 @@
 <template>
-  <div class="profile-management-container">
-    <el-card class="box-card">
+  <div class="profile-container">
+    <el-card class="profile-card">
       <template #header>
         <div class="card-header">
-          <el-button :icon="ArrowLeft" @click="goBack" circle></el-button>
-          <span class="title">个人信息管理</span>
-          <div></div>
+          <el-icon><User /></el-icon>
+          <span>个人信息管理</span>
         </div>
       </template>
 
-      <el-tabs v-model="activeTab" class="custom-tabs">
+      <el-tabs v-model="activeTab">
         <!-- 用户信息标签 -->
         <el-tab-pane label="账户信息" name="account">
-          <div class="tab-content">
-            <el-form
-              ref="profileFormRef"
-              :model="profileForm"
-              :rules="profileRules"
-              label-width="120px"
-              class="profile-form"
-            >
-              <el-form-item label="用户名">
-                <el-input v-model="profileForm.username" disabled>
-                  <template #prefix>
-                    <el-icon><User /></el-icon>
-                  </template>
-                </el-input>
-              </el-form-item>
+          <el-form
+            ref="profileFormRef"
+            :model="profileForm"
+            :rules="profileRules"
+            label-width="120px"
+            class="profile-form"
+          >
+            <el-form-item label="用户名">
+              <el-input v-model="profileForm.username" disabled>
+                <template #prefix>
+                  <el-icon><User /></el-icon>
+                </template>
+              </el-input>
+            </el-form-item>
 
-              <el-form-item label="手机号" prop="phone">
-                <el-input v-model="profileForm.phone" placeholder="请输入手机号">
-                  <template #prefix>
-                    <el-icon><Phone /></el-icon>
-                  </template>
-                </el-input>
-              </el-form-item>
+            <el-form-item label="手机号" prop="phone">
+              <el-input v-model="profileForm.phone" placeholder="请输入手机号">
+                <template #prefix>
+                  <el-icon><Phone /></el-icon>
+                </template>
+              </el-input>
+            </el-form-item>
 
-              <el-form-item label="邮箱" prop="email">
-                <el-input v-model="profileForm.email" placeholder="请输入邮箱（选填）">
-                  <template #prefix>
-                    <el-icon><Message /></el-icon>
-                  </template>
-                </el-input>
-              </el-form-item>
+            <el-form-item label="邮箱" prop="email">
+              <el-input v-model="profileForm.email" placeholder="请输入邮箱（选填）">
+                <template #prefix>
+                  <el-icon><Message /></el-icon>
+                </template>
+              </el-input>
+            </el-form-item>
 
-              <el-form-item label="角色">
-                <el-tag :type="getRoleType(profileForm.role)">
-                  {{ getRoleLabel(profileForm.role) }}
-                </el-tag>
-              </el-form-item>
+            <el-form-item label="角色">
+              <el-tag :type="getRoleType(profileForm.role)">
+                {{ getRoleLabel(profileForm.role) }}
+              </el-tag>
+            </el-form-item>
 
-              <el-form-item label="注册时间">
-                <el-input :value="formatDate(profileForm.created_at)" disabled>
-                  <template #prefix>
-                    <el-icon><Calendar /></el-icon>
-                  </template>
-                </el-input>
-              </el-form-item>
+            <el-form-item label="注册时间">
+              <el-input :value="formatDate(profileForm.created_at)" disabled>
+                <template #prefix>
+                  <el-icon><Calendar /></el-icon>
+                </template>
+              </el-input>
+            </el-form-item>
 
-              <el-form-item label="最后登录">
-                <el-input :value="formatDate(profileForm.last_login)" disabled>
-                  <template #prefix>
-                    <el-icon><Clock /></el-icon>
-                  </template>
-                </el-input>
-              </el-form-item>
+            <el-form-item label="最后登录">
+              <el-input :value="formatDate(profileForm.last_login)" disabled>
+                <template #prefix>
+                  <el-icon><Clock /></el-icon>
+                </template>
+              </el-input>
+            </el-form-item>
 
-              <el-divider />
+            <el-divider />
 
-              <el-form-item>
-                <el-button type="primary" @click="handleSubmitProfile" :loading="loading">
-                  <el-icon><Check /></el-icon>
-                  保存修改
-                </el-button>
-                <el-button @click="handleResetProfile">
-                  <el-icon><RefreshLeft /></el-icon>
-                  重置
-                </el-button>
-                <el-button @click="showPasswordDialog = true">
-                  <el-icon><Lock /></el-icon>
-                  修改密码
-                </el-button>
-              </el-form-item>
-            </el-form>
-          </div>
+            <el-form-item>
+              <el-button type="primary" @click="handleSubmitProfile" :loading="loading">
+                <el-icon><Check /></el-icon>
+                保存修改
+              </el-button>
+              <el-button @click="handleResetProfile">
+                <el-icon><RefreshLeft /></el-icon>
+                重置
+              </el-button>
+              <el-button @click="showPasswordDialog = true">
+                <el-icon><Lock /></el-icon>
+                修改密码
+              </el-button>
+            </el-form-item>
+          </el-form>
         </el-tab-pane>
 
         <!-- 病人信息标签 -->
         <el-tab-pane label="病人档案" name="patient">
-          <div class="tab-content">
-            <el-alert
-              v-if="!patientInfo.patient_no"
-              title="未找到病人档案"
-              type="info"
-              description="您还没有病人档案信息"
-              :closable="false"
-              style="margin-bottom: 20px;"
-            />
+          <el-alert
+            v-if="!patientInfo.patient_no"
+            title="未找到病人档案"
+            type="info"
+            description="您还没有病人档案信息"
+            :closable="false"
+            style="margin-bottom: 20px;"
+          />
 
-            <el-form
-              v-else
-              ref="patientFormRef"
-              :model="patientForm"
-              :rules="patientRules"
-              label-width="120px"
-              class="patient-form"
-            >
-              <el-form-item label="病人编号">
-                <el-input v-model="patientInfo.patient_no" disabled>
-                  <template #prefix>
-                    <el-icon><Tickets /></el-icon>
-                  </template>
-                </el-input>
-              </el-form-item>
+          <el-form
+            v-else
+            ref="patientFormRef"
+            :model="patientForm"
+            :rules="patientRules"
+            label-width="120px"
+            class="profile-form"
+          >
+            <el-form-item label="病人编号">
+              <el-input v-model="patientInfo.patient_no" disabled>
+                <template #prefix>
+                  <el-icon><Tickets /></el-icon>
+                </template>
+              </el-input>
+            </el-form-item>
 
-              <el-form-item label="姓名" prop="name">
-                <el-input v-model="patientForm.name" placeholder="请输入真实姓名">
-                  <template #prefix>
-                    <el-icon><User /></el-icon>
-                  </template>
-                </el-input>
-              </el-form-item>
+            <el-form-item label="姓名" prop="name">
+              <el-input v-model="patientForm.name" placeholder="请输入真实姓名">
+                <template #prefix>
+                  <el-icon><User /></el-icon>
+                </template>
+              </el-input>
+            </el-form-item>
 
-              <el-form-item label="性别" prop="gender">
-                <el-radio-group v-model="patientForm.gender">
-                  <el-radio label="男">男</el-radio>
-                  <el-radio label="女">女</el-radio>
-                </el-radio-group>
-              </el-form-item>
+            <el-form-item label="性别" prop="gender">
+              <el-radio-group v-model="patientForm.gender">
+                <el-radio label="男">男</el-radio>
+                <el-radio label="女">女</el-radio>
+              </el-radio-group>
+            </el-form-item>
 
-              <el-form-item label="年龄" prop="age">
-                <el-input-number
-                  v-model="patientForm.age"
-                  :min="1"
-                  :max="150"
-                  placeholder="请输入年龄"
-                  style="width: 100%"
-                />
-              </el-form-item>
+            <el-form-item label="年龄" prop="age">
+              <el-input-number
+                v-model="patientForm.age"
+                :min="1"
+                :max="150"
+                placeholder="请输入年龄"
+                style="width: 100%"
+              />
+            </el-form-item>
 
-              <el-form-item label="联系电话">
-                <el-input v-model="patientInfo.phone" disabled>
-                  <template #prefix>
-                    <el-icon><Phone /></el-icon>
-                  </template>
-                </el-input>
-              </el-form-item>
+            <el-form-item label="联系电话">
+              <el-input v-model="patientInfo.phone" disabled>
+                <template #prefix>
+                  <el-icon><Phone /></el-icon>
+                </template>
+              </el-input>
+            </el-form-item>
 
-              <el-form-item label="身份证号" prop="id_card">
-                <el-input v-model="patientForm.id_card" placeholder="请输入身份证号" maxlength="18">
-                  <template #prefix>
-                    <el-icon><CreditCard /></el-icon>
-                  </template>
-                </el-input>
-              </el-form-item>
+            <el-form-item label="身份证号" prop="id_card">
+              <el-input v-model="patientForm.id_card" placeholder="请输入身份证号" maxlength="18">
+                <template #prefix>
+                  <el-icon><CreditCard /></el-icon>
+                </template>
+              </el-input>
+            </el-form-item>
 
-              <el-form-item label="居住地址" prop="address">
-                <el-input
-                  v-model="patientForm.address"
-                  type="textarea"
-                  :rows="3"
-                  placeholder="请输入居住地址"
-                />
-              </el-form-item>
+            <el-form-item label="居住地址" prop="address">
+              <el-input
+                v-model="patientForm.address"
+                type="textarea"
+                :rows="3"
+                placeholder="请输入居住地址"
+              />
+            </el-form-item>
 
-              <el-divider />
+            <el-divider />
 
-              <el-form-item>
-                <el-button type="primary" @click="handleSubmitPatient" :loading="patientLoading">
-                  <el-icon><Check /></el-icon>
-                  保存病人信息
-                </el-button>
-                <el-button @click="handleResetPatient">
-                  <el-icon><RefreshLeft /></el-icon>
-                  重置
-                </el-button>
-              </el-form-item>
-            </el-form>
-          </div>
+            <el-form-item>
+              <el-button type="primary" @click="handleSubmitPatient" :loading="patientLoading">
+                <el-icon><Check /></el-icon>
+                保存病人信息
+              </el-button>
+              <el-button @click="handleResetPatient">
+                <el-icon><RefreshLeft /></el-icon>
+                重置
+              </el-button>
+            </el-form-item>
+          </el-form>
         </el-tab-pane>
       </el-tabs>
     </el-card>
@@ -235,7 +230,6 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   User,
@@ -247,13 +241,10 @@ import {
   RefreshLeft,
   Lock,
   Tickets,
-  CreditCard,
-  ArrowLeft
+  CreditCard
 } from '@element-plus/icons-vue'
 import { getCurrentUser, updateProfile, changePassword, checkPatientInfo, completePatientInfo } from '@/api/auth'
 import { formatDate } from '@/utils/format'
-
-const router = useRouter()
 
 // 当前标签
 const activeTab = ref('account')
@@ -552,11 +543,6 @@ const handleChangePassword = async () => {
   }
 }
 
-// 返回上一页
-const goBack = () => {
-  router.push({ name: 'PortalIndex' })
-}
-
 // 页面加载时获取数据
 onMounted(() => {
   loadUserInfo()
@@ -565,175 +551,33 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.profile-management-container {
+.profile-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   padding: 20px;
   padding-bottom: 40px;
   box-sizing: border-box;
+  max-width: 900px;
+  margin: 0 auto;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
 }
 
-.box-card {
-  max-width: 1200px;
-  margin: 20px auto;
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  animation: slideInUp 0.5s ease-out;
+.profile-card {
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 
 .card-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 10px 0;
-}
-
-.title {
-  font-size: 24px;
+  gap: 10px;
+  font-size: 18px;
   font-weight: bold;
-  color: #2c3e50;
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
-.custom-tabs {
-  margin-top: 20px;
+.profile-form {
+  padding: 20px 0;
 }
 
-.tab-content {
-  padding: 20px;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-/* 按钮样式 */
-:deep(.el-button--primary) {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  border: none;
-  border-radius: 8px;
-  padding: 12px 24px;
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
-
-:deep(.el-button--primary:hover) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
-}
-
-/* 表单输入框样式 */
-:deep(.el-input__wrapper) {
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-}
-
-:deep(.el-input__wrapper:hover) {
-  box-shadow: 0 4px 12px rgba(79, 172, 254, 0.15);
-}
-
-:deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 4px 12px rgba(79, 172, 254, 0.25);
-}
-
-:deep(.el-textarea__inner) {
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-}
-
-:deep(.el-textarea__inner:hover) {
-  box-shadow: 0 4px 12px rgba(79, 172, 254, 0.15);
-}
-
-:deep(.el-textarea__inner:focus) {
-  box-shadow: 0 4px 12px rgba(79, 172, 254, 0.25);
-}
-
-/* 标签页样式 */
-:deep(.el-tabs__item) {
-  font-size: 16px;
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
-
-:deep(.el-tabs__item.is-active) {
-  color: #4facfe;
-}
-
-:deep(.el-tabs__active-bar) {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-}
-
-/* 表单标签样式 */
 :deep(.el-form-item__label) {
-  font-weight: 600;
-  color: #2c3e50;
-}
-
-/* 弹窗样式 */
-:deep(.el-dialog) {
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-:deep(.el-dialog__header) {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  padding: 20px;
-  margin: 0;
-}
-
-:deep(.el-dialog__title) {
-  color: #ffffff;
-  font-size: 20px;
-  font-weight: 600;
-}
-
-:deep(.el-dialog__headerbtn .el-dialog__close) {
-  color: #ffffff;
-  font-size: 20px;
-}
-
-:deep(.el-dialog__body) {
-  padding: 30px;
-}
-
-:deep(.el-dialog__footer) {
-  padding: 20px 30px;
-}
-
-/* 动画 */
-@keyframes slideInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* 响应式 */
-@media (max-width: 768px) {
-  .box-card {
-    margin: 0;
-  }
-
-  .card-header {
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-
-  .tab-content {
-    padding: 15px;
-  }
-
-  :deep(.el-form-item__label) {
-    font-size: 14px;
-  }
+  font-weight: 500;
 }
 </style>

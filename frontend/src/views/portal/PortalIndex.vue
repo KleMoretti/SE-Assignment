@@ -113,7 +113,7 @@ const handlePatientInfoCompleted = (patientData) => {
 <style scoped>
 .portal-container {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 20px;
   padding-bottom: 40px;
   box-sizing: border-box;
@@ -128,26 +128,27 @@ const handlePatientInfoCompleted = (patientData) => {
 }
 
 .welcome-title {
-  color: #2c3e50;
-  font-size: 36px;
-  font-weight: 600;
+  color: #ffffff;
+  font-size: 42px;
+  font-weight: bold;
   margin: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 15px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .title-icon {
-  font-size: 36px;
-  color: #409eff;
+  font-size: 48px;
 }
 
 .welcome-subtitle {
-  color: #606266;
-  font-size: 16px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 18px;
   margin-top: 10px;
-  font-weight: 400;
+  font-weight: 300;
+  letter-spacing: 0.5px;
 }
 
 /* 服务卡片网格 */
@@ -163,14 +164,14 @@ const handlePatientInfoCompleted = (patientData) => {
 
 .service-card {
   background: #ffffff;
-  border-radius: 12px;
-  padding: 35px 25px;
+  border-radius: 16px;
+  padding: 40px 30px;
   width: 280px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border: 1px solid #e4e7ed;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   position: relative;
+  overflow: hidden;
   animation: fadeInUp 0.6s ease-out backwards;
 }
 
@@ -186,74 +187,89 @@ const handlePatientInfoCompleted = (patientData) => {
   animation-delay: 0.3s;
 }
 
+.service-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+
+.service-card:hover::before {
+  transform: scaleX(1);
+}
+
 .service-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: #409eff;
+  transform: translateY(-8px);
+  box-shadow: 0 12px 40px rgba(102, 126, 234, 0.3);
 }
 
 .card-icon {
-  width: 70px;
-  height: 70px;
-  border-radius: 12px;
+  width: 80px;
+  height: 80px;
+  border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32px;
-  margin: 0 auto 20px;
+  font-size: 36px;
+  margin: 0 auto 25px;
   transition: all 0.3s ease;
 }
 
 .profile-icon {
-  background: #ecf5ff;
-  color: #409eff;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
 }
 
 .booking-icon {
-  background: #fef0f0;
-  color: #f56c6c;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: #ffffff;
 }
 
 .family-icon {
-  background: #f0f9ff;
-  color: #67c23a;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: #ffffff;
 }
 
 .service-card:hover .card-icon {
-  transform: scale(1.05);
+  transform: scale(1.1) rotate(5deg);
 }
 
 .card-title {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 600;
-  color: #303133;
-  margin: 0 0 10px 0;
+  color: #2c3e50;
+  margin: 0 0 12px 0;
   text-align: center;
 }
 
 .card-description {
   font-size: 14px;
-  color: #909399;
+  color: #7f8c8d;
   margin: 0;
   text-align: center;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .card-arrow {
   position: absolute;
   bottom: 20px;
   right: 20px;
-  font-size: 18px;
-  color: #c0c4cc;
+  font-size: 20px;
+  color: #bdc3c7;
   opacity: 0;
-  transform: translateX(-5px);
+  transform: translateX(-10px);
   transition: all 0.3s ease;
 }
 
 .service-card:hover .card-arrow {
-  opacity: 0.6;
+  opacity: 1;
   transform: translateX(0);
-  color: #409eff;
 }
 
 /* 动画 */
@@ -282,15 +298,11 @@ const handlePatientInfoCompleted = (patientData) => {
 /* 响应式设计 */
 @media (max-width: 768px) {
   .welcome-title {
-    font-size: 28px;
-  }
-
-  .title-icon {
-    font-size: 28px;
+    font-size: 32px;
   }
 
   .welcome-subtitle {
-    font-size: 14px;
+    font-size: 16px;
   }
 
   .service-grid {
