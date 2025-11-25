@@ -7,6 +7,7 @@ from . import patient_bp
 from backend.extensions import db
 from . import patient_services, record_services, appointment_services
 from . import portal_services  # 病人端门户服务
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 
 # ============= 统一响应格式 =============
@@ -399,21 +400,12 @@ def api_create_medical_record():
 
 # ============= 病人端门户 API (Patient Portal) =============
 
-def get_current_user_id():
-    """获取当前登录用户ID（临时实现）"""
-    # TODO: 实现真实的用户认证，可以使用 Flask-Login 或 JWT
-    user_id = session.get('user_id')
-    if not user_id:
-        # 开发测试用：如果没有登录，使用请求头中的用户ID
-        user_id = request.headers.get('X-User-Id', 1)
-    return int(user_id)
-
-
 @patient_bp.route('/portal/profile', methods=['GET'])
+@jwt_required()
 def portal_get_profile():
     """获取当前用户的病人档案"""
     try:
-        user_id = get_current_user_id()
+        user_id = get_jwt_identity()
         patient = portal_services.get_user_patient_profile(user_id)
 
         if not patient:
@@ -425,10 +417,11 @@ def portal_get_profile():
 
 
 @patient_bp.route('/portal/managed-patients', methods=['GET'])
+@jwt_required()
 def portal_get_managed_patients():
     """获取可管理的所有病人列表（自己和家人）"""
     try:
-        user_id = get_current_user_id()
+        user_id = get_jwt_identity()
         patients = portal_services.get_managed_patients(user_id)
         patients_data = [p.to_dict() for p in patients]
 
@@ -438,10 +431,11 @@ def portal_get_managed_patients():
 
 
 @patient_bp.route('/portal/family-members/add', methods=['POST'])
+@jwt_required()
 def portal_add_family_member():
     """添加家庭成员"""
     try:
-        user_id = get_current_user_id()
+        user_id = get_jwt_identity()
         data = request.get_json()
 
         if not data:
@@ -468,10 +462,11 @@ def portal_add_family_member():
 
 
 @patient_bp.route('/portal/patients/<int:patient_id>/appointments', methods=['GET'])
+@jwt_required()
 def portal_get_patient_appointments(patient_id):
     """获取指定病人的预约列表"""
     try:
-        user_id = get_current_user_id()
+        user_id = get_jwt_identity()
 
         # 验证权限
         managed_patients = portal_services.get_managed_patients(user_id)
@@ -488,10 +483,11 @@ def portal_get_patient_appointments(patient_id):
 
 
 @patient_bp.route('/portal/patients/<int:patient_id>/medical-records', methods=['GET'])
+@jwt_required()
 def portal_get_patient_medical_records(patient_id):
     """获取指定病人的病历记录"""
     try:
-        user_id = get_current_user_id()
+        user_id = get_jwt_identity()
 
         # 验证权限
         managed_patients = portal_services.get_managed_patients(user_id)
@@ -507,10 +503,11 @@ def portal_get_patient_medical_records(patient_id):
 
 
 @patient_bp.route('/portal/appointments', methods=['POST'])
+@jwt_required()
 def portal_create_appointment():
     """创建预约（病人端自助挂号）"""
     try:
-        user_id = get_current_user_id()
+        user_id = get_jwt_identity()
         data = request.get_json()
 
         if not data:
@@ -540,10 +537,11 @@ def portal_create_appointment():
 
 
 @patient_bp.route('/portal/appointments/<int:appointment_id>/cancel', methods=['PUT', 'POST'])
+@jwt_required()
 def portal_cancel_appointment(appointment_id):
     """取消预约"""
     try:
-        user_id = get_current_user_id()
+        user_id = get_jwt_identity()
         appointment = portal_services.cancel_patient_appointment(user_id, appointment_id)
 
         return success_response(
@@ -559,10 +557,11 @@ def portal_cancel_appointment(appointment_id):
 
 
 @patient_bp.route('/portal/patients/<int:patient_id>', methods=['GET'])
+@jwt_required()
 def portal_get_patient_detail(patient_id):
     """获取病人详细信息"""
     try:
-        user_id = get_current_user_id()
+        user_id = get_jwt_identity()
 
         # 验证权限
         managed_patients = portal_services.get_managed_patients(user_id)
@@ -578,10 +577,11 @@ def portal_get_patient_detail(patient_id):
 
 
 @patient_bp.route('/portal/patients/<int:patient_id>', methods=['PUT'])
+@jwt_required()
 def portal_update_patient_info(patient_id):
     """更新病人信息"""
     try:
-        user_id = get_current_user_id()
+        user_id = get_jwt_identity()
         data = request.get_json()
 
         if not data:

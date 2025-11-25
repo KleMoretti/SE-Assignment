@@ -13,6 +13,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 class User(db.Model):
     """用户表"""
     __tablename__ = 'users'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False, comment='用户名')
@@ -68,12 +69,15 @@ class PatientUserLink(db.Model):
     一对一关联：将一个 User 账户链接到一个 Patient 病人档案。
     """
     __tablename__ = 'patient_user_link'
+    __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False, comment='用户ID')
     patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), unique=True, nullable=False, comment='病人ID')
 
-    user = db.relationship('User', backref=db.backref('patient_link', uselist=False, cascade='all, delete-orphan'))
-    patient = db.relationship('Patient', backref=db.backref('user_link', uselist=False, cascade='all, delete-orphan'))
+    # 使用模块限定名，避免 registry 中出现多重定义时的歧义
+    user = db.relationship('backend.models.User', backref=db.backref('patient_link', uselist=False, cascade='all, delete-orphan'))
+    # 使用模块限定名，避免在 registry 中出现多个同名类时的歧义
+    patient = db.relationship('backend.models.Patient', backref=db.backref('user_link', uselist=False, cascade='all, delete-orphan'))
 
     def __repr__(self):
         return f'<PatientUserLink user_id={self.user_id} patient_id={self.patient_id}>'
@@ -93,12 +97,13 @@ class DoctorUserLink(db.Model):
 # 多对多关联表：定义一个用户可以管理哪些病人档案（自己和家人）
 patient_relations = db.Table('patient_relations',
     db.Column('user_id', db.Integer, db.ForeignKey('users.id'), primary_key=True),
-    db.Column('patient_id', db.Integer, db.ForeignKey('patients.id'), primary_key=True)
+    db.Column('patient_id', db.Integer, db.ForeignKey('patients.id'), primary_key=True),
+    extend_existing=True
 )
 
 # 在 User 模型中动态添加关系，避免直接修改原模型代码
 User.managed_patients = db.relationship(
-    'Patient',
+    'backend.models.Patient',
     secondary=patient_relations,
     backref=db.backref('managed_by_users', lazy='dynamic'),
     lazy='dynamic'
@@ -110,6 +115,7 @@ User.managed_patients = db.relationship(
 class Patient(db.Model):
     """病人基本信息表"""
     __tablename__ = 'patients'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     patient_no = db.Column(db.String(20), unique=True, nullable=False, comment='病人编号')
@@ -152,6 +158,7 @@ class Patient(db.Model):
 class MedicalRecord(db.Model):
     """病历记录表"""
     __tablename__ = 'medical_records'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
@@ -188,6 +195,7 @@ class MedicalRecord(db.Model):
 class Appointment(db.Model):
     """挂号预约表"""
     __tablename__ = 'appointments'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     appointment_no = db.Column(db.String(20), unique=True, nullable=False, comment='预约编号')
@@ -258,6 +266,7 @@ class Doctor(db.Model):
         db.Index('idx_department', 'department'),
         db.Index('idx_status', 'status'),
         db.Index('idx_name', 'name'),
+        {'extend_existing': True}
     )
     
     def to_dict(self) -> Dict:
@@ -284,6 +293,7 @@ class Doctor(db.Model):
 class DoctorSchedule(db.Model):
     """医生排班表"""
     __tablename__ = 'doctor_schedules'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=False)
@@ -321,6 +331,7 @@ class DoctorSchedule(db.Model):
 class DoctorPerformance(db.Model):
     """医生绩效评估表"""
     __tablename__ = 'doctor_performances'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=False)
@@ -362,6 +373,7 @@ class DoctorPerformance(db.Model):
 class Medicine(db.Model):
     """药品信息表"""
     __tablename__ = 'medicines'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     medicine_no = db.Column(db.String(20), unique=True, nullable=False, comment='药品编号')
@@ -418,6 +430,7 @@ class Medicine(db.Model):
 class MedicineInventory(db.Model):
     """药品库存表"""
     __tablename__ = 'medicine_inventory'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     medicine_id = db.Column(db.Integer, db.ForeignKey('medicines.id'), nullable=False, unique=True)
@@ -459,6 +472,7 @@ class MedicineInventory(db.Model):
 class MedicinePurchase(db.Model):
     """药品采购表"""
     __tablename__ = 'medicine_purchases'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     purchase_no = db.Column(db.String(30), unique=True, nullable=False, comment='采购单号')
@@ -509,6 +523,7 @@ class MedicinePurchase(db.Model):
 
 class MedicationRequest(db.Model):
     __tablename__ = 'medication_requests'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
@@ -550,4 +565,3 @@ class MedicationRequest(db.Model):
             'dispensed_at': self.dispensed_at.isoformat() if self.dispensed_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
-

@@ -122,3 +122,42 @@ export function addManagedPatient(data) {
     data
   })
 }
+
+/**
+ * 获取指定病人的预约列表（病人端）
+ * @param {number} patientId 病人ID
+ * @param {string} status 预约状态（可选）
+ * @returns {Promise}
+ */
+export function getPatientAppointments(patientId, status) {
+  return request({
+    url: `/patient/portal/patients/${patientId}/appointments`,
+    method: 'get',
+    params: { status }
+  })
+}
+
+/**
+ * 创建预约（病人端自助挂号）
+ * @param {Object} data 预约数据
+ * @returns {Promise}
+ */
+export function createPortalAppointment(data) {
+  return request({
+    url: '/patient/portal/appointments',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 取消预约（病人端）
+ * @param {number} appointmentId 预约ID
+ * @returns {Promise}
+ */
+export function cancelPortalAppointment(appointmentId) {
+  return request({
+    url: `/patient/portal/appointments/${appointmentId}/cancel`,
+    method: 'put'
+  })
+}
