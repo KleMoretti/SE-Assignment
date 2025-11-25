@@ -240,7 +240,7 @@
               </el-avatar>
               <div class="cell-text">
                 <div class="cell-name">{{ row.name }}</div>
-                <div class="cell-no">工号: {{ row.doctorNo }}</div>
+                <div class="cell-no">工号: {{ formatDoctorNo(row) }}</div>
               </div>
             </div>
           </template>
@@ -592,9 +592,17 @@ const showAddDialog = () => {
 
 const editDoctor = (doctor) => {
   editingDoctor.value = doctor
+  
+  // 工号处理：只显示真正的工号，如果等于姓名或为空则留空
+  let doctorNo = doctor.doctorNo || doctor.doctor_no || ''
+  // 如果工号等于姓名，说明数据有问题，清空工号字段
+  if (doctorNo === doctor.name) {
+    doctorNo = ''
+  }
+  
   Object.assign(formData, {
     name: doctor.name,
-    doctorNo: doctor.doctorNo,
+    doctorNo: doctorNo,
     gender: doctor.gender,
     age: doctor.age,
     phone: doctor.phone,
@@ -723,6 +731,15 @@ const resetAdvancedFilter = () => {
     education: ''
   })
   fetchDoctorList()
+}
+
+const formatDoctorNo = (doctor) => {
+  const doctorNo = doctor.doctorNo || doctor.doctor_no || ''
+  // 如果工号等于姓名或为空，显示"未设置"
+  if (!doctorNo || doctorNo === doctor.name) {
+    return '未设置'
+  }
+  return doctorNo
 }
 
 // 生命周期

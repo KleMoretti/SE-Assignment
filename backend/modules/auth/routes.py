@@ -11,8 +11,8 @@ from flask_jwt_extended import (
     get_jwt
 )
 from . import auth_bp
-from models import User
-from extensions import db
+from backend.models import User
+from backend.extensions import db
 from datetime import datetime
 from functools import wraps
 
@@ -118,8 +118,8 @@ def register():
 
         # 如果是普通用户，自动创建病人记录
         if user.role == 'user' and phone:
-            from backend.models import Patient, PatientUserLink
-            from backend.modules.patient.patient_services import generate_patient_no
+            from models import Patient, PatientUserLink
+            from modules.patient.patient_services import generate_patient_no
 
             # 生成病人编号
             patient_no = generate_patient_no()
@@ -142,6 +142,31 @@ def register():
             # 创建用户-病人关联
             link = PatientUserLink(user_id=user.id, patient_id=patient.id)
             db.session.add(link)
+
+        if user.role == 'doctor':
+            from backend.models import Doctor, DoctorUserLink
+
+            # 优先使用 doctor_no，如果没有则使用 username
+            doctor_no = data.get('doctor_no') or data.get('doctorNo') or data['username']
+            existing_doctor = Doctor.query.filter_by(doctor_no=doctor_no).first()
+
+            if existing_doctor:
+                doctor = existing_doctor
+            else:
+                doctor = Doctor(
+                    doctor_no=doctor_no,
+                    name=real_name or data['username'],
+                    gender=data.get('gender'),
+                    phone=phone,
+                    email=email,
+                    department=department,
+                    status='active'
+                )
+                db.session.add(doctor)
+                db.session.flush()
+
+            doctor_link = DoctorUserLink(user_id=user.id, doctor_id=doctor.id)
+            db.session.add(doctor_link)
 
         db.session.commit()
         
@@ -215,8 +240,17 @@ def login():
         )
         refresh_token = create_refresh_token(identity=identity)
         
+        user_data = user.to_dict()
+
+        if user.role == 'doctor':
+            from models import DoctorUserLink
+
+            link = DoctorUserLink.query.filter_by(user_id=user.id).first()
+            if link and link.doctor:
+                user_data['doctor'] = link.doctor.to_dict()
+
         return success_response({
-            'user': user.to_dict(),
+            'user': user_data,
             'access_token': access_token,
             'refresh_token': refresh_token,
             'token_type': 'Bearer'
@@ -271,8 +305,17 @@ def get_current_user():
         
         if not user:
             return error_response('用户不存在', 'USER_NOT_FOUND', 404)
+
+        data = user.to_dict()
+
+        if user.role == 'doctor':
+            from models import DoctorUserLink
+
+            link = DoctorUserLink.query.filter_by(user_id=user.id).first()
+            if link and link.doctor:
+                data['doctor'] = link.doctor.to_dict()
         
-        return success_response(user.to_dict())
+        return success_response(data)
     
     except Exception as e:
         return error_response(f'获取用户信息失败：{str(e)}', 'GET_USER_ERROR', 500)
@@ -477,7 +520,7 @@ def check_patient_info():
             }, '非普通用户，无需病人信息')
 
         # 查找关联的病人记录
-        from backend.models import PatientUserLink, Patient
+        from models import PatientUserLink, Patient
         link = PatientUserLink.query.filter_by(user_id=user.id).first()
 
         if not link:
@@ -569,3 +612,162 @@ def complete_patient_info():
     except Exception as e:
         db.session.rollback()
         return error_response(f'完善病人信息失败：{str(e)}', 'COMPLETE_PATIENT_ERROR', 500)
+
+
+# ============= 医生信息管理 =============
+
+@auth_bp.route('/check-doctor-info', methods=['GET'])
+@jwt_required()
+def check_doctor_info():
+    """检查当前用户的医生信息是否完整"""
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+
+        if not user:
+            return error_response('用户不存在', 'USER_NOT_FOUND', 404)
+
+        # 只有医生才需要检查医生信息
+        if user.role != 'doctor':
+            return success_response({
+                'has_doctor_info': False,
+                'is_complete': True,
+                'doctor': None
+            }, '非医生用户，无需医生信息')
+
+        # 查找关联的医生记录
+        from backend.models import DoctorUserLink
+        link = DoctorUserLink.query.filter_by(user_id=user.id).first()
+
+        if not link or not link.doctor:
+            return success_response({
+                'has_doctor_info': False,
+                'is_complete': False,
+                'doctor': None
+            }, '未找到医生信息')
+
+        doctor = link.doctor
+
+        # 检查信息是否完整（必填字段：doctor_no, name）
+        is_complete = bool(doctor.doctor_no and doctor.name)
+
+        return success_response({
+            'has_doctor_info': True,
+            'is_complete': is_complete,
+            'doctor': doctor.to_dict()
+        }, '医生信息检查完成')
+
+    except Exception as e:
+        return error_response(f'检查医生信息失败：{str(e)}', 'CHECK_DOCTOR_ERROR', 500)
+
+
+@auth_bp.route('/complete-doctor-info', methods=['POST'])
+@jwt_required()
+def complete_doctor_info():
+    """完善医生信息"""
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+
+        if not user:
+            return error_response('用户不存在', 'USER_NOT_FOUND', 404)
+
+        if user.role != 'doctor':
+            return error_response('只有医生才能完善医生信息', 'INVALID_ROLE')
+
+        data = request.get_json()
+        if not data:
+            return error_response('请求数据不能为空', 'INVALID_DATA')
+
+        # 验证必填字段
+        required_fields = {
+            'name': '姓名',
+            'gender': '性别',
+            'department': '科室',
+            'title': '职称',
+            'phone': '联系电话'
+        }
+        for field, field_name in required_fields.items():
+            if not data.get(field):
+                return error_response(f'{field_name}为必填字段', 'MISSING_FIELD')
+        
+        # 验证手机号格式
+        import re
+        if not re.match(r'^1[3-9]\d{9}$', data['phone']):
+            return error_response('手机号格式不正确', 'INVALID_PHONE')
+
+        from backend.models import DoctorUserLink, Doctor
+        from datetime import datetime
+
+        link = DoctorUserLink.query.filter_by(user_id=user.id).first()
+
+        if link and link.doctor:
+            # 更新已有医生信息
+            doctor = link.doctor
+        else:
+            # 创建新的医生记录
+            doctor_no = user.username
+            existing = Doctor.query.filter_by(doctor_no=doctor_no).first()
+            if existing:
+                doctor = existing
+            else:
+                doctor = Doctor(
+                    doctor_no=doctor_no,
+                    name=data['name'],
+                    status='active'
+                )
+                db.session.add(doctor)
+                db.session.flush()
+
+            # 创建关联
+            if not link:
+                link = DoctorUserLink(user_id=user.id, doctor_id=doctor.id)
+                db.session.add(link)
+            else:
+                link.doctor_id = doctor.id
+
+        # 更新医生信息
+        if 'name' in data:
+            doctor.name = data['name']
+        if 'gender' in data:
+            doctor.gender = data['gender']
+        if 'age' in data:
+            try:
+                doctor.age = int(data['age']) if data['age'] else None
+            except (TypeError, ValueError):
+                doctor.age = None
+        if 'phone' in data:
+            doctor.phone = data['phone']
+        if 'email' in data:
+            doctor.email = data['email']
+        if 'department' in data:
+            doctor.department = data['department']
+        if 'title' in data:
+            doctor.title = data['title']
+        if 'specialty' in data:
+            doctor.specialty = data['specialty']
+        if 'education' in data:
+            doctor.education = data['education']
+        if 'hire_date' in data and data['hire_date']:
+            try:
+                doctor.hire_date = datetime.strptime(data['hire_date'], '%Y-%m-%d').date()
+            except (ValueError, TypeError):
+                pass
+
+        # 同步更新用户的真实姓名和科室
+        if 'name' in data:
+            user.real_name = data['name']
+        if 'department' in data:
+            user.department = data['department']
+
+        db.session.commit()
+
+        return success_response(
+            doctor.to_dict(),
+            '医生信息完善成功',
+            'DOCTOR_INFO_COMPLETED'
+        )
+
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'完善医生信息失败：{str(e)}', 'COMPLETE_DOCTOR_ERROR', 500)

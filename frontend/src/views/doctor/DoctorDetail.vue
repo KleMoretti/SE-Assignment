@@ -30,7 +30,7 @@
               <div class="doctor-contact">
                 <span class="contact-item">
                   <el-icon><User /></el-icon>
-                  工号: {{ doctor.doctorNo }}
+                  工号: {{ formatDoctorNo(doctor) }}
                 </span>
                 <span class="contact-item">
                   <el-icon><Phone /></el-icon>
@@ -136,6 +136,15 @@ const fetchDoctorDetail = async () => {
 
 const goBack = () => {
   router.push('/doctor')
+}
+
+const formatDoctorNo = (doctor) => {
+  const doctorNo = doctor.doctorNo || doctor.doctor_no || ''
+  // 如果工号等于姓名或为空，显示"未设置"
+  if (!doctorNo || doctorNo === doctor.name) {
+    return '未设置'
+  }
+  return doctorNo
 }
 
 // 生命周期

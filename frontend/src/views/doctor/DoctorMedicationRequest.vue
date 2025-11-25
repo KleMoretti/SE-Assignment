@@ -249,7 +249,7 @@ const filters = reactive({
 
 const currentDoctorId = computed(() => {
   if (userStore.isDoctor) {
-    return userStore.userInfo?.id
+    return userStore.userInfo?.doctor?.id || null
   }
   if (userStore.isAdmin) {
     return form.doctorId
@@ -261,11 +261,14 @@ const currentDoctorDisplay = computed(() => {
   const user = userStore.userInfo
   if (!user) return ''
   const name = user.real_name || user.username || ''
-  const doctorNo = user.username || ''
-  if (doctorNo && doctorNo !== name) {
-    return `${name}（${doctorNo}）`
+  // 从 doctor 对象获取真正的工号
+  const doctor = user.doctor
+  let doctorNo = doctor?.doctor_no || doctor?.doctorNo || ''
+  // 如果工号等于姓名或为空，不显示工号
+  if (!doctorNo || doctorNo === name) {
+    return name
   }
-  return name
+  return `${name}（${doctorNo}）`
 })
 
 const loadDoctorOptions = async () => {
@@ -274,10 +277,17 @@ const loadDoctorOptions = async () => {
   try {
     const res = await getDoctorList({ status: 'active', pageSize: 200 })
     const items = res.data?.items || []
-    doctorOptions.value = items.map((item) => ({
-      value: item.id,
-      label: `${item.name}（${item.doctorNo || ''}）`
-    }))
+    doctorOptions.value = items.map((item) => {
+      // 工号处理：如果工号等于姓名或为空，显示"未设置"
+      let doctorNo = item.doctorNo || item.doctor_no || ''
+      if (!doctorNo || doctorNo === item.name) {
+        doctorNo = '未设置'
+      }
+      return {
+        value: item.id,
+        label: `${item.name}（${doctorNo}）`
+      }
+    })
   } catch (error) {
     ElMessage.error('加载医生列表失败')
   } finally {

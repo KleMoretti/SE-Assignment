@@ -8,8 +8,8 @@ from backend.models import Doctor, DoctorSchedule, DoctorPerformance, Appointmen
 from backend.extensions import db
 from datetime import datetime, date
 from sqlalchemy import func, extract
-from modules.doctor.models_extended import DoctorLeave
-from modules.doctor.utils import calculate_leave_days
+from backend.modules.doctor.models_extended import DoctorLeave
+from backend.modules.doctor.utils import calculate_leave_days
 
 
 # ============= 统一响应格式 =============
@@ -144,6 +144,29 @@ def create_doctor():
             except ValueError:
                 return error_response('入职日期格式错误，应为YYYY-MM-DD', 'INVALID_DATE_FORMAT')
         
+        from backend.models import User, DoctorUserLink
+
+        username = data['doctor_no']
+        user = User.query.filter_by(username=username).first()
+
+        if not user:
+            user = User(
+                username=username,
+                email=data.get('email'),
+                phone=data.get('phone'),
+                real_name=data.get('name'),
+                role='doctor',
+                department=data.get('department')
+            )
+            user.set_password(username)
+            db.session.add(user)
+            db.session.flush()
+        else:
+            if user.role != 'doctor':
+                user.role = 'doctor'
+            if data.get('department'):
+                user.department = data.get('department')
+
         # 创建医生
         doctor = Doctor(
             doctor_no=data['doctor_no'],
@@ -161,6 +184,15 @@ def create_doctor():
         )
         
         db.session.add(doctor)
+        db.session.flush()
+
+        link = DoctorUserLink.query.filter_by(user_id=user.id).first()
+        if not link:
+            link = DoctorUserLink(user_id=user.id, doctor_id=doctor.id)
+            db.session.add(link)
+        else:
+            link.doctor_id = doctor.id
+
         db.session.commit()
         
         return success_response(doctor.to_dict(), '医生创建成功', 'DOCTOR_CREATED')

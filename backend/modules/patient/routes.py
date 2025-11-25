@@ -4,7 +4,7 @@ Patient Management - Routes
 """
 from flask import render_template, request, redirect, url_for, flash, jsonify, session
 from . import patient_bp
-from extensions import db
+from backend.extensions import db
 from . import patient_services, record_services, appointment_services
 from . import portal_services  # 病人端门户服务
 
@@ -178,8 +178,7 @@ def view_appointment_add():
         except Exception as e:
             db.session.rollback()
             flash(f'创建预约失败: {str(e)}', 'error')
-
-    from backend.models import Doctor
+    from models import Doctor
     from datetime import date
 
     patients = patient_services.get_all_patients_for_dropdown()
