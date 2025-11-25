@@ -61,6 +61,38 @@ class User(db.Model):
         return data
 
 
+# ============= 新增：用户与病人关联模型 =============
+
+class PatientUserLink(db.Model):
+    """
+    一对一关联：将一个 User 账户链接到一个 Patient 病人档案。
+    """
+    __tablename__ = 'patient_user_link'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False, comment='用户ID')
+    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), unique=True, nullable=False, comment='病人ID')
+
+    user = db.relationship('User', backref=db.backref('patient_link', uselist=False, cascade='all, delete-orphan'))
+    patient = db.relationship('Patient', backref=db.backref('user_link', uselist=False, cascade='all, delete-orphan'))
+
+    def __repr__(self):
+        return f'<PatientUserLink user_id={self.user_id} patient_id={self.patient_id}>'
+
+# 多对多关联表：定义一个用户可以管理哪些病人档案（自己和家人）
+patient_relations = db.Table('patient_relations',
+    db.Column('user_id', db.Integer, db.ForeignKey('users.id'), primary_key=True),
+    db.Column('patient_id', db.Integer, db.ForeignKey('patients.id'), primary_key=True)
+)
+
+# 在 User 模型中动态添加关系，避免直接修改原模型代码
+User.managed_patients = db.relationship(
+    'Patient',
+    secondary=patient_relations,
+    backref=db.backref('managed_by_users', lazy='dynamic'),
+    lazy='dynamic'
+)
+
+
 # ============= 病人管理子系统模型 =============
 
 class Patient(db.Model):
@@ -146,6 +178,7 @@ class Appointment(db.Model):
     __tablename__ = 'appointments'
     
     id = db.Column(db.Integer, primary_key=True)
+    appointment_no = db.Column(db.String(20), unique=True, nullable=False, comment='预约编号')
     patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
     doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=False)
     appointment_date = db.Column(db.DateTime, nullable=False, comment='预约日期')
@@ -156,12 +189,13 @@ class Appointment(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     def __repr__(self):
-        return f'<Appointment {self.id}>'
-    
+        return f'<Appointment {self.appointment_no}>'
+
     def to_dict(self) -> Dict:
         """转换为字典（用于JSON序列化）"""
         return {
             'id': self.id,
+            'appointment_no': self.appointment_no,  # 使用 appointment_no 字段
             'patient_id': self.patient_id,
             'patient_name': self.patient.name if self.patient else None,
             'doctor_id': self.doctor_id,

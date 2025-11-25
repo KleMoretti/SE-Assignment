@@ -7,54 +7,144 @@
     <h1 class="text-3xl font-bold mb-6">{{ '编辑' if appointment else '添加' }}新预约</h1>
 
     <div class="bg-white shadow-md rounded-lg p-8">
-        <form method="post">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- 关联病人 -->
-                <div>
-                    <label for="patient_id" class="block text-sm font-medium text-gray-700">病人</label>
-                    <select name="patient_id" id="patient_id" required
-                            class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                        {% for patient in patients %}
-                            <option value="{{ patient.id }}" {% if appointment and appointment.patient_id == patient.id %}selected{% endif %}>
-                                {{ patient.name }} (ID: {{ patient.patient_no }})
-                            </option>
-                        {% endfor %}
-                    </select>
+        <form method="post" id="appointmentForm">
+            <div class="space-y-6">
+                <!-- 第一步：搜索病人 -->
+                <div class="border-b pb-6">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-700">第一步：选择病人</h2>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div class="md:col-span-2">
+                            <label for="patient_search" class="block text-sm font-medium text-gray-700 mb-2">
+                                搜索病人（输入身份证号、病人编号或姓名）
+                            </label>
+                            <div class="flex gap-2">
+                                <input type="text" id="patient_search"
+                                       placeholder="请输入身份证号、病人编号或姓名"
+                                       class="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                <button type="button" id="searchBtn"
+                                        class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded">
+                                    搜索
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">或直接选择</label>
+                            <select id="patient_select"
+                                    class="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                <option value="">-- 选择病人 --</option>
+                                {% for patient in patients %}
+                                    <option value="{{ patient.id }}"
+                                            data-name="{{ patient.name }}"
+                                            data-no="{{ patient.patient_no }}"
+                                            data-gender="{{ patient.gender }}"
+                                            data-age="{{ patient.age or '未知' }}"
+                                            data-phone="{{ patient.phone or '无' }}"
+                                            data-idcard="{{ patient.id_card or '无' }}"
+                                            {% if appointment and appointment.patient_id == patient.id %}selected{% endif %}>
+                                        {{ patient.name }} ({{ patient.patient_no }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 病人信息显示区域 -->
+                    <div id="patientInfo" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h3 class="font-semibold text-blue-800 mb-3">病人信息</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div><span class="font-medium">姓名：</span><span id="info_name"></span></div>
+                            <div><span class="font-medium">编号：</span><span id="info_no"></span></div>
+                            <div><span class="font-medium">性别：</span><span id="info_gender"></span></div>
+                            <div><span class="font-medium">年龄：</span><span id="info_age"></span></div>
+                            <div class="md:col-span-2"><span class="font-medium">身份证：</span><span id="info_idcard"></span></div>
+                            <div class="md:col-span-2"><span class="font-medium">电话：</span><span id="info_phone"></span></div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" name="patient_id" id="patient_id" value="{{ appointment.patient_id if appointment else '' }}">
                 </div>
 
-                <!-- 预约医生ID -->
+                <!-- 第二步：选择医生和预约信息 -->
                 <div>
-                    <label for="doctor_id" class="block text-sm font-medium text-gray-700">预约医生ID</label>
-                    <input type="number" name="doctor_id" id="doctor_id" value="{{ appointment.doctor_id if appointment else '' }}" required
-                           class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                </div>
+                    <h2 class="text-xl font-semibold mb-4 text-gray-700">第二步：预约信息</h2>
 
-                <!-- 预约科室 -->
-                <div>
-                    <label for="department" class="block text-sm font-medium text-gray-700">预约科室</label>
-                    <input type="text" name="department" id="department" value="{{ appointment.department if appointment else '' }}" required
-                           class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- 预约科室 -->
+                        <div>
+                            <label for="department" class="block text-sm font-medium text-gray-700">预约科室 <span class="text-red-500">*</span></label>
+                            <select name="department" id="department" required
+                                    class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                <option value="">-- 请选择科室 --</option>
+                                <option value="内科" {% if appointment and appointment.department == '内科' %}selected{% endif %}>内科</option>
+                                <option value="外科" {% if appointment and appointment.department == '外科' %}selected{% endif %}>外科</option>
+                                <option value="儿科" {% if appointment and appointment.department == '儿科' %}selected{% endif %}>儿科</option>
+                                <option value="妇科" {% if appointment and appointment.department == '妇科' %}selected{% endif %}>妇科</option>
+                                <option value="骨科" {% if appointment and appointment.department == '骨科' %}selected{% endif %}>骨科</option>
+                                <option value="眼科" {% if appointment and appointment.department == '眼科' %}selected{% endif %}>眼科</option>
+                                <option value="耳鼻喉科" {% if appointment and appointment.department == '耳鼻喉科' %}selected{% endif %}>耳鼻喉科</option>
+                                <option value="口腔科" {% if appointment and appointment.department == '口腔科' %}selected{% endif %}>口腔科</option>
+                                <option value="皮肤科" {% if appointment and appointment.department == '皮肤科' %}selected{% endif %}>皮肤科</option>
+                                <option value="中医科" {% if appointment and appointment.department == '中医科' %}selected{% endif %}>中医科</option>
+                            </select>
+                        </div>
 
-                <!-- 预约日期 -->
-                <div>
-                    <label for="appointment_date" class="block text-sm font-medium text-gray-700">预约日期</label>
-                    <input type="date" name="appointment_date" id="appointment_date" value="{{ appointment.appointment_date.strftime('%Y-%m-%d') if appointment else '' }}" required
-                           class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                </div>
+                        <!-- 预约医生 -->
+                        <div>
+                            <label for="doctor_id" class="block text-sm font-medium text-gray-700">预约医生 <span class="text-red-500">*</span></label>
+                            <select name="doctor_id" id="doctor_id" required
+                                    class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                <option value="">-- 请先选择科室 --</option>
+                                {% for doctor in doctors %}
+                                    <option value="{{ doctor.id }}"
+                                            data-department="{{ doctor.department }}"
+                                            data-title="{{ doctor.title or '' }}"
+                                            {% if appointment and appointment.doctor_id == doctor.id %}selected{% endif %}>
+                                        {{ doctor.name }} - {{ doctor.title or '医生' }} ({{ doctor.department }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
 
-                <!-- 预约时间 -->
-                <div>
-                    <label for="appointment_time" class="block text-sm font-medium text-gray-700">预约时间</label>
-                    <input type="time" name="appointment_time" id="appointment_time" value="{{ appointment.appointment_time if appointment else '' }}"
-                           class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                </div>
+                        <!-- 预约日期 -->
+                        <div>
+                            <label for="appointment_date" class="block text-sm font-medium text-gray-700">预约日期 <span class="text-red-500">*</span></label>
+                            <input type="date" name="appointment_date" id="appointment_date"
+                                   value="{{ appointment.appointment_date.strftime('%Y-%m-%d') if appointment else '' }}"
+                                   required
+                                   min="{{ today }}"
+                                   class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
 
-                <!-- 备注 -->
-                <div class="md:col-span-2">
-                    <label for="notes" class="block text-sm font-medium text-gray-700">备注</label>
-                    <textarea name="notes" id="notes" rows="3"
-                              class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">{{ appointment.notes if appointment else '' }}</textarea>
+                        <!-- 预约时间 -->
+                        <div>
+                            <label for="appointment_time" class="block text-sm font-medium text-gray-700">预约时间</label>
+                            <select name="appointment_time" id="appointment_time"
+                                    class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                <option value="">-- 选择时间段 --</option>
+                                <option value="08:00">上午 08:00</option>
+                                <option value="08:30">上午 08:30</option>
+                                <option value="09:00">上午 09:00</option>
+                                <option value="09:30">上午 09:30</option>
+                                <option value="10:00">上午 10:00</option>
+                                <option value="10:30">上午 10:30</option>
+                                <option value="11:00">上午 11:00</option>
+                                <option value="14:00">下午 14:00</option>
+                                <option value="14:30">下午 14:30</option>
+                                <option value="15:00">下午 15:00</option>
+                                <option value="15:30">下午 15:30</option>
+                                <option value="16:00">下午 16:00</option>
+                                <option value="16:30">下午 16:30</option>
+                            </select>
+                        </div>
+
+                        <!-- 备注 -->
+                        <div class="md:col-span-2">
+                            <label for="notes" class="block text-sm font-medium text-gray-700">备注</label>
+                            <textarea name="notes" id="notes" rows="3"
+                                      class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">{{ appointment.notes if appointment else '' }}</textarea>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -63,10 +153,123 @@
                     取消
                 </a>
                 <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                    保存
+                    保存预约
                 </button>
             </div>
         </form>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const patientSearch = document.getElementById('patient_search');
+    const patientSelect = document.getElementById('patient_select');
+    const patientInfo = document.getElementById('patientInfo');
+    const patientIdInput = document.getElementById('patient_id');
+    const searchBtn = document.getElementById('searchBtn');
+    const departmentSelect = document.getElementById('department');
+    const doctorSelect = document.getElementById('doctor_id');
+    const appointmentForm = document.getElementById('appointmentForm');
+
+    // 显示病人信息
+    function showPatientInfo(option) {
+        if (!option || !option.value) {
+            patientInfo.classList.add('hidden');
+            patientIdInput.value = '';
+            return;
+        }
+
+        document.getElementById('info_name').textContent = option.dataset.name;
+        document.getElementById('info_no').textContent = option.dataset.no;
+        document.getElementById('info_gender').textContent = option.dataset.gender;
+        document.getElementById('info_age').textContent = option.dataset.age;
+        document.getElementById('info_phone').textContent = option.dataset.phone;
+        document.getElementById('info_idcard').textContent = option.dataset.idcard;
+
+        patientInfo.classList.remove('hidden');
+        patientIdInput.value = option.value;
+    }
+
+    // 下拉选择病人
+    patientSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        showPatientInfo(selectedOption);
+    });
+
+    // 搜索病人
+    searchBtn.addEventListener('click', function() {
+        const searchText = patientSearch.value.trim().toLowerCase();
+        if (!searchText) {
+            alert('请输入搜索条件');
+            return;
+        }
+
+        let found = false;
+        for (let i = 0; i < patientSelect.options.length; i++) {
+            const option = patientSelect.options[i];
+            const name = option.dataset.name ? option.dataset.name.toLowerCase() : '';
+            const no = option.dataset.no ? option.dataset.no.toLowerCase() : '';
+            const idcard = option.dataset.idcard ? option.dataset.idcard.toLowerCase() : '';
+
+            if (name.includes(searchText) || no.includes(searchText) || idcard.includes(searchText)) {
+                patientSelect.selectedIndex = i;
+                showPatientInfo(option);
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            alert('未找到匹配的病人，请检查输入是否正确');
+        }
+    });
+
+    // 回车搜索
+    patientSearch.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            searchBtn.click();
+        }
+    });
+
+    // 根据科室筛选医生
+    departmentSelect.addEventListener('change', function() {
+        const selectedDepartment = this.value;
+        doctorSelect.innerHTML = '<option value="">-- 请选择医生 --</option>';
+
+        if (!selectedDepartment) {
+            return;
+        }
+
+        const doctorOptions = Array.from(document.querySelectorAll('#doctor_id option[data-department]'));
+
+        doctorOptions.forEach(option => {
+            if (option.dataset.department === selectedDepartment) {
+                doctorSelect.appendChild(option.cloneNode(true));
+            }
+        });
+
+        if (doctorSelect.options.length === 1) {
+            alert('该科室暂无可预约医生');
+        }
+    });
+
+    // 表单提交验证
+    appointmentForm.addEventListener('submit', function(e) {
+        if (!patientIdInput.value) {
+            e.preventDefault();
+            alert('请先选择病人');
+            return false;
+        }
+    });
+
+    // 页面加载时，如果是编辑模式，显示病人信息
+    {% if appointment %}
+    const selectedOption = patientSelect.options[patientSelect.selectedIndex];
+    if (selectedOption && selectedOption.value) {
+        showPatientInfo(selectedOption);
+    }
+    {% endif %}
+});
+</script>
 {% endblock %}

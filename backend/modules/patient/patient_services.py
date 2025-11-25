@@ -16,7 +16,7 @@ def get_patients_with_pagination(page, per_page=10, search=''):
             (Patient.phone.like(f'%{search}%'))
         )
 
-    pagination = query.order_by(Patient.created_at.desc()).paginate(
+    pagination = query.order_by(Patient.patient_no.asc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
     return pagination
@@ -84,7 +84,15 @@ def update_patient_info(patient_id, form_data):
     patient = get_patient_by_id(patient_id)
     patient.name = form_data.get('name')
     patient.gender = form_data.get('gender')
-    patient.age = form_data.get('age', type=int)
+
+    # 安全地转换年龄
+    raw_age = form_data.get('age')
+    try:
+        age = int(raw_age) if raw_age not in (None, '') else None
+    except (TypeError, ValueError):
+        age = None
+    patient.age = age
+
     patient.phone = form_data.get('phone')
     patient.id_card = form_data.get('id_card')
     patient.address = form_data.get('address')

@@ -10,7 +10,7 @@ Doctor Management - Extended Models
 - Notification: 通知消息管理
 """
 from datetime import datetime, date
-from extensions import db
+from backend.extensions import db
 from typing import Dict
 
 

@@ -20,7 +20,7 @@ if env_path.exists():
 # noinspection PyUnresolvedReferences
 from app import create_app
 # noinspection PyUnresolvedReferences
-from extensions import db
+from backend.extensions import db
 
 def reset_database(auto_confirm=False):
     """重建数据库"""

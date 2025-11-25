@@ -18,7 +18,8 @@ const routes = [
     component: () => import('@/views/Home.vue'),
     meta: {
       title: '首页',
-      requiresAuth: true // 需要认证
+      requiresAuth: true, // 需要认证
+      adminOnly: true
     }
   },
   {
@@ -48,6 +49,12 @@ const routes = [
         name: 'MedicalRecordList',
         component: () => import('@/views/patient/MedicalRecordList.vue'),
         meta: { title: '病历记录管理', requiresAuth: true }
+      },
+      {
+        path: 'appointments/add',
+        name: 'AppointmentForm',
+        component: () => import('@/views/patient/AppointmentForm.vue'),
+        meta: { title: '在线挂号', requiresAuth: true }
       }
     ]
   },
@@ -67,6 +74,16 @@ const routes = [
     meta: {
       title: '医生管理',
       requiresAuth: true
+    }
+  },
+  {
+    path: '/doctor/dashboard',
+    name: 'DoctorDashboard',
+    component: () => import('@/views/doctor/DoctorDashboard.vue'),
+    meta: {
+      title: '医生工作台',
+      requiresAuth: true,
+      doctorOnly: true
     }
   },
   {
@@ -106,6 +123,15 @@ const routes = [
     }
   },
   {
+    path: '/doctor/medication-requests',
+    name: 'DoctorMedicationRequest',
+    component: () => import('@/views/doctor/DoctorMedicationRequest.vue'),
+    meta: {
+      title: '医生开药申请',
+      requiresAuth: true
+    }
+  },
+  {
     path: '/pharmacy',
     name: 'PharmacyInventory',
     component: () => import('@/views/pharmacy/PharmacyIndex.vue'),
@@ -122,6 +148,42 @@ const routes = [
     meta: {
       title: '药品信息',
       requiresAuth: true
+    }
+  },
+  {
+    path: '/portal',
+    name: 'PortalIndex',
+    component: () => import('@/views/portal/PortalIndex.vue'),
+    meta: {
+      title: '病人服务门户',
+      requiresAuth: false // Temporarily false for development
+    }
+  },
+  {
+    path: '/portal/appointment-booking',
+    name: 'PortalAppointmentBooking',
+    component: () => import('@/views/portal/AppointmentBooking.vue'),
+    meta: {
+      title: '在线预约挂号',
+      requiresAuth: false // Temporarily false for development
+    }
+  },
+  {
+    path: '/portal/family-management',
+    name: 'PortalFamilyManagement',
+    component: () => import('@/views/portal/FamilyManagement.vue'),
+    meta: {
+      title: '家庭成员管理',
+      requiresAuth: false // Temporarily false for development
+    }
+  },
+  {
+    path: '/portal/profile',
+    name: 'PortalProfile',
+    component: () => import('@/views/portal/ProfileManagement.vue'),
+    meta: {
+      title: '个人信息管理',
+      requiresAuth: true // 需要登录才能访问
     }
   },
   {
@@ -154,6 +216,7 @@ router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
   const requiresAuth = to.meta.requiresAuth !== false // 默认需要认证
   const requiresAdmin = to.meta.adminOnly === true
+  const requiresDoctor = to.meta.doctorOnly === true
   
   // 检查是否需要认证
   if (requiresAuth && !userStore.isLoggedIn) {
@@ -163,10 +226,35 @@ router.beforeEach((to, from, next) => {
       query: { redirect: to.fullPath } // 保存原始路径，登录后跳转回去
     })
   } else if (to.path === '/login' && userStore.isLoggedIn) {
-    // 已登录用户访问登录页，重定向到首页
-    next({ path: '/' })
+    // 已登录用户访问登录页，根据角色重定向
+    const userRole = userStore.userInfo?.role
+    if (userRole === 'user') {
+      next({ path: '/portal' })
+    } else if (userRole === 'doctor') {
+      next({ path: '/doctor/dashboard' })
+    } else {
+      next({ path: '/' })
+    }
   } else if (requiresAdmin && !userStore.isAdmin) {
-    next({ path: '/pharmacy/info' })
+    // 非管理员访问管理员专属页面，根据角色跳转到各自的主页
+    const userRole = userStore.userInfo?.role
+    if (userRole === 'doctor') {
+      next({ path: '/doctor/dashboard' })
+    } else if (userRole === 'user') {
+      next({ path: '/portal' })
+    } else {
+      next({ path: '/login' })
+    }
+  } else if (requiresDoctor && !userStore.isDoctor) {
+    // 非医生访问医生专属页面，根据角色跳转到对应主页
+    const userRole = userStore.userInfo?.role
+    if (userRole === 'admin') {
+      next({ path: '/' })
+    } else if (userRole === 'user') {
+      next({ path: '/portal' })
+    } else {
+      next({ path: '/login' })
+    }
   } else {
     // 正常访问
     next()

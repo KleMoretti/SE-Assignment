@@ -6,8 +6,8 @@ Doctor Management - Utility Functions
 """
 from datetime import datetime, date, timedelta
 from flask import request, jsonify
-from extensions import db
-from models import Doctor, DoctorSchedule, DoctorPerformance, Appointment, MedicalRecord
+from backend.extensions import db
+from backend.models import Doctor, DoctorSchedule, DoctorPerformance, Appointment, MedicalRecord
 from typing import Optional, List, Dict
 from functools import wraps
 from marshmallow import ValidationError

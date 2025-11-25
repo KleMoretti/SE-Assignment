@@ -2,10 +2,11 @@
 病人管理子系统 - 路由
 Patient Management - Routes
 """
-from flask import render_template, request, redirect, url_for, flash, jsonify
+from flask import render_template, request, redirect, url_for, flash, jsonify, session
 from . import patient_bp
 from extensions import db
 from . import patient_services, record_services, appointment_services
+from . import portal_services  # 病人端门户服务
 
 
 # ============= 统一响应格式 =============
@@ -176,10 +177,20 @@ def view_appointment_add():
             return redirect(url_for('patient.view_appointment_list'))
         except Exception as e:
             db.session.rollback()
-            flash(f'添加失败：{str(e)}', 'error')
-    
+            flash(f'创建预约失败: {str(e)}', 'error')
+
+    from backend.models import Doctor
+    from datetime import date
+
     patients = patient_services.get_all_patients_for_dropdown()
-    return render_template('patient/appointment_form.html', appointment=None, patients=patients)
+    doctors = Doctor.query.filter_by(status='active').order_by(Doctor.department, Doctor.name).all()
+    today = date.today().strftime('%Y-%m-%d')
+
+    return render_template('patient/appointment_form.html',
+                         appointment=None,
+                         patients=patients,
+                         doctors=doctors,
+                         today=today)
 
 
 @patient_bp.route('/appointments/update-status/<int:id>', methods=['POST'])
@@ -331,6 +342,19 @@ def api_update_appointment_status(id):
         return error_response(f'更新预约状态失败: {str(e)}', 'UPDATE_APPOINTMENT_STATUS_ERROR', 500)
 
 
+@patient_bp.route('/appointments/<int:id>/cancel', methods=['PUT', 'POST'])
+def api_cancel_appointment(id):
+    """取消预约 (API)"""
+    try:
+        appointment = appointment_services.cancel_appointment(id)
+        return success_response(appointment.to_dict(), '预约已取消', 'APPOINTMENT_CANCELLED')
+    except ValueError as e:
+        return error_response(str(e), 'CANCEL_FAILED', 400)
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'取消预约失败: {str(e)}', 'CANCEL_APPOINTMENT_ERROR', 500)
+
+
 # --- 病历记录管理 API ---
 
 @patient_bp.route('/medical-records', methods=['GET'])
@@ -373,3 +397,220 @@ def api_create_medical_record():
         db.session.rollback()
         return error_response(f'创建病历失败: {str(e)}', 'CREATE_RECORD_ERROR', 500)
 
+
+# ============= 病人端门户 API (Patient Portal) =============
+
+def get_current_user_id():
+    """获取当前登录用户ID（临时实现）"""
+    # TODO: 实现真实的用户认证，可以使用 Flask-Login 或 JWT
+    user_id = session.get('user_id')
+    if not user_id:
+        # 开发测试用：如果没有登录，使用请求头中的用户ID
+        user_id = request.headers.get('X-User-Id', 1)
+    return int(user_id)
+
+
+@patient_bp.route('/portal/profile', methods=['GET'])
+def portal_get_profile():
+    """获取当前用户的病人档案"""
+    try:
+        user_id = get_current_user_id()
+        patient = portal_services.get_user_patient_profile(user_id)
+
+        if not patient:
+            return error_response('您还没有关联的病人档案', 'NO_PROFILE', 404)
+
+        return success_response(patient.to_dict())
+    except Exception as e:
+        return error_response(f'获取用户档案失败: {str(e)}', 'GET_PROFILE_ERROR', 500)
+
+
+@patient_bp.route('/portal/managed-patients', methods=['GET'])
+def portal_get_managed_patients():
+    """获取可管理的所有病人列表（自己和家人）"""
+    try:
+        user_id = get_current_user_id()
+        patients = portal_services.get_managed_patients(user_id)
+        patients_data = [p.to_dict() for p in patients]
+
+        return success_response(patients_data)
+    except Exception as e:
+        return error_response(f'获取家庭成员列表失败: {str(e)}', 'GET_MANAGED_PATIENTS_ERROR', 500)
+
+
+@patient_bp.route('/portal/family-members/add', methods=['POST'])
+def portal_add_family_member():
+    """添加家庭成员"""
+    try:
+        user_id = get_current_user_id()
+        data = request.get_json()
+
+        if not data:
+            return error_response('请求数据不能为空', 'INVALID_DATA')
+
+        username = data.get('username')
+        password = data.get('password')
+
+        if not username or not password:
+            return error_response('请提供家人的用户名和密码', 'INVALID_DATA')
+
+        family_patient = portal_services.add_family_member(user_id, username, password)
+
+        return success_response(
+            family_patient.to_dict(),
+            '家庭成员添加成功',
+            'FAMILY_MEMBER_ADDED'
+        )
+    except ValueError as e:
+        return error_response(str(e), 'ADD_FAMILY_MEMBER_FAILED', 400)
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'添加家庭成员失败: {str(e)}', 'ADD_FAMILY_MEMBER_ERROR', 500)
+
+
+@patient_bp.route('/portal/patients/<int:patient_id>/appointments', methods=['GET'])
+def portal_get_patient_appointments(patient_id):
+    """获取指定病人的预约列表"""
+    try:
+        user_id = get_current_user_id()
+
+        # 验证权限
+        managed_patients = portal_services.get_managed_patients(user_id)
+        if patient_id not in [p.id for p in managed_patients]:
+            return error_response('您没有权限查看此病人的预约', 'FORBIDDEN', 403)
+
+        status = request.args.get('status', None)
+        appointments = portal_services.get_patient_appointments(patient_id, status)
+        appointments_data = [a.to_dict() for a in appointments]
+
+        return success_response(appointments_data)
+    except Exception as e:
+        return error_response(f'获取预约列表失败: {str(e)}', 'GET_APPOINTMENTS_ERROR', 500)
+
+
+@patient_bp.route('/portal/patients/<int:patient_id>/medical-records', methods=['GET'])
+def portal_get_patient_medical_records(patient_id):
+    """获取指定病人的病历记录"""
+    try:
+        user_id = get_current_user_id()
+
+        # 验证权限
+        managed_patients = portal_services.get_managed_patients(user_id)
+        if patient_id not in [p.id for p in managed_patients]:
+            return error_response('您没有权限查看此病人的病历', 'FORBIDDEN', 403)
+
+        records = portal_services.get_patient_medical_records(patient_id)
+        records_data = [r.to_dict() for r in records]
+
+        return success_response(records_data)
+    except Exception as e:
+        return error_response(f'获取病历列表失败: {str(e)}', 'GET_RECORDS_ERROR', 500)
+
+
+@patient_bp.route('/portal/appointments', methods=['POST'])
+def portal_create_appointment():
+    """创建预约（病人端自助挂号）"""
+    try:
+        user_id = get_current_user_id()
+        data = request.get_json()
+
+        if not data:
+            return error_response('请求数据不能为空', 'INVALID_DATA')
+
+        patient_id = data.get('patient_id')
+        if not patient_id:
+            return error_response('请指定病人ID', 'INVALID_DATA')
+
+        # 验证权限
+        managed_patients = portal_services.get_managed_patients(user_id)
+        if patient_id not in [p.id for p in managed_patients]:
+            return error_response('您没有权限为此病人预约', 'FORBIDDEN', 403)
+
+        appointment = portal_services.create_appointment_for_patient(patient_id, data)
+
+        return success_response(
+            appointment.to_dict(),
+            '预约创建成功',
+            'APPOINTMENT_CREATED'
+        )
+    except ValueError as e:
+        return error_response(str(e), 'CREATE_APPOINTMENT_FAILED', 400)
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'创建预约失败: {str(e)}', 'CREATE_APPOINTMENT_ERROR', 500)
+
+
+@patient_bp.route('/portal/appointments/<int:appointment_id>/cancel', methods=['PUT', 'POST'])
+def portal_cancel_appointment(appointment_id):
+    """取消预约"""
+    try:
+        user_id = get_current_user_id()
+        appointment = portal_services.cancel_patient_appointment(user_id, appointment_id)
+
+        return success_response(
+            appointment.to_dict(),
+            '预约已取消',
+            'APPOINTMENT_CANCELLED'
+        )
+    except ValueError as e:
+        return error_response(str(e), 'CANCEL_APPOINTMENT_FAILED', 400)
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'取消预约失败: {str(e)}', 'CANCEL_APPOINTMENT_ERROR', 500)
+
+
+@patient_bp.route('/portal/patients/<int:patient_id>', methods=['GET'])
+def portal_get_patient_detail(patient_id):
+    """获取病人详细信息"""
+    try:
+        user_id = get_current_user_id()
+
+        # 验证权限
+        managed_patients = portal_services.get_managed_patients(user_id)
+        if patient_id not in [p.id for p in managed_patients]:
+            return error_response('您没有权限查看此病人信息', 'FORBIDDEN', 403)
+
+        patient = portal_services.get_patient_info(patient_id)
+        return success_response(patient.to_dict())
+    except ValueError as e:
+        return error_response(str(e), 'GET_PATIENT_FAILED', 404)
+    except Exception as e:
+        return error_response(f'获取病人信息失败: {str(e)}', 'GET_PATIENT_ERROR', 500)
+
+
+@patient_bp.route('/portal/patients/<int:patient_id>', methods=['PUT'])
+def portal_update_patient_info(patient_id):
+    """更新病人信息"""
+    try:
+        user_id = get_current_user_id()
+        data = request.get_json()
+
+        if not data:
+            return error_response('请求数据不能为空', 'INVALID_DATA')
+
+        patient = portal_services.update_patient_info_by_user(user_id, patient_id, data)
+
+        return success_response(
+            patient.to_dict(),
+            '病人信息更新成功',
+            'PATIENT_UPDATED'
+        )
+    except ValueError as e:
+        return error_response(str(e), 'UPDATE_PATIENT_FAILED', 400)
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'更新病人信息失败: {str(e)}', 'UPDATE_PATIENT_ERROR', 500)
+
+
+# --- 新增：病人关系管理 API（保留兼容性）---
+
+@patient_bp.route('/managed-patients', methods=['GET'])
+def api_get_managed_patients():
+    """获取当前用户可管理的所有病人列表（自己和家人）- 兼容旧接口"""
+    return portal_get_managed_patients()
+
+
+@patient_bp.route('/managed-patients/add', methods=['POST'])
+def api_add_managed_patient():
+    """为当前用户添加一个可管理的病人（家人）- 兼容旧接口"""
+    return portal_add_family_member()

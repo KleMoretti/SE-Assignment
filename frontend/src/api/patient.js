@@ -73,11 +73,52 @@ export function getAppointmentList(params) {
   })
 }
 
+// 新增挂号预约
+export function addAppointment(data) {
+  return request({
+    url: '/patient/appointments',
+    method: 'post',
+    data
+  })
+}
+
+// 取消预约
+export function cancelAppointment(id) {
+  return request({
+    url: `/patient/appointments/${id}/cancel`,
+    method: 'put'
+  })
+}
+
 // 获取病历记录列表（分页 + 可按病人过滤）
 export function getMedicalRecordList(params) {
   return request({
     url: '/patient/medical-records',
     method: 'get',
     params
+  })
+}
+
+/**
+ * 获取当前用户可管理的所有病人列表
+ * @returns {Promise}
+ */
+export function getManagedPatients() {
+  return request({
+    url: '/patient/portal/managed-patients',
+    method: 'get'
+  })
+}
+
+/**
+ * 添加家庭成员
+ * @param {Object} data 包含 username 和 password
+ * @returns {Promise}
+ */
+export function addManagedPatient(data) {
+  return request({
+    url: '/patient/portal/family-members/add',
+    method: 'post',
+    data
   })
 }

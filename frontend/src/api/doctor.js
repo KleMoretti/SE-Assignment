@@ -227,6 +227,39 @@ const buildLeavePayload = (data = {}) => {
   return removeUndefined(payload)
 }
 
+const normalizeMedicationRequest = (item = {}) => ({
+  id: item.id,
+  patientId: item.patient_id,
+  patientName: item.patient_name,
+  doctorId: item.doctor_id,
+  doctorName: item.doctor_name,
+  medicineId: item.medicine_id,
+  medicineName: item.medicine_name,
+  dose: item.dose,
+  usage: item.usage,
+  quantity: item.quantity,
+  status: item.status,
+  reason: item.reason,
+  createdAt: item.created_at,
+  approvedAt: item.approved_at,
+  dispensedAt: item.dispensed_at,
+  updatedAt: item.updated_at
+})
+
+const buildMedicationRequestPayload = (data = {}) => {
+  const payload = {
+    patient_id: data.patientId,
+    doctor_id: data.doctorId,
+    medicine_id: data.medicineId,
+    dose: data.dose,
+    usage: data.usage,
+    quantity: data.quantity,
+    reason: data.reason
+  }
+
+  return removeUndefined(payload)
+}
+
 // 获取医生列表
 export function getDoctorList(params = {}) {
   const {
@@ -557,6 +590,83 @@ export function rejectLeave(id, data = {}) {
   }).then((res) => ({
     ...res,
     data: normalizeLeave(res?.data)
+  }))
+}
+
+// 获取用药申请列表（按条件分页）
+export function getMedicationRequestList(params = {}) {
+  const {
+    page = 1,
+    pageSize = 10,
+    doctorId,
+    patientId,
+    status
+  } = params
+
+  return request({
+    url: '/doctor/medication-requests',
+    method: 'get',
+    params: removeUndefined({
+      page,
+      per_page: pageSize,
+      doctor_id: doctorId,
+      patient_id: patientId,
+      status
+    })
+  }).then((res) => {
+    const data = res?.data || {}
+    const list = (data.items || data.list || []).map(normalizeMedicationRequest)
+
+    return {
+      ...res,
+      data: {
+        ...data,
+        list,
+        items: list,
+        total: data.total ?? list.length
+      }
+    }
+  })
+}
+
+// 获取指定医生的用药申请列表
+export function getDoctorMedicationRequests(doctorId, params = {}) {
+  const { status, patientId } = params
+
+  return request({
+    url: `/doctor/doctors/${doctorId}/medication-requests`,
+    method: 'get',
+    params: removeUndefined({
+      status,
+      patient_id: patientId
+    })
+  }).then((res) => {
+    const data = res?.data || {}
+    const list = (data.requests || data.list || data.items || []).map(normalizeMedicationRequest)
+    const doctor = data.doctor ? normalizeDoctorBase(data.doctor) : null
+
+    return {
+      ...res,
+      data: {
+        ...data,
+        doctor,
+        list,
+        items: list,
+        total: data.total ?? list.length
+      }
+    }
+  })
+}
+
+// 创建用药申请
+export function createMedicationRequest(data) {
+  return request({
+    url: '/doctor/medication-requests',
+    method: 'post',
+    data: buildMedicationRequestPayload(data)
+  }).then((res) => ({
+    ...res,
+    data: normalizeMedicationRequest(res?.data)
   }))
 }
 

@@ -2,7 +2,10 @@
   <el-card class="box-card">
     <template #header>
       <div class="flex justify-between items-center">
-        <span class="text-xl font-semibold">病人管理</span>
+        <div class="flex items-center">
+          <el-button type="primary" :icon="ArrowLeft" @click="goBack" circle class="mr-4"></el-button>
+          <span class="text-xl font-semibold">病人管理</span>
+        </div>
         <div>
           <el-button-group>
             <el-button :type="isRouteActive('PatientList') ? 'primary' : 'default'" @click="navigateTo('PatientList')">病人信息</el-button>
@@ -19,9 +22,14 @@
 
 <script setup>
 import { useRouter, useRoute } from 'vue-router'
+import { ArrowLeft } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
+
+const goBack = () => {
+  router.push({ name: 'Home' })
+}
 
 const navigateTo = (routeName) => {
   router.push({ name: routeName })
