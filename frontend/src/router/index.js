@@ -68,6 +68,16 @@ const routes = [
     }
   },
   {
+    path: '/doctor/medical-records',
+    name: 'DoctorMedicalRecordList',
+    component: () => import('@/views/doctor/DoctorMedicalRecordList.vue'),
+    meta: {
+      title: '我的病历',
+      requiresAuth: true,
+      doctorOnly: true
+    }
+  },
+  {
     path: '/doctor',
     name: 'Doctor',
     component: () => import('@/views/doctor/DoctorList.vue'),
@@ -129,6 +139,16 @@ const routes = [
     meta: {
       title: '医生开药申请',
       requiresAuth: true
+    }
+  },
+  {
+    path: '/doctor/patients',
+    name: 'DoctorPatientList',
+    component: () => import('@/views/doctor/DoctorPatientList.vue'),
+    meta: {
+      title: '我的病人',
+      requiresAuth: true,
+      doctorOnly: true
     }
   },
   {

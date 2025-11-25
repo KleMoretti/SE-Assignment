@@ -121,16 +121,20 @@
             <el-button type="primary" size="large" @click="goToMedicationRequest">
               医生开药管理
             </el-button>
-            <el-button size="large" @click="goToAppointments">
-              病人预约管理
+            <el-button size="large" @click="goToPatients">
+              病人信息
+            </el-button>
+            <el-button size="large" @click="goToMedicalRecords">
+              病历记录
             </el-button>
           </div>
         </el-card>
       </el-col>
       <el-col :span="14">
-        <el-card shadow="never" class="appointments-card">
+        <el-card shadow="never" class="patients-card">
           <div class="card-header">
-            <div class="card-title">近期预约概览</div>
+            <div class="card-title">我的病人列表</div>
+            <el-text type="info" size="small">与我有过预约或就诊记录的病人</el-text>
           </div>
           <el-table
             v-loading="loading"
@@ -139,20 +143,16 @@
             stripe
             height="360px"
           >
-            <el-table-column prop="appointment_no" label="预约号" width="120" />
-            <el-table-column prop="patient_name" label="病人姓名" min-width="120" />
-            <el-table-column prop="department" label="科室" min-width="100" />
-            <el-table-column label="预约日期" min-width="120">
+            <el-table-column prop="patient_no" label="病人编号" width="120" />
+            <el-table-column prop="name" label="姓名" min-width="100" />
+            <el-table-column prop="gender" label="性别" width="80" align="center" />
+            <el-table-column prop="age" label="年龄" width="80" align="center" />
+            <el-table-column prop="phone" label="联系电话" min-width="120" />
+            <el-table-column prop="appointment_count" label="预约次数" width="100" align="center" />
+            <el-table-column prop="medical_record_count" label="就诊次数" width="100" align="center" />
+            <el-table-column label="最后就诊" min-width="120">
               <template #default="{ row }">
-                {{ row.appointment_date ? row.appointment_date.split('T')[0] : '-' }}
-              </template>
-            </el-table-column>
-            <el-table-column prop="appointment_time" label="预约时间" width="100" />
-            <el-table-column label="状态" width="100" align="center">
-              <template #default="{ row }">
-                <el-tag :type="getStatusType(row.status)" size="small">
-                  {{ getStatusText(row.status) }}
-                </el-tag>
+                {{ row.last_visit_date ? row.last_visit_date.split('T')[0] : '暂无' }}
               </template>
             </el-table-column>
           </el-table>
@@ -167,8 +167,8 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { getAppointmentList } from '@/api/patient'
 import { checkDoctorInfo, completeDoctorInfo } from '@/api/auth'
+import { getDoctorPatients } from '@/api/doctor'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -206,38 +206,21 @@ const doctorRules = {
   ]
 }
 
-const getStatusType = (status) => {
-  const statusMap = {
-    pending: 'warning',
-    confirmed: 'primary',
-    completed: 'success',
-    cancelled: 'info'
-  }
-  return statusMap[status] || 'info'
-}
-
-const getStatusText = (status) => {
-  const statusMap = {
-    pending: '待确认',
-    confirmed: '已确认',
-    completed: '已完成',
-    cancelled: '已取消'
-  }
-  return statusMap[status] || status
-}
-
-const fetchRecentAppointments = async () => {
+const fetchDoctorPatients = async () => {
   loading.value = true
   try {
-    const res = await getAppointmentList({ page: 1, per_page: 20 })
-    const items = res.data?.items || []
-    if (currentDoctorName.value) {
-      tableData.value = items.filter((item) => item.doctor_name === currentDoctorName.value).slice(0, 10)
-    } else {
-      tableData.value = items.slice(0, 10)
+    const doctorId = userStore.userInfo?.doctor?.id
+    if (!doctorId) {
+      console.warn('未获取到医生ID')
+      tableData.value = []
+      return
     }
+    
+    const res = await getDoctorPatients(doctorId)
+    tableData.value = res.data?.patients || []
   } catch (error) {
-    ElMessage.error('加载预约概览失败')
+    console.error('加载病人列表失败:', error)
+    ElMessage.error('加载病人列表失败')
   } finally {
     loading.value = false
   }
@@ -247,8 +230,12 @@ const goToMedicationRequest = () => {
   router.push({ name: 'DoctorMedicationRequest' })
 }
 
-const goToAppointments = () => {
-  router.push({ name: 'AppointmentList' })
+const goToPatients = () => {
+  router.push({ name: 'DoctorPatientList' })
+}
+
+const goToMedicalRecords = () => {
+  router.push({ name: 'DoctorMedicalRecordList' })
 }
 
 const checkDoctorInfoStatus = async () => {
@@ -331,8 +318,8 @@ onMounted(async () => {
   if (userStore.isDoctor) {
     await checkDoctorInfoStatus()
   }
-  // 加载预约概览
-  fetchRecentAppointments()
+  // 加载医生关联的病人列表
+  fetchDoctorPatients()
 })
 </script>
 
@@ -357,7 +344,7 @@ onMounted(async () => {
 }
 
 .quick-actions-card,
-.appointments-card {
+.patients-card {
   height: 100%;
 }
 

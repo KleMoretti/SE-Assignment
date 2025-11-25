@@ -1730,3 +1730,106 @@ def get_titles():
 
     except Exception as e:
         return error_response(f'获取职称列表失败：{str(e)}', 'GET_TITLES_ERROR', 500)
+
+
+@doctor_bp.route('/doctors/<int:doctor_id>/patients', methods=['GET'])
+def get_doctor_patients(doctor_id):
+    """获取与指定医生有关系的病人列表（基于预约和病历记录）"""
+    try:
+        doctor = Doctor.query.get(doctor_id)
+        if not doctor:
+            return error_response('医生不存在', 'DOCTOR_NOT_FOUND', 404)
+
+        appointment_patient_ids = db.session.query(Appointment.patient_id).filter(
+            Appointment.doctor_id == doctor_id
+        ).distinct().all()
+
+        medical_record_patient_ids = db.session.query(MedicalRecord.patient_id).filter(
+            MedicalRecord.doctor_id == doctor_id
+        ).distinct().all()
+
+        patient_ids = set()
+        for (pid,) in appointment_patient_ids:
+            patient_ids.add(pid)
+        for (pid,) in medical_record_patient_ids:
+            patient_ids.add(pid)
+
+        if not patient_ids:
+            return success_response({
+                'doctor': doctor.to_dict(),
+                'patients': [],
+                'total': 0
+            })
+
+        patients = Patient.query.filter(Patient.id.in_(patient_ids)).all()
+
+        patients_data = []
+        for patient in patients:
+            appointment_count = Appointment.query.filter_by(
+                patient_id=patient.id,
+                doctor_id=doctor_id
+            ).count()
+
+            medical_record_count = MedicalRecord.query.filter_by(
+                patient_id=patient.id,
+                doctor_id=doctor_id
+            ).count()
+
+            last_visit = MedicalRecord.query.filter_by(
+                patient_id=patient.id,
+                doctor_id=doctor_id
+            ).order_by(MedicalRecord.visit_date.desc()).first()
+
+            patient_dict = patient.to_dict()
+            patient_dict['appointment_count'] = appointment_count
+            patient_dict['medical_record_count'] = medical_record_count
+            patient_dict['last_visit_date'] = last_visit.visit_date.isoformat() if last_visit and last_visit.visit_date else None
+
+            patients_data.append(patient_dict)
+
+        patients_data.sort(key=lambda x: x['last_visit_date'] or '', reverse=True)
+
+        return success_response({
+            'doctor': doctor.to_dict(),
+            'patients': patients_data,
+            'total': len(patients_data)
+        })
+
+    except Exception as e:
+        return error_response(f'获取医生病人列表失败：{str(e)}', 'GET_DOCTOR_PATIENTS_ERROR', 500)
+
+
+@doctor_bp.route('/doctors/<int:doctor_id>/medical-records', methods=['GET'])
+def get_doctor_medical_records(doctor_id):
+    """获取指定医生的病历列表（分页，可按病人过滤）"""
+    try:
+        doctor = Doctor.query.get(doctor_id)
+        if not doctor:
+            return error_response('医生不存在', 'DOCTOR_NOT_FOUND', 404)
+
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        patient_id = request.args.get('patient_id', type=int)
+
+        query = MedicalRecord.query.filter_by(doctor_id=doctor_id)
+        if patient_id:
+            query = query.filter_by(patient_id=patient_id)
+
+        pagination = query.order_by(MedicalRecord.visit_date.desc()).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+
+        items = [record.to_dict() for record in pagination.items]
+
+        return success_response({
+            'doctor': doctor.to_dict(),
+            'items': items,
+            'records': items,
+            'total': pagination.total,
+            'page': page,
+            'per_page': per_page,
+            'pages': pagination.pages
+        })
+
+    except Exception as e:
+        return error_response(f'获取医生病历列表失败：{str(e)}', 'GET_DOCTOR_MEDICAL_RECORDS_ERROR', 500)
