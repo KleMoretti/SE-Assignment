@@ -119,3 +119,24 @@ export function deleteUser(userId) {
     method: 'delete'
   })
 }
+
+/**
+ * 检查医生信息是否完整
+ */
+export function checkDoctorInfo() {
+  return request({
+    url: '/auth/check-doctor-info',
+    method: 'get'
+  })
+}
+
+/**
+ * 完善医生信息
+ */
+export function completeDoctorInfo(data) {
+  return request({
+    url: '/auth/complete-doctor-info',
+    method: 'post',
+    data
+  })
+}

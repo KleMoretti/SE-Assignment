@@ -104,6 +104,17 @@
               </el-select>
             </el-form-item>
 
+            <!-- 医生需要输入工号 -->
+            <el-form-item v-if="registerForm.role === 'doctor'" prop="doctorNo">
+              <el-input
+                v-model="registerForm.doctorNo"
+                placeholder="请输入医生工号"
+                prefix-icon="User"
+                size="large"
+                clearable
+              />
+            </el-form-item>
+
             <!-- 管理员和医生需要输入口令 -->
             <el-form-item v-if="registerForm.role === 'admin' || registerForm.role === 'doctor'" prop="accessCode">
               <el-input
@@ -213,21 +224,35 @@ const registerForm = reactive({
   password: '',
   confirmPassword: '',
   role: 'user',
+  doctorNo: '',
   accessCode: '',
   phone: '',
   real_name: ''
 })
 
-// 监听角色变化，清空口令
+// 监听角色变化，清空口令和工号
 watch(() => registerForm.role, (newRole) => {
   if (newRole === 'user') {
     registerForm.accessCode = ''
+    registerForm.doctorNo = ''
+  } else if (newRole === 'admin') {
+    registerForm.doctorNo = ''
   }
 })
 
 const validateConfirmPassword = (rule, value, callback) => {
   if (value !== registerForm.password) {
     callback(new Error('两次输入的密码不一致'))
+  } else {
+    callback()
+  }
+}
+
+const validateDoctorNo = (rule, value, callback) => {
+  if (registerForm.role === 'doctor' && !value) {
+    callback(new Error('医生注册需要输入工号'))
+  } else if (registerForm.role === 'doctor' && (value.length < 3 || value.length > 20)) {
+    callback(new Error('工号长度需在3-20个字符之间'))
   } else {
     callback()
   }
@@ -269,6 +294,9 @@ const registerRules = {
   ],
   role: [
     { required: true, message: '请选择角色', trigger: 'change' }
+  ],
+  doctorNo: [
+    { validator: validateDoctorNo, trigger: 'blur' }
   ],
   accessCode: [
     { validator: validateAccessCode, trigger: 'blur' }

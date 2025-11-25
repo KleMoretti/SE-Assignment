@@ -4,7 +4,7 @@ Patient Management - Routes
 """
 from flask import render_template, request, redirect, url_for, flash, jsonify, session
 from . import patient_bp
-from extensions import db
+from backend.extensions import db
 from . import patient_services, record_services, appointment_services
 from . import portal_services  # 病人端门户服务
 

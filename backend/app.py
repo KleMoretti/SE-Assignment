@@ -26,8 +26,8 @@ else:
 
 from flask import Flask, render_template, jsonify
 from flask_cors import CORS
-from config import Config
-from extensions import db, jwt
+from backend.config import Config
+from backend.extensions import db, jwt
 
 
 def create_app(config_class=Config):
@@ -52,10 +52,10 @@ def create_app(config_class=Config):
     })
     
     # 注册蓝图 - 认证 + 三个子系统（API路由）
-    from modules.auth import auth_bp
-    from modules.patient import patient_bp
-    from modules.doctor import doctor_bp
-    from modules.pharmacy import pharmacy_bp
+    from backend.modules.auth import auth_bp
+    from backend.modules.patient import patient_bp
+    from backend.modules.doctor import doctor_bp
+    from backend.modules.pharmacy import pharmacy_bp
     
     # API路由前缀
     app.register_blueprint(auth_bp, url_prefix='/api/auth')  # 认证路由

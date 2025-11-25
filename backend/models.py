@@ -3,7 +3,7 @@
 Database Models
 """
 from datetime import datetime
-from extensions import db
+from backend.extensions import db
 from typing import Dict
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -77,6 +77,18 @@ class PatientUserLink(db.Model):
 
     def __repr__(self):
         return f'<PatientUserLink user_id={self.user_id} patient_id={self.patient_id}>'
+
+class DoctorUserLink(db.Model):
+    __tablename__ = 'doctor_user_link'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False)
+    doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), unique=True, nullable=False)
+
+    user = db.relationship('User', backref=db.backref('doctor_link', uselist=False, cascade='all, delete-orphan'))
+    doctor = db.relationship('Doctor', backref=db.backref('user_link', uselist=False, cascade='all, delete-orphan'))
+
+    def __repr__(self):
+        return f'<DoctorUserLink user_id={self.user_id} doctor_id={self.doctor_id}>'
 
 # 多对多关联表：定义一个用户可以管理哪些病人档案（自己和家人）
 patient_relations = db.Table('patient_relations',

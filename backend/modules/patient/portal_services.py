@@ -9,8 +9,8 @@ Patient Portal Services
  - 病历查看功能
  - 权限验证等
 """
-from models import User, Patient, PatientUserLink, Appointment, MedicalRecord
-from extensions import db
+from backend.models import User, Patient, PatientUserLink, Appointment, MedicalRecord
+from backend.extensions import db
 from . import patient_services, appointment_services
 
 
