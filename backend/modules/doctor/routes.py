@@ -4,8 +4,8 @@ Doctor Management - Routes
 """
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from . import doctor_bp
-from backend.models import Doctor, DoctorSchedule, DoctorPerformance, Appointment, MedicalRecord, Patient, Medicine, MedicationRequest
-from backend.extensions import db
+from models import Doctor, DoctorSchedule, DoctorPerformance, Appointment, MedicalRecord, Patient, Medicine, MedicationRequest
+from extensions import db
 from datetime import datetime, date
 from sqlalchemy import func, extract
 from modules.doctor.models_extended import DoctorLeave

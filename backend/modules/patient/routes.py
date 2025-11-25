@@ -178,8 +178,7 @@ def view_appointment_add():
         except Exception as e:
             db.session.rollback()
             flash(f'创建预约失败: {str(e)}', 'error')
-
-    from backend.models import Doctor
+    from models import Doctor
     from datetime import date
 
     patients = patient_services.get_all_patients_for_dropdown()

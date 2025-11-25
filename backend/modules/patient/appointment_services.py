@@ -2,8 +2,8 @@
 挂号预约管理服务
 Appointment Management Services
 """
-from backend.models import Appointment, Patient
-from backend.extensions import db
+from models import Appointment, Patient
+from extensions import db
 from datetime import datetime
 
 def generate_appointment_no():

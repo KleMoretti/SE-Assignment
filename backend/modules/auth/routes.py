@@ -118,8 +118,8 @@ def register():
 
         # 如果是普通用户，自动创建病人记录
         if user.role == 'user' and phone:
-            from backend.models import Patient, PatientUserLink
-            from backend.modules.patient.patient_services import generate_patient_no
+            from models import Patient, PatientUserLink
+            from modules.patient.patient_services import generate_patient_no
 
             # 生成病人编号
             patient_no = generate_patient_no()
@@ -477,7 +477,7 @@ def check_patient_info():
             }, '非普通用户，无需病人信息')
 
         # 查找关联的病人记录
-        from backend.models import PatientUserLink, Patient
+        from models import PatientUserLink, Patient
         link = PatientUserLink.query.filter_by(user_id=user.id).first()
 
         if not link:
@@ -527,7 +527,7 @@ def complete_patient_info():
             return error_response('请求数据不能为空', 'INVALID_DATA')
 
         # 查找关联的病人记录
-        from backend.models import PatientUserLink, Patient
+        from models import PatientUserLink, Patient
         link = PatientUserLink.query.filter_by(user_id=user.id).first()
 
         if not link:
