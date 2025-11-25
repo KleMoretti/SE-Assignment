@@ -16,6 +16,9 @@
         </template>
         <template #extra>
           <el-space wrap>
+            <el-button type="primary" :icon="Plus" @click="showAddScheduleDialog">
+              新增排班
+            </el-button>
             <el-select
               v-model="selectedDepartment"
               placeholder="全部科室"
@@ -244,6 +247,117 @@
         <el-empty v-else description="当天无排班" :image-size="100" />
       </div>
     </el-drawer>
+
+    <!-- 新增排班对话框 -->
+    <el-dialog
+      v-model="addScheduleDialogVisible"
+      title="新增排班"
+      width="600px"
+      @close="resetAddScheduleForm"
+    >
+      <el-form
+        ref="addScheduleFormRef"
+        :model="addScheduleForm"
+        :rules="addScheduleRules"
+        label-width="100px"
+      >
+        <el-form-item label="医生" prop="doctorId">
+          <el-select
+            v-model="addScheduleForm.doctorId"
+            placeholder="请选择医生"
+            filterable
+            style="width: 100%"
+          >
+            <el-option
+              v-for="doctor in doctorList"
+              :key="doctor.id"
+              :label="`${doctor.name} - ${doctor.department || '未分配'} - ${doctor.title || '医师'}`"
+              :value="doctor.id"
+            />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="排班日期" prop="date">
+          <el-date-picker
+            v-model="addScheduleForm.date"
+            type="date"
+            placeholder="选择日期"
+            style="width: 100%"
+            :disabled-date="disabledDate"
+          />
+        </el-form-item>
+
+        <el-form-item label="班次" prop="shift">
+          <el-radio-group v-model="addScheduleForm.shift">
+            <el-radio label="morning">上午</el-radio>
+            <el-radio label="afternoon">下午</el-radio>
+            <el-radio label="evening">晚上</el-radio>
+          </el-radio-group>
+        </el-form-item>
+
+        <el-form-item label="时间段" prop="startTime">
+          <el-row :gutter="10">
+            <el-col :span="11">
+              <el-time-select
+                v-model="addScheduleForm.startTime"
+                placeholder="开始时间"
+                start="06:00"
+                end="22:00"
+                step="00:30"
+                style="width: 100%"
+              />
+            </el-col>
+            <el-col :span="2" style="text-align: center; line-height: 32px;">-</el-col>
+            <el-col :span="11">
+              <el-time-select
+                v-model="addScheduleForm.endTime"
+                placeholder="结束时间"
+                start="06:00"
+                end="22:00"
+                step="00:30"
+                :min-time="addScheduleForm.startTime"
+                style="width: 100%"
+              />
+            </el-col>
+          </el-row>
+        </el-form-item>
+
+        <el-form-item label="最大接诊数" prop="maxPatients">
+          <el-input-number
+            v-model="addScheduleForm.maxPatients"
+            :min="1"
+            :max="100"
+            style="width: 100%"
+          />
+        </el-form-item>
+
+        <el-form-item label="状态" prop="status">
+          <el-radio-group v-model="addScheduleForm.status">
+            <el-radio label="available">可预约</el-radio>
+            <el-radio label="full">已约满</el-radio>
+            <el-radio label="cancelled">已取消</el-radio>
+          </el-radio-group>
+        </el-form-item>
+
+        <el-form-item label="备注">
+          <el-input
+            v-model="addScheduleForm.notes"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入备注信息（可选）"
+            maxlength="200"
+            show-word-limit
+          />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="addScheduleDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="addScheduleLoading" @click="handleAddSchedule">
+          确定
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -252,9 +366,9 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
-  Calendar, ArrowLeft, ArrowRight, User, Warning, SuccessFilled, CircleClose, Clock
+  Calendar, ArrowLeft, ArrowRight, User, Warning, SuccessFilled, CircleClose, Clock, Plus
 } from '@element-plus/icons-vue'
-import { getDepartments, getDepartmentSchedules, getDoctorList } from '@/api/doctor'
+import { getDepartments, getDepartmentSchedules, getDoctorList, createSchedule } from '@/api/doctor'
 
 // 路由
 const router = useRouter()
@@ -274,6 +388,47 @@ const doctorList = ref([])
 // 详情抽屉
 const detailDrawerVisible = ref(false)
 const selectedCellData = ref(null)
+
+// 新增排班对话框
+const addScheduleDialogVisible = ref(false)
+const addScheduleLoading = ref(false)
+const addScheduleFormRef = ref(null)
+const addScheduleForm = ref({
+  doctorId: '',
+  date: '',
+  shift: 'morning',
+  startTime: '08:00',
+  endTime: '12:00',
+  maxPatients: 20,
+  status: 'available',
+  notes: ''
+})
+
+// 表单验证规则
+const addScheduleRules = {
+  doctorId: [
+    { required: true, message: '请选择医生', trigger: 'change' }
+  ],
+  date: [
+    { required: true, message: '请选择排班日期', trigger: 'change' }
+  ],
+  shift: [
+    { required: true, message: '请选择班次', trigger: 'change' }
+  ],
+  startTime: [
+    { required: true, message: '请选择开始时间', trigger: 'change' }
+  ],
+  endTime: [
+    { required: true, message: '请选择结束时间', trigger: 'change' }
+  ],
+  maxPatients: [
+    { required: true, message: '请输入最大接诊数', trigger: 'blur' },
+    { type: 'number', min: 1, max: 100, message: '接诊数应在1-100之间', trigger: 'blur' }
+  ],
+  status: [
+    { required: true, message: '请选择状态', trigger: 'change' }
+  ]
+}
 
 // 统计数据
 const stats = reactive({
@@ -553,6 +708,68 @@ const handleViewModeChange = () => {
 
 const goBack = () => {
   router.push('/doctor')
+}
+
+// 禁用过去的日期
+const disabledDate = (date) => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return date < today
+}
+
+// 显示新增排班对话框
+const showAddScheduleDialog = () => {
+  addScheduleDialogVisible.value = true
+}
+
+// 重置新增排班表单
+const resetAddScheduleForm = () => {
+  addScheduleForm.value = {
+    doctorId: '',
+    date: '',
+    shift: 'morning',
+    startTime: '08:00',
+    endTime: '12:00',
+    maxPatients: 20,
+    status: 'available',
+    notes: ''
+  }
+  addScheduleFormRef.value?.clearValidate()
+}
+
+// 处理新增排班
+const handleAddSchedule = async () => {
+  try {
+    // 表单验证
+    await addScheduleFormRef.value.validate()
+    
+    addScheduleLoading.value = true
+    
+    // 调用API创建排班
+    await createSchedule(addScheduleForm.value.doctorId, {
+      date: addScheduleForm.value.date,
+      shift: addScheduleForm.value.shift,
+      startTime: addScheduleForm.value.startTime,
+      endTime: addScheduleForm.value.endTime,
+      maxPatients: addScheduleForm.value.maxPatients,
+      status: addScheduleForm.value.status,
+      notes: addScheduleForm.value.notes
+    })
+    
+    ElMessage.success('排班创建成功')
+    addScheduleDialogVisible.value = false
+    resetAddScheduleForm()
+    
+    // 刷新排班数据
+    await fetchScheduleMatrix()
+  } catch (error) {
+    if (error) {
+      console.error('创建排班失败:', error)
+      ElMessage.error(error.message || '创建排班失败')
+    }
+  } finally {
+    addScheduleLoading.value = false
+  }
 }
 
 // 生命周期
