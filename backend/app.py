@@ -27,7 +27,7 @@ else:
 from flask import Flask, render_template, jsonify
 from flask_cors import CORS
 from config import Config
-from backend.extensions import db, jwt
+from extensions import db, jwt
 
 
 def create_app(config_class=Config):

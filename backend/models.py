@@ -3,7 +3,7 @@
 Database Models
 """
 from datetime import datetime
-from backend.extensions import db
+from extensions import db
 from typing import Dict
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -459,6 +459,7 @@ class MedicinePurchase(db.Model):
     expected_delivery_date = db.Column(db.Date, comment='预计到货日期')
     actual_delivery_date = db.Column(db.Date, comment='实际到货日期')
     status = db.Column(db.String(20), default='pending', comment='状态：pending/received/completed')
+    priority = db.Column(db.String(20), default='medium', comment='优先级：low/medium/high')
     batch_no = db.Column(db.String(50), comment='批次号')
     production_date = db.Column(db.Date, comment='生产日期')
     expiry_date = db.Column(db.Date, comment='过期日期')
@@ -484,6 +485,7 @@ class MedicinePurchase(db.Model):
             'expected_delivery_date': self.expected_delivery_date.isoformat() if self.expected_delivery_date else None,
             'actual_delivery_date': self.actual_delivery_date.isoformat() if self.actual_delivery_date else None,
             'status': self.status,
+            'priority': self.priority,
             'batch_no': self.batch_no,
             'production_date': self.production_date.isoformat() if self.production_date else None,
             'expiry_date': self.expiry_date.isoformat() if self.expiry_date else None,

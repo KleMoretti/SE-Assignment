@@ -167,6 +167,16 @@ const routes = [
     }
   },
   {
+    path: '/pharmacy/purchase',
+    name: 'PharmacyPurchase',
+    component: () => import('@/views/pharmacy/PharmacyPurchase.vue'),
+    meta: {
+      title: '药品采购管理',
+      requiresAuth: true,
+      adminOnly: true
+    }
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     redirect: '/'

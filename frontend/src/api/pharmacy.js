@@ -60,3 +60,34 @@ export function rejectMedicationRequest(id, data) {
     data
   })
 }
+
+export function getPurchaseOrderList(params) {
+  return request({
+    url: '/pharmacy/purchase-orders',
+    method: 'get',
+    params
+  })
+}
+
+export function createPurchaseOrder(data) {
+  return request({
+    url: '/pharmacy/purchase-orders',
+    method: 'post',
+    data
+  })
+}
+
+export function getPurchaseOrderDetail(id) {
+  return request({
+    url: `/pharmacy/purchase-orders/${id}`,
+    method: 'get'
+  })
+}
+
+export function receivePurchaseOrder(id, data) {
+  return request({
+    url: `/pharmacy/purchase-orders/${id}/receive`,
+    method: 'post',
+    data
+  })
+}

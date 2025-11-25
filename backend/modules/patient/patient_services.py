@@ -2,8 +2,8 @@
 病人基本信息管理服务
 Patient Information Management Services
 """
-from backend.models import Patient
-from backend.extensions import db
+from models import Patient
+from extensions import db
 from sqlalchemy import func
 
 def get_patients_with_pagination(page, per_page=10, search=''):

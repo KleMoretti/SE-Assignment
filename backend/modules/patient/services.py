@@ -2,8 +2,8 @@
 病人管理子系统 - 服务层
 Patient Management - Services
 """
-from backend.models import Patient, MedicalRecord, Appointment
-from backend.extensions import db
+from models import Patient, MedicalRecord, Appointment
+from extensions import db
 from datetime import datetime
 
 # ============= 病人基本信息管理服务 =============
