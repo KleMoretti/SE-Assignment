@@ -194,6 +194,21 @@ const normalizeLeave = (leave = {}) => ({
   updatedAt: leave.updated_at
 })
 
+const normalizeMedicalRecord = (record = {}) => ({
+  id: record.id,
+  patientId: record.patient_id,
+  patientName: record.patient_name,
+  doctorId: record.doctor_id,
+  doctorName: record.doctor_name,
+  visitDate: record.visit_date,
+  diagnosis: record.diagnosis,
+  symptoms: record.symptoms,
+  treatment: record.treatment,
+  prescription: record.prescription,
+  notes: record.notes,
+  createdAt: record.created_at
+})
+
 const buildSchedulePayload = (doctorId, data = {}) => {
   const payload = {
     doctor_id: doctorId,
@@ -699,6 +714,38 @@ export function getDoctorPerformance(doctorId, params = {}) {
   })
 }
 
+// 获取指定医生的病历列表
+export function getDoctorMedicalRecords(doctorId, params = {}) {
+  const {
+    page = 1,
+    pageSize = 10,
+    patientId
+  } = params
+
+  return request({
+    url: `/doctor/doctors/${doctorId}/medical-records`,
+    method: 'get',
+    params: removeUndefined({
+      page,
+      per_page: pageSize,
+      patient_id: patientId
+    })
+  }).then((res) => {
+    const data = res?.data || {}
+    const items = (data.items || data.records || []).map(normalizeMedicalRecord)
+
+    return {
+      ...res,
+      data: {
+        ...data,
+        items,
+        records: items,
+        total: data.total ?? items.length
+      }
+    }
+  })
+}
+
 // 获取科室列表
 export function getDepartments() {
   return request({
@@ -712,6 +759,24 @@ export function getTitles() {
   return request({
     url: '/doctor/titles',
     method: 'get'
+  })
+}
+
+// 获取医生关联的病人列表（基于预约和病历）
+export function getDoctorPatients(doctorId) {
+  return request({
+    url: `/doctor/doctors/${doctorId}/patients`,
+    method: 'get'
+  }).then((res) => {
+    const data = res?.data || {}
+    return {
+      ...res,
+      data: {
+        doctor: data.doctor || null,
+        patients: data.patients || [],
+        total: data.total || 0
+      }
+    }
   })
 }
 

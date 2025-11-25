@@ -118,7 +118,7 @@ def register():
 
         # 如果是普通用户，自动创建病人记录
         if user.role == 'user' and phone:
-            from models import Patient, PatientUserLink
+            from backend.models import Patient, PatientUserLink
             from modules.patient.patient_services import generate_patient_no
 
             # 生成病人编号
@@ -243,7 +243,7 @@ def login():
         user_data = user.to_dict()
 
         if user.role == 'doctor':
-            from models import DoctorUserLink
+            from backend.models import DoctorUserLink
 
             link = DoctorUserLink.query.filter_by(user_id=user.id).first()
             if link and link.doctor:
@@ -309,7 +309,7 @@ def get_current_user():
         data = user.to_dict()
 
         if user.role == 'doctor':
-            from models import DoctorUserLink
+            from backend.models import DoctorUserLink
 
             link = DoctorUserLink.query.filter_by(user_id=user.id).first()
             if link and link.doctor:
@@ -520,7 +520,7 @@ def check_patient_info():
             }, '非普通用户，无需病人信息')
 
         # 查找关联的病人记录
-        from models import PatientUserLink, Patient
+        from backend.models import PatientUserLink, Patient
         link = PatientUserLink.query.filter_by(user_id=user.id).first()
 
         if not link:
