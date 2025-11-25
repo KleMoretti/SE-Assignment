@@ -552,9 +552,13 @@ onMounted(() => {
 
 <style scoped>
 .profile-container {
+  min-height: 100vh;
   padding: 20px;
+  padding-bottom: 40px;
+  box-sizing: border-box;
   max-width: 900px;
   margin: 0 auto;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
 }
 
 .profile-card {
