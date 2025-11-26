@@ -136,6 +136,19 @@ export function addManagedPatient(data) {
 }
 
 /**
+ * 获取所有可管理病人的预约列表（病人端）
+ * @param {string} status 预约状态（可选）
+ * @returns {Promise}
+ */
+export function getAllManagedAppointments(status) {
+  return request({
+    url: '/patient/portal/appointments',
+    method: 'get',
+    params: { status }
+  })
+}
+
+/**
  * 获取指定病人的预约列表（病人端）
  * @param {number} patientId 病人ID
  * @param {string} status 预约状态（可选）

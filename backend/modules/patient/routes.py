@@ -570,6 +570,22 @@ def portal_get_patient_medical_records(patient_id):
         return error_response(f'获取病历列表失败: {str(e)}', 'GET_RECORDS_ERROR', 500)
 
 
+@patient_bp.route('/portal/appointments', methods=['GET'])
+@jwt_required()
+def portal_get_all_appointments():
+    """获取所有可管理病人的预约列表"""
+    try:
+        user_id = get_jwt_identity()
+        status = request.args.get('status', None)
+        
+        appointments = portal_services.get_all_managed_appointments(user_id, status)
+        appointments_data = [a.to_dict() for a in appointments]
+        
+        return success_response(appointments_data)
+    except Exception as e:
+        return error_response(f'获取预约列表失败: {str(e)}', 'GET_APPOINTMENTS_ERROR', 500)
+
+
 @patient_bp.route('/portal/appointments', methods=['POST'])
 @jwt_required()
 def portal_create_appointment():
