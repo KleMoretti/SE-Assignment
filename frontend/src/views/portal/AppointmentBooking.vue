@@ -59,9 +59,9 @@
           <el-time-select
             v-model="form.appointment_time"
             size="large"
-            start="08:30"
+            start="08:00"
             step="00:30"
-            end="17:30"
+            end="22:00"
             placeholder="选择时间"
             style="width: 100%"
           ></el-time-select>

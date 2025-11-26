@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getAppointmentList, cancelAppointment } from '@/api/patient'
-import { Search, Plus } from '@element-plus/icons-vue'
+import { Search } from '@element-plus/icons-vue'
 
 const router = useRouter()
 
@@ -47,10 +47,6 @@ const handleSizeChange = (newSize) => {
 const handleCurrentChange = (newPage) => {
   queryParams.value.page = newPage
   fetchData()
-}
-
-const goToAddAppointment = () => {
-  router.push({ name: 'AppointmentForm' })
 }
 
 // 取消预约
@@ -156,9 +152,6 @@ onMounted(() => {
         </el-form-item>
         <el-form-item>
           <el-button type="primary" :icon="Search" @click="handleSearch">搜索</el-button>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" :icon="Plus" @click="goToAddAppointment">新增预约</el-button>
         </el-form-item>
       </el-form>
     </div>

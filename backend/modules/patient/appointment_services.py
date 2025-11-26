@@ -2,7 +2,7 @@
 挂号预约管理服务
 Appointment Management Services
 """
-from backend.models import Appointment, Patient
+from backend.models import Appointment, Patient, DoctorSchedule
 from backend.extensions import db
 from datetime import datetime
 
@@ -91,6 +91,44 @@ def add_new_appointment(form_data):
     # 检查是否预约过去的日期
     if appointment_date.date() < today.date():
         raise ValueError(f"不能预约过去的日期 {appointment_date_str}，请选择今天或未来的日期。")
+
+    # 检查医生在该日期是否有排班，并验证预约时间是否在排班时间范围内
+    doctor_schedules = DoctorSchedule.query.filter(
+        DoctorSchedule.doctor_id == doctor_id,
+        DoctorSchedule.date == appointment_date
+    ).all()
+    
+    if not doctor_schedules:
+        raise ValueError(f"该医生在 {appointment_date_str} 没有排班，无法预约。请选择其他日期或医生。")
+    
+    # 验证预约时间是否在任一排班时间段内，并检查该排班是否已满
+    appointment_time_valid = False
+    matched_schedule = None
+    for schedule in doctor_schedules:
+        if schedule.start_time and schedule.end_time:
+            # 比较时间字符串 (格式: "HH:MM")
+            if schedule.start_time <= appointment_time <= schedule.end_time:
+                appointment_time_valid = True
+                matched_schedule = schedule
+                break
+    
+    if not appointment_time_valid:
+        # 构建可用时间段提示
+        available_times = [f"{s.start_time}-{s.end_time}" for s in doctor_schedules if s.start_time and s.end_time]
+        time_hint = "、".join(available_times) if available_times else "无可用时间段"
+        raise ValueError(f"预约时间 {appointment_time} 不在医生的排班时间内。该医生在 {appointment_date_str} 的排班时间为：{time_hint}")
+    
+    # 检查该排班是否已达到最大接诊数量
+    if matched_schedule and matched_schedule.max_patients:
+        # 统计该排班当天该医生的有效预约数量（不包括已取消的）
+        booked_count = Appointment.query.filter(
+            Appointment.doctor_id == doctor_id,
+            Appointment.appointment_date == appointment_date,
+            Appointment.status.in_(['pending', 'confirmed', 'completed'])
+        ).count()
+        
+        if booked_count >= matched_schedule.max_patients:
+            raise ValueError(f"该医生在 {appointment_date_str} 的排班已满（{booked_count}/{matched_schedule.max_patients}），无法继续预约。请选择其他日期或医生。")
 
     # 检查医生在该时间段是否已有预约（排除已取消的预约）
     existing_doctor_appointment = Appointment.query.filter(
