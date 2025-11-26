@@ -191,38 +191,20 @@ const performance = reactive({
   totalRevenue: 0
 })
 
-const performanceDetails = ref([
-  { date: '2024-01', patients: 45, satisfaction: 4.8, revenue: 15600, notes: '正常' },
-  { date: '2024-02', patients: 52, satisfaction: 4.9, revenue: 18900, notes: '' },
-  { date: '2024-03', patients: 38, satisfaction: 4.7, revenue: 13200, notes: '' },
-  { date: '2024-04', patients: 48, satisfaction: 4.8, revenue: 16800, notes: '' },
-  { date: '2024-05', patients: 55, satisfaction: 5.0, revenue: 21500, notes: '优秀' }
-])
+const performanceDetails = ref([])
 
-// 折线图数据：本月视图使用静态周示例，本年度视图使用真实月度数据
+// 折线图数据：基于数据库真实数据生成
 const chartPoints = computed(() => {
-  // 本月视图：始终使用静态周维度示例
-  if (timeRange.value === 'month') {
-    return [
-      { label: '周一', value: 20 },
-      { label: '周二', value: 40 },
-      { label: '周三', value: 60 },
-      { label: '周四', value: 50 },
-      { label: '周五', value: 70 },
-      { label: '周六', value: 80 }
-    ]
-  }
-
-  // 本年度视图：生成完整的12个月数据
+  const items = performanceDetails.value || []
+  
   if (timeRange.value === 'year') {
-    // 创建12个月的完整数组
+    // 年度视图：生成完整的12个月数据
     const monthlyData = Array.from({ length: 12 }, (_, i) => {
       const monthNum = String(i + 1).padStart(2, '0')
       return { label: monthNum, value: 0 }
     })
     
-    // 用真实数据填充（如果有的话）
-    const items = performanceDetails.value || []
+    // 用真实数据填充
     items.forEach((item) => {
       const monthStr = item.date.slice(-2)  // 取月份部分 '01', '02'...
       const monthIndex = parseInt(monthStr, 10) - 1
@@ -234,26 +216,14 @@ const chartPoints = computed(() => {
       }
     })
     
-    // 如果没有任何真实数据，使用示例数据
-    if (items.length === 0) {
-      return [
-        { label: '01', value: 120 },
-        { label: '02', value: 140 },
-        { label: '03', value: 160 },
-        { label: '04', value: 150 },
-        { label: '05', value: 170 },
-        { label: '06', value: 180 },
-        { label: '07', value: 190 },
-        { label: '08', value: 200 },
-        { label: '09', value: 185 },
-        { label: '10', value: 195 },
-        { label: '11', value: 210 },
-        { label: '12', value: 220 }
-      ]
-    }
-    
     return monthlyData
   }
+  
+  // 月度视图：使用当月数据（如果有），否则返回空数组
+  return items.map((item) => ({
+    label: item.date.slice(-2), // 月份或日期
+    value: item.patients || 0
+  }))
 })
 
 const chartSvgPoints = computed(() => {
@@ -294,8 +264,18 @@ const yAxisTicks = computed(() => {
   return [maxValue, step * 3, step * 2, step, 0]
 })
 
-// 基于表格数据计算KPI统计
+// KPI统计：优先使用API返回的统计数据，无数据时作为备用
 const computedKPI = computed(() => {
+  // 如果API有返回统计数据，优先使用
+  if (performance.totalPatients > 0 || performance.satisfactionRate > 0 || performance.totalRevenue > 0) {
+    return {
+      totalPatients: performance.totalPatients,
+      satisfactionRate: Math.round(performance.satisfactionRate),
+      totalRevenue: performance.totalRevenue
+    }
+  }
+  
+  // 否则根据详细数据计算（作为备用）
   const details = displayDetails.value
   if (!details || details.length === 0) {
     return {
@@ -316,22 +296,9 @@ const computedKPI = computed(() => {
   }
 })
 
-// 表格显示数据：与图表保持一致
+// 表格显示数据：直接使用数据库数据
 const displayDetails = computed(() => {
-  if (timeRange.value === 'month') {
-    // 本月视图：显示周维度示例
-    return [
-      { date: '周一', patients: 20, satisfaction: 4.2, revenue: 6800, notes: '' },
-      { date: '周二', patients: 40, satisfaction: 4.5, revenue: 13600, notes: '' },
-      { date: '周三', patients: 60, satisfaction: 4.8, revenue: 20400, notes: '正常' },
-      { date: '周四', patients: 50, satisfaction: 4.6, revenue: 17000, notes: '' },
-      { date: '周五', patients: 70, satisfaction: 4.9, revenue: 23800, notes: '优秀' },
-      { date: '周六', patients: 80, satisfaction: 5.0, revenue: 27200, notes: '优秀' }
-    ]
-  }
-  
-  // 本年度视图：使用真实绩效数据或静态月份示例
-  return performanceDetails.value
+  return performanceDetails.value || []
 })
 
 // 方法
@@ -355,7 +322,11 @@ const loadPerformanceData = async () => {
   try {
     const id = route.params.id || doctorInfo.value?.id
     if (!id) {
-      // 没有特定医生ID时，使用默认模拟数据
+      // 没有特定医生ID时，清空数据
+      performanceDetails.value = []
+      performance.totalPatients = 0
+      performance.satisfactionRate = 0
+      performance.totalRevenue = 0
       loading.value = false
       return
     }
@@ -374,17 +345,19 @@ const loadPerformanceData = async () => {
     const stats = res.data.statistics || {}
     const items = res.data.items || res.data.performances || []
 
+    // 使用API返回的统计数据
     performance.totalPatients = stats.totalPatients || 0
     performance.satisfactionRate = stats.averageSatisfaction || 0
     performance.totalRevenue = stats.totalBonus || 0
 
     performanceDetails.value = items.map((item) => {
       const month = String(item.month || 1).padStart(2, '0')
-      const satisfactionScore = item.totalScore || item.satisfactionScore || 0
+      // 满意度评分：将0-100分转换为0-5星 (除以20)
+      const satisfactionScore = item.satisfactionScore || item.satisfaction_score || 0
       const satisfaction = Math.max(0, Math.min(5, satisfactionScore / 20))
       return {
         date: `${item.year}-${month}`,
-        patients: item.patientCount || 0,
+        patients: item.patientCount || item.patient_count || 0,
         satisfaction,
         revenue: item.bonus || 0,
         notes: item.notes || ''
@@ -392,6 +365,10 @@ const loadPerformanceData = async () => {
     })
   } catch (error) {
     ElMessage.error('获取绩效数据失败')
+    performanceDetails.value = []
+    performance.totalPatients = 0
+    performance.satisfactionRate = 0
+    performance.totalRevenue = 0
   } finally {
     loading.value = false
   }
@@ -408,7 +385,7 @@ const formatDateLabel = (dateStr) => {
     const monthNum = parseInt(dateStr.slice(-2), 10)  // 取最后两位并转为数字
     return `${monthNum}月`
   }
-  // 月度视图：显示原始标签（周一、周二等）
+  // 月度视图：显示原始标签
   return dateStr
 }
 
@@ -730,4 +707,3 @@ onMounted(() => {
 
 /* 排名样式 */
 </style>
-

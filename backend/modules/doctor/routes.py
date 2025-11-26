@@ -1876,3 +1876,238 @@ def get_doctor_medical_records(doctor_id):
 
     except Exception as e:
         return error_response(f'获取医生病历列表失败：{str(e)}', 'GET_DOCTOR_MEDICAL_RECORDS_ERROR', 500)
+
+
+# ============= RESTful API - 医生资质管理 =============
+
+from backend.modules.doctor.models_extended import DoctorQualification
+
+@doctor_bp.route('/qualifications', methods=['GET'])
+def get_qualifications():
+    """获取资质证书列表（API）"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        doctor_id = request.args.get('doctor_id', type=int)
+        qualification_type = request.args.get('qualification_type', '', type=str)
+        status = request.args.get('status', '', type=str)
+        
+        query = DoctorQualification.query
+        
+        if doctor_id:
+            query = query.filter_by(doctor_id=doctor_id)
+        if qualification_type:
+            query = query.filter_by(qualification_type=qualification_type)
+        if status:
+            query = query.filter_by(status=status)
+        
+        pagination = query.order_by(DoctorQualification.created_at.desc()).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+        
+        items = [qual.to_dict() for qual in pagination.items]
+        
+        return success_response({
+            'items': items,
+            'list': items,
+            'total': pagination.total,
+            'page': page,
+            'per_page': per_page,
+            'pages': pagination.pages
+        })
+    
+    except Exception as e:
+        return error_response(f'获取资质列表失败：{str(e)}', 'GET_QUALIFICATIONS_ERROR', 500)
+
+
+@doctor_bp.route('/qualifications/<int:qualification_id>', methods=['GET'])
+def get_qualification(qualification_id):
+    """获取资质证书详情（API）"""
+    try:
+        qualification = DoctorQualification.query.get(qualification_id)
+        if not qualification:
+            return error_response('资质证书不存在', 'QUALIFICATION_NOT_FOUND', 404)
+        
+        return success_response(qualification.to_dict())
+    
+    except Exception as e:
+        return error_response(f'获取资质详情失败：{str(e)}', 'GET_QUALIFICATION_ERROR', 500)
+
+
+@doctor_bp.route('/qualifications', methods=['POST'])
+def create_qualification():
+    """创建资质证书（API）"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return error_response('请求数据不能为空', 'INVALID_DATA')
+        
+        required_fields = ['doctor_id', 'qualification_type', 'certificate_name']
+        for field in required_fields:
+            if not data.get(field):
+                return error_response(f'缺少必填字段：{field}', 'MISSING_FIELD')
+        
+        doctor = Doctor.query.get(data['doctor_id'])
+        if not doctor:
+            return error_response('医生不存在', 'DOCTOR_NOT_FOUND', 404)
+        
+        # 处理日期
+        issue_date = None
+        if data.get('issue_date'):
+            try:
+                issue_date = datetime.strptime(data['issue_date'], '%Y-%m-%d').date()
+            except ValueError:
+                return error_response('颁发日期格式错误，应为YYYY-MM-DD', 'INVALID_DATE_FORMAT')
+        
+        expiry_date = None
+        if data.get('expiry_date'):
+            try:
+                expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d').date()
+            except ValueError:
+                return error_response('过期日期格式错误，应为YYYY-MM-DD', 'INVALID_DATE_FORMAT')
+        
+        # 验证日期逻辑
+        if issue_date and expiry_date and expiry_date <= issue_date:
+            return error_response('过期日期必须晚于颁发日期', 'INVALID_DATE_RANGE')
+        
+        qualification = DoctorQualification(
+            doctor_id=data['doctor_id'],
+            qualification_type=data['qualification_type'],
+            certificate_no=data.get('certificate_no'),
+            certificate_name=data['certificate_name'],
+            issue_date=issue_date,
+            expiry_date=expiry_date,
+            issuing_authority=data.get('issuing_authority'),
+            scope_of_practice=data.get('scope_of_practice'),
+            attachment_url=data.get('attachment_url'),
+            status=data.get('status', 'valid'),
+            notes=data.get('notes')
+        )
+        
+        db.session.add(qualification)
+        db.session.commit()
+        
+        return success_response(qualification.to_dict(), '资质证书创建成功', 'QUALIFICATION_CREATED')
+    
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'创建资质证书失败：{str(e)}', 'CREATE_QUALIFICATION_ERROR', 500)
+
+
+@doctor_bp.route('/qualifications/<int:qualification_id>', methods=['PUT'])
+def update_qualification(qualification_id):
+    """更新资质证书（API）"""
+    try:
+        qualification = DoctorQualification.query.get(qualification_id)
+        if not qualification:
+            return error_response('资质证书不存在', 'QUALIFICATION_NOT_FOUND', 404)
+        
+        data = request.get_json()
+        if not data:
+            return error_response('请求数据不能为空', 'INVALID_DATA')
+        
+        # 更新字段
+        if 'qualification_type' in data:
+            qualification.qualification_type = data['qualification_type']
+        if 'certificate_no' in data:
+            qualification.certificate_no = data['certificate_no']
+        if 'certificate_name' in data:
+            qualification.certificate_name = data['certificate_name']
+        if 'issuing_authority' in data:
+            qualification.issuing_authority = data['issuing_authority']
+        if 'scope_of_practice' in data:
+            qualification.scope_of_practice = data['scope_of_practice']
+        if 'attachment_url' in data:
+            qualification.attachment_url = data['attachment_url']
+        if 'status' in data:
+            qualification.status = data['status']
+        if 'notes' in data:
+            qualification.notes = data['notes']
+        
+        # 处理日期
+        if 'issue_date' in data:
+            if data['issue_date']:
+                try:
+                    qualification.issue_date = datetime.strptime(data['issue_date'], '%Y-%m-%d').date()
+                except ValueError:
+                    return error_response('颁发日期格式错误，应为YYYY-MM-DD', 'INVALID_DATE_FORMAT')
+            else:
+                qualification.issue_date = None
+        
+        if 'expiry_date' in data:
+            if data['expiry_date']:
+                try:
+                    qualification.expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d').date()
+                except ValueError:
+                    return error_response('过期日期格式错误，应为YYYY-MM-DD', 'INVALID_DATE_FORMAT')
+            else:
+                qualification.expiry_date = None
+        
+        # 验证日期逻辑
+        if qualification.issue_date and qualification.expiry_date and qualification.expiry_date <= qualification.issue_date:
+            return error_response('过期日期必须晚于颁发日期', 'INVALID_DATE_RANGE')
+        
+        db.session.commit()
+        
+        return success_response(qualification.to_dict(), '资质证书更新成功', 'QUALIFICATION_UPDATED')
+    
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'更新资质证书失败：{str(e)}', 'UPDATE_QUALIFICATION_ERROR', 500)
+
+
+@doctor_bp.route('/qualifications/<int:qualification_id>', methods=['DELETE'])
+def delete_qualification(qualification_id):
+    """删除资质证书（API）"""
+    try:
+        qualification = DoctorQualification.query.get(qualification_id)
+        if not qualification:
+            return error_response('资质证书不存在', 'QUALIFICATION_NOT_FOUND', 404)
+        
+        db.session.delete(qualification)
+        db.session.commit()
+        
+        return success_response(None, '资质证书删除成功', 'QUALIFICATION_DELETED')
+    
+    except Exception as e:
+        db.session.rollback()
+        return error_response(f'删除资质证书失败：{str(e)}', 'DELETE_QUALIFICATION_ERROR', 500)
+
+
+@doctor_bp.route('/doctors/<int:doctor_id>/qualifications', methods=['GET'])
+def get_doctor_qualifications(doctor_id):
+    """获取指定医生的资质证书列表（API）"""
+    try:
+        doctor = Doctor.query.get(doctor_id)
+        if not doctor:
+            return error_response('医生不存在', 'DOCTOR_NOT_FOUND', 404)
+        
+        qualifications = DoctorQualification.query.filter_by(doctor_id=doctor_id).order_by(
+            DoctorQualification.created_at.desc()
+        ).all()
+        
+        items = [qual.to_dict() for qual in qualifications]
+        
+        # 统计信息
+        total_count = len(items)
+        valid_count = sum(1 for q in items if q['status'] == 'valid')
+        expiring_soon_count = sum(1 for q in items if q.get('is_expiring_soon', False))
+        expired_count = sum(1 for q in items if q['status'] == 'expired')
+        
+        return success_response({
+            'doctor': doctor.to_dict(),
+            'qualifications': items,
+            'items': items,
+            'list': items,
+            'total': total_count,
+            'statistics': {
+                'total_count': total_count,
+                'valid_count': valid_count,
+                'expiring_soon_count': expiring_soon_count,
+                'expired_count': expired_count
+            }
+        })
+    
+    except Exception as e:
+        return error_response(f'获取医生资质列表失败：{str(e)}', 'GET_DOCTOR_QUALIFICATIONS_ERROR', 500)

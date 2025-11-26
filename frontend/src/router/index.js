@@ -151,6 +151,15 @@ const routes = [
     }
   },
   {
+    path: '/doctor/qualification',
+    name: 'DoctorQualification',
+    component: () => import('@/views/doctor/DoctorQualification.vue'),
+    meta: {
+      title: '医生资质管理',
+      requiresAuth: true
+    }
+  },
+  {
     path: '/doctor/patients',
     name: 'DoctorPatientList',
     component: () => import('@/views/doctor/DoctorPatientList.vue'),

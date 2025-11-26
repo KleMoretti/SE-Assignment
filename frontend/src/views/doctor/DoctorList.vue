@@ -1,35 +1,74 @@
 <template>
   <div class="doctor-list-container">
-    <!-- 页面标题和操作栏 -->
-    <div class="page-header">
-      <div class="header-content">
-        <div class="title-with-back">
-          <el-button :icon="ArrowLeft" @click="goToHome" class="back-button">
-            返回首页
-          </el-button>
-          <h1 class="page-title">
-            <el-icon class="title-icon"><User /></el-icon>
-            医生管理
-          </h1>
-        </div>
-        <p class="page-subtitle">管理医院医生信息、排班和绩效</p>
+    <!-- 欢迎区域 -->
+    <div class="welcome-section">
+      <div class="welcome-header">
+        <el-button :icon="ArrowLeft" @click="goToHome" class="back-button">
+          返回首页
+        </el-button>
       </div>
-      <div class="action-buttons">
-        <el-button type="primary" @click="showAddDialog" :icon="Plus">
-          添加医生
-        </el-button>
-        <el-button @click="goToSchedule" :icon="Calendar">
-          排班管理
-        </el-button>
-        <el-button @click="goToLeave" :icon="Calendar">
-          请假管理
-        </el-button>
-        <el-button @click="goToPerformance" :icon="TrendCharts">
-          绩效管理
-        </el-button>
-        <el-button @click="goToMedicationRequests" :icon="TrendCharts">
-          开药申请
-        </el-button>
+      <h1 class="welcome-title">
+        <el-icon class="title-icon"><User /></el-icon>
+        医生管理系统
+      </h1>
+      <p class="welcome-subtitle">管理医院医生信息、排班和绩效</p>
+    </div>
+
+    <!-- 功能卡片网格 -->
+    <div class="function-grid">
+      <div class="function-card add-card" @click="showAddDialog">
+        <div class="card-icon add-icon">
+          <el-icon><Plus /></el-icon>
+        </div>
+        <h3 class="card-title">添加医生</h3>
+        <p class="card-description">新增医生档案信息</p>
+        <div class="card-arrow">
+          <el-icon><ArrowRight /></el-icon>
+        </div>
+      </div>
+
+      <div class="function-card schedule-card" @click="goToSchedule">
+        <div class="card-icon schedule-icon">
+          <el-icon><Calendar /></el-icon>
+        </div>
+        <h3 class="card-title">排班管理</h3>
+        <p class="card-description">管理医生排班计划</p>
+        <div class="card-arrow">
+          <el-icon><ArrowRight /></el-icon>
+        </div>
+      </div>
+
+      <div class="function-card leave-card" @click="goToLeave">
+        <div class="card-icon leave-icon">
+          <el-icon><DocumentChecked /></el-icon>
+        </div>
+        <h3 class="card-title">请假管理</h3>
+        <p class="card-description">审批医生请假申请</p>
+        <div class="card-arrow">
+          <el-icon><ArrowRight /></el-icon>
+        </div>
+      </div>
+
+      <div class="function-card medication-card" @click="goToMedicationRequests">
+        <div class="card-icon medication-icon">
+          <el-icon><Memo /></el-icon>
+        </div>
+        <h3 class="card-title">开药申请</h3>
+        <p class="card-description">管理用药申请记录</p>
+        <div class="card-arrow">
+          <el-icon><ArrowRight /></el-icon>
+        </div>
+      </div>
+
+      <div class="function-card qualification-card" @click="goToQualification">
+        <div class="card-icon qualification-icon">
+          <el-icon><Medal /></el-icon>
+        </div>
+        <h3 class="card-title">资质管理</h3>
+        <p class="card-description">管理医生执业资质</p>
+        <div class="card-arrow">
+          <el-icon><ArrowRight /></el-icon>
+        </div>
       </div>
     </div>
 
@@ -433,7 +472,8 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Plus, Search, User, Star, Edit, Delete,
-  Filter, Grid, List, Calendar, TrendCharts, ArrowLeft, View
+  Filter, Grid, List, Calendar, TrendCharts, ArrowLeft, View, Medal,
+  ArrowRight, DocumentChecked, Memo
 } from '@element-plus/icons-vue'
 import { getDoctorList, createDoctor, updateDoctor, deleteDoctor as deleteDoctorApi, getDepartments } from '@/api/doctor'
 
@@ -715,6 +755,10 @@ const goToMedicationRequests = () => {
   router.push('/doctor/medication-requests')
 }
 
+const goToQualification = () => {
+  router.push('/doctor/qualification')
+}
+
 const toggleSelection = (doctorId) => {
   const index = selectedDoctors.value.indexOf(doctorId)
   if (index > -1) {
@@ -760,56 +804,192 @@ onMounted(() => {
 
 <style scoped>
 .doctor-list-container {
-  padding: 24px;
-  background-color: #f5f7fa;
   min-height: 100vh;
+  background: #f5f7fa;
+  padding: 20px;
+  padding-bottom: 40px;
 }
 
-.page-header {
+/* 欢迎区域 */
+.welcome-section {
+  text-align: center;
+  margin-bottom: 40px;
+  padding-top: 20px;
+  animation: fadeInDown 0.6s ease-out;
+}
+
+.welcome-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-}
-
-.header-content {
-  flex: 1;
-}
-
-.title-with-back {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+  justify-content: flex-start;
+  margin-bottom: 20px;
 }
 
 .back-button {
-  flex-shrink: 0;
+  margin-left: 0;
 }
 
-.page-title {
-  font-size: 24px;
+.welcome-title {
+  color: #2c3e50;
+  font-size: 36px;
   font-weight: 600;
-  color: #303133;
-  margin: 0 0 8px 0;
+  margin: 0;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
 }
 
 .title-icon {
-  font-size: 28px;
+  font-size: 36px;
   color: #409eff;
 }
 
-.page-subtitle {
-  font-size: 14px;
-  color: #909399;
-  margin: 0;
+.welcome-subtitle {
+  color: #606266;
+  font-size: 16px;
+  margin-top: 10px;
+  font-weight: 400;
 }
 
-.action-buttons {
+/* 功能卡片网格 */
+.function-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  max-width: 1400px;
+  margin: 0 auto 40px;
+}
+
+/* 响应式布局 */
+@media (max-width: 1200px) {
+  .function-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .function-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .function-grid {
+    grid-template-columns: 1fr;
+    max-width: 400px;
+  }
+}
+
+.function-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e4e7ed;
+  position: relative;
+  animation: fadeInUp 0.6s ease-out backwards;
+}
+
+.function-card:nth-child(1) { animation-delay: 0.1s; }
+.function-card:nth-child(2) { animation-delay: 0.15s; }
+.function-card:nth-child(3) { animation-delay: 0.2s; }
+.function-card:nth-child(4) { animation-delay: 0.25s; }
+.function-card:nth-child(5) { animation-delay: 0.3s; }
+
+.function-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.add-card:hover { border-color: #409eff; }
+.schedule-card:hover { border-color: #67c23a; }
+.leave-card:hover { border-color: #e6a23c; }
+.medication-card:hover { border-color: #909399; }
+.qualification-card:hover { border-color: #9c27b0; }
+
+.card-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 10px;
   display: flex;
-  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  margin: 0 auto 16px;
+  transition: all 0.3s ease;
+}
+
+.add-icon { background: #ecf5ff; color: #409eff; }
+.schedule-icon { background: #f0f9ff; color: #67c23a; }
+.leave-icon { background: #fdf6ec; color: #e6a23c; }
+.medication-icon { background: #f4f4f5; color: #909399; }
+.qualification-icon { background: #f3e5f5; color: #9c27b0; }
+
+.function-card:hover .card-icon {
+  transform: scale(1.05);
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  margin: 0 0 8px 0;
+  text-align: center;
+}
+
+.card-description {
+  font-size: 13px;
+  color: #909399;
+  margin: 0;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.card-arrow {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  font-size: 16px;
+  color: #c0c4cc;
+  opacity: 0;
+  transform: translateX(-5px);
+  transition: all 0.3s ease;
+}
+
+.function-card:hover .card-arrow {
+  opacity: 0.6;
+  transform: translateX(0);
+}
+
+.add-card:hover .card-arrow { color: #409eff; }
+.schedule-card:hover .card-arrow { color: #67c23a; }
+.leave-card:hover .card-arrow { color: #e6a23c; }
+.medication-card:hover .card-arrow { color: #909399; }
+.qualification-card:hover .card-arrow { color: #9c27b0; }
+
+/* 动画 */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .filter-card {
