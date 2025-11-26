@@ -561,6 +561,7 @@ class MedicationRequest(db.Model):
     patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'), nullable=False)
     doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=False)
     medicine_id = db.Column(db.Integer, db.ForeignKey('medicines.id'), nullable=False)
+    appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.id'), nullable=True, comment='关联的预约ID')
     dose = db.Column(db.String(50))
     usage = db.Column(db.String(100))
     quantity = db.Column(db.Integer, nullable=False)
@@ -574,6 +575,7 @@ class MedicationRequest(db.Model):
     patient = db.relationship('Patient', foreign_keys=[patient_id])
     doctor = db.relationship('Doctor', foreign_keys=[doctor_id])
     medicine = db.relationship('Medicine', foreign_keys=[medicine_id])
+    appointment = db.relationship('Appointment', foreign_keys=[appointment_id])
     
     def __repr__(self):
         return f'<MedicationRequest {self.id}>'
@@ -587,6 +589,7 @@ class MedicationRequest(db.Model):
             'doctor_name': self.doctor.name if self.doctor else None,
             'medicine_id': self.medicine_id,
             'medicine_name': self.medicine.name if self.medicine else None,
+            'appointment_id': self.appointment_id,
             'dose': self.dose,
             'usage': self.usage,
             'quantity': self.quantity,

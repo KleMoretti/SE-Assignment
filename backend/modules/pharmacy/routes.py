@@ -644,9 +644,16 @@ def approve_medication_request(request_id):
         medication_request.dispensed_at = now
         medication_request.updated_at = now
 
+        # 如果关联了预约，将预约状态更新为"已完成"
+        if medication_request.appointment_id:
+            from backend.models import Appointment
+            appointment = Appointment.query.get(medication_request.appointment_id)
+            if appointment and appointment.status in ['pending', 'confirmed']:
+                appointment.status = 'completed'
+
         db.session.commit()
 
-        return success_response(medication_request.to_dict(), '审核通过并完成库存扣减', 'MEDICATION_REQUEST_APPROVED')
+        return success_response(medication_request.to_dict(), '审核通过并完成库存扣减，预约已完成', 'MEDICATION_REQUEST_APPROVED')
     except Exception as e:
         db.session.rollback()
         return error_response(f'审核用药申请失败：{str(e)}', 'APPROVE_MEDICATION_REQUEST_ERROR', 500)

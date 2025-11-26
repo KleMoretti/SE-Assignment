@@ -1539,10 +1539,14 @@ def create_medication_request():
         if not medicine:
             return error_response('药品不存在', 'MEDICINE_NOT_FOUND', 404)
         
+        # 获取appointment_id（如果提供）
+        appointment_id = data.get('appointment_id')
+        
         medication_request = MedicationRequest(
             patient_id=data['patient_id'],
             doctor_id=data['doctor_id'],
             medicine_id=data['medicine_id'],
+            appointment_id=appointment_id,
             dose=data.get('dose'),
             usage=data.get('usage'),
             quantity=quantity,
@@ -1551,6 +1555,12 @@ def create_medication_request():
         )
         
         db.session.add(medication_request)
+        
+        # 如果关联了预约，将预约状态更新为"已确认"
+        if appointment_id:
+            appointment = Appointment.query.get(appointment_id)
+            if appointment and appointment.status == 'pending':
+                appointment.status = 'confirmed'
         
         # 自动创建病历记录，将申请理由作为病历描述
         reason = data.get('reason', '').strip()
