@@ -2,6 +2,7 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
+import { ShoppingCart, ArrowLeft, DocumentCopy, Clock, Money } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import {
   getMedicineList,
@@ -239,37 +240,60 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="pharmacy-purchase p-5">
-    <div class="flex justify-between items-center mb-6">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-800">药品采购管理</h1>
-        <p class="text-gray-500 text-sm mt-1">管理采购任务、优先级和收货入库</p>
+  <div class="purchase-container">
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-content">
+        <div class="back-button" @click="router.push('/pharmacy')">
+          <el-icon><ArrowLeft /></el-icon>
+          <span>返回</span>
+        </div>
+        <div class="header-title">
+          <el-icon class="title-icon"><ShoppingCart /></el-icon>
+          <h1>药品采购管理</h1>
+        </div>
+        <p class="header-subtitle">管理采购任务、优先级和收货入库</p>
       </div>
-      <div class="flex gap-2">
-        <el-button @click="router.push('/pharmacy')">库存管理</el-button>
+      <div class="header-actions">
+        <el-button @click="router.push('/pharmacy/inventory')">库存监控</el-button>
         <el-button @click="router.push('/pharmacy/info')">药品信息</el-button>
         <el-button type="primary" @click="openCreateDialog">新建采购</el-button>
       </div>
     </div>
 
-    <div class="grid grid-cols-3 gap-4 mb-4">
-      <div class="bg-white p-4 rounded-lg shadow-sm">
-        <div class="text-gray-500 text-sm mb-1">采购总数</div>
-        <div class="text-2xl font-semibold text-gray-900">{{ stats.total_purchases }}</div>
+    <!-- 统计卡片 -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon total-icon">
+          <el-icon><DocumentCopy /></el-icon>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">采购总数</div>
+          <div class="stat-value">{{ stats.total_purchases }}</div>
+        </div>
       </div>
-      <div class="bg-white p-4 rounded-lg shadow-sm">
-        <div class="text-gray-500 text-sm mb-1">待处理采购</div>
-        <div class="text-2xl font-semibold text-orange-500">{{ stats.pending_count }}</div>
+      <div class="stat-card pending-card">
+        <div class="stat-icon pending-icon">
+          <el-icon><Clock /></el-icon>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">待处理采购</div>
+          <div class="stat-value">{{ stats.pending_count }}</div>
+        </div>
       </div>
-      <div class="bg-white p-4 rounded-lg shadow-sm">
-        <div class="text-gray-500 text-sm mb-1">采购总金额</div>
-        <div class="text-2xl font-semibold text-green-600">
-          ￥{{ totalAmount.toFixed(2) }}
+      <div class="stat-card amount-card">
+        <div class="stat-icon amount-icon">
+          <el-icon><Money /></el-icon>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">采购总金额</div>
+          <div class="stat-value">￥{{ totalAmount.toFixed(2) }}</div>
         </div>
       </div>
     </div>
 
-    <div class="bg-white p-4 rounded-lg shadow-sm mb-4 flex gap-4 items-center">
+    <!-- 筛选区域 -->
+    <div class="filter-card">
       <el-select
         v-model="statusFilter"
         placeholder="按状态筛选"
@@ -304,7 +328,8 @@ onMounted(() => {
       <el-button type="primary" @click="handleSearch">刷新</el-button>
     </div>
 
-    <div class="bg-white rounded-lg shadow-sm">
+    <!-- 采购列表 -->
+    <div class="table-card">
       <el-table
         v-loading="loading"
         :data="purchases"
@@ -533,12 +558,231 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.pharmacy-purchase {
-  background-color: #f5f5f5;
+.purchase-container {
   min-height: 100vh;
+  background: #f5f7fa;
+  padding: 20px;
+  padding-bottom: 40px;
 }
 
+/* 页面头部 */
+.page-header {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  border-radius: 16px;
+  padding: 30px 40px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 12px rgba(250, 112, 154, 0.3);
+  animation: fadeInDown 0.6s ease-out;
+}
+
+.header-content {
+  color: white;
+}
+
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  font-size: 14px;
+  margin-bottom: 12px;
+  transition: all 0.3s ease;
+}
+
+.back-button:hover {
+  color: white;
+  transform: translateX(-3px);
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.header-title h1 {
+  font-size: 32px;
+  font-weight: 600;
+  margin: 0;
+  color: white;
+}
+
+.title-icon {
+  font-size: 32px;
+  color: white;
+}
+
+.header-subtitle {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+}
+
+.header-actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 12px;
+}
+
+/* 统计卡片 */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e4e7ed;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+}
+
+.total-icon {
+  background: #ecf5ff;
+  color: #409eff;
+}
+
+.pending-icon {
+  background: #fef0f0;
+  color: #e6a23c;
+}
+
+.amount-icon {
+  background: #f0f9ff;
+  color: #67c23a;
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #909399;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 600;
+  color: #303133;
+}
+
+/* 筛选卡片 */
+.filter-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  animation: fadeInUp 0.6s ease-out 0.1s backwards;
+}
+
+/* 表格卡片 */
+.table-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  animation: fadeInUp 0.6s ease-out 0.2s backwards;
+}
+
+.table-card :deep(.el-table) {
+  border-radius: 12px;
+}
+
+.table-card :deep(.el-table th) {
+  background: #f5f7fa;
+  color: #303133;
+  font-weight: 600;
+}
+
+.table-card :deep(.el-pagination) {
+  padding: 20px;
+  justify-content: flex-end;
+}
+
+/* 对话框 */
 .dialog-footer {
   text-align: right;
+}
+
+/* 动画 */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .page-header {
+    padding: 20px;
+  }
+
+  .header-title h1 {
+    font-size: 24px;
+  }
+
+  .title-icon {
+    font-size: 24px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-card .el-select {
+    width: 100%;
+  }
 }
 </style>
