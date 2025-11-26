@@ -676,9 +676,16 @@ def reject_medication_request(request_id):
         medication_request.reason = reason
         medication_request.updated_at = datetime.utcnow()
 
+        # 如果关联了预约，将预约状态更新为"已取消"
+        if medication_request.appointment_id:
+            from backend.models import Appointment
+            appointment = Appointment.query.get(medication_request.appointment_id)
+            if appointment and appointment.status in ['pending', 'confirmed']:
+                appointment.status = 'cancelled'
+
         db.session.commit()
 
-        return success_response(medication_request.to_dict(), '用药申请已拒绝', 'MEDICATION_REQUEST_REJECTED')
+        return success_response(medication_request.to_dict(), '用药申请已拒绝，关联预约已取消', 'MEDICATION_REQUEST_REJECTED')
     except Exception as e:
         db.session.rollback()
         return error_response(f'拒绝用药申请失败：{str(e)}', 'REJECT_MEDICATION_REQUEST_ERROR', 500)
