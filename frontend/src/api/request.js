@@ -55,15 +55,9 @@ request.interceptors.response.use(
       const { status, data, config } = error.response
 
       switch (status) {
-        case 400:
-          ElMessage.error(data?.message || '请求参数错误')
-          break
         case 401:
-          // 区分登录失败与token过期
-          if (config && config.url === '/auth/login') {
-            // 登录接口返回401，通常是用户名或密码错误
-            ElMessage.error(data?.message || '用户名或密码错误')
-          } else {
+          // 只在token过期时显示提示并跳转
+          if (config && config.url !== '/auth/login') {
             ElMessage.error('登录已过期，请重新登录')
             // 清除token并跳转到登录页
             sessionStorage.removeItem('token')
@@ -72,22 +66,10 @@ request.interceptors.response.use(
             router.push('/login')
           }
           break
-        case 403:
-          ElMessage.error(data?.message || '权限不足')
-          break
-        case 404:
-          ElMessage.error(data?.message || '请求资源不存在')
-          break
-        case 500:
-          ElMessage.error(data?.message || '服务器错误')
-          break
-        default:
-          ElMessage.error(data?.message || '请求失败')
+        // 其他错误由业务代码自行处理，避免重复提示
       }
     } else if (error.request) {
       ElMessage.error('网络错误，请检查网络连接')
-    } else {
-      ElMessage.error(error.message || '请求配置错误')
     }
 
     return Promise.reject(error)

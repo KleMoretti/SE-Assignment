@@ -160,6 +160,8 @@ const handleAddMember = () => {
         fetchManagedPatients()
       } catch (error) {
         console.error('添加家庭成员失败:', error)
+        const errorMsg = error.response?.data?.message || error.message || '添加家庭成员失败，请稍后重试'
+        ElMessage.error(errorMsg)
       } finally {
         addLoading.value = false
       }
