@@ -67,6 +67,31 @@ def add_new_appointment(form_data):
     # 转换日期
     appointment_date = datetime.strptime(appointment_date_str, '%Y-%m-%d')
 
+    # 检查是否预约过去的时间
+    now = datetime.now()
+    today = datetime(now.year, now.month, now.day)
+    
+    # 如果预约日期是今天，需要检查时间是否已过
+    if appointment_date.date() == today.date():
+        # 解析预约时间（格式如 "09:00" 或 "14:30"）
+        try:
+            time_parts = appointment_time.split(':')
+            appointment_hour = int(time_parts[0])
+            appointment_minute = int(time_parts[1]) if len(time_parts) > 1 else 0
+            
+            # 如果预约时间已经过去，不允许预约
+            if appointment_hour < now.hour or (appointment_hour == now.hour and appointment_minute <= now.minute):
+                raise ValueError(f"不能预约今日已过去的时间段 {appointment_time}，请选择未来的时间。")
+        except (ValueError, IndexError) as e:
+            if "不能预约今日已过去的时间段" in str(e):
+                raise
+            # 时间格式错误，继续执行（后续可能会有其他验证）
+            pass
+    
+    # 检查是否预约过去的日期
+    if appointment_date.date() < today.date():
+        raise ValueError(f"不能预约过去的日期 {appointment_date_str}，请选择今天或未来的日期。")
+
     # 检查医生在该时间段是否已有预约（排除已取消的预约）
     existing_doctor_appointment = Appointment.query.filter(
         Appointment.doctor_id == doctor_id,
