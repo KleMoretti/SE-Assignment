@@ -76,16 +76,22 @@ const fetchStats = async () => {
       stats.value.lowStockCount = medicines.filter(isLowStock).length
       stats.value.expiredCount = medicines.filter(isExpired).length
       stats.value.nearExpiryCount = medicines.filter(isNearExpiry).length
+    } else {
+      console.error('获取药品列表失败:', medicineRes)
     }
 
     if (userStore.isAdmin) {
       const requestRes = await getMedicationRequestList({ status: 'PENDING', page: 1, per_page: 1000 })
       if (requestRes.success && requestRes.data) {
         stats.value.pendingRequests = requestRes.data.total || 0
+      } else {
+        console.error('获取用药申请失败:', requestRes)
       }
     }
   } catch (error) {
-    ElMessage.error('加载统计数据失败')
+    console.error('加载统计数据失败:', error)
+    const errorMsg = error.response?.data?.message || error.message || '加载统计数据失败'
+    ElMessage.error(errorMsg)
   } finally {
     loading.value = false
   }
