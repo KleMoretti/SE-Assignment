@@ -43,6 +43,8 @@ def add_new_appointment(form_data):
     """添加新预约"""
     patient_id = form_data.get('patient_id')
     doctor_id = form_data.get('doctor_id')
+    appointment_date_str = form_data.get('appointment_date')
+    appointment_time = form_data.get('appointment_time')
 
     # 验证 patient_id 是否存在
     if patient_id:
@@ -54,6 +56,39 @@ def add_new_appointment(form_data):
         # 如果前端没有传来 patient_id，也拒绝创建
         raise ValueError("创建预约必须提供病人ID。")
 
+    # 验证必填字段
+    if not doctor_id:
+        raise ValueError("创建预约必须提供医生ID。")
+    if not appointment_date_str:
+        raise ValueError("创建预约必须提供预约日期。")
+    if not appointment_time:
+        raise ValueError("创建预约必须提供预约时间。")
+
+    # 转换日期
+    appointment_date = datetime.strptime(appointment_date_str, '%Y-%m-%d')
+
+    # 检查医生在该时间段是否已有预约（排除已取消的预约）
+    existing_doctor_appointment = Appointment.query.filter(
+        Appointment.doctor_id == doctor_id,
+        Appointment.appointment_date == appointment_date,
+        Appointment.appointment_time == appointment_time,
+        Appointment.status.in_(['pending', 'confirmed'])
+    ).first()
+
+    if existing_doctor_appointment:
+        raise ValueError(f"该医生在 {appointment_date_str} {appointment_time} 已有预约，请选择其他时间段。")
+
+    # 检查病人在该时间段是否已有预约（排除已取消的预约）
+    existing_patient_appointment = Appointment.query.filter(
+        Appointment.patient_id == patient_id,
+        Appointment.appointment_date == appointment_date,
+        Appointment.appointment_time == appointment_time,
+        Appointment.status.in_(['pending', 'confirmed'])
+    ).first()
+
+    if existing_patient_appointment:
+        raise ValueError(f"您在 {appointment_date_str} {appointment_time} 已有预约，不能重复预约。")
+
     # 生成唯一的预约编号
     appointment_no = generate_appointment_no()
 
@@ -61,8 +96,8 @@ def add_new_appointment(form_data):
         appointment_no=appointment_no,
         patient_id=patient_id,
         doctor_id=doctor_id,
-        appointment_date=datetime.strptime(form_data.get('appointment_date'), '%Y-%m-%d'),
-        appointment_time=form_data.get('appointment_time'),
+        appointment_date=appointment_date,
+        appointment_time=appointment_time,
         department=form_data.get('department'),
         notes=form_data.get('notes')
     )

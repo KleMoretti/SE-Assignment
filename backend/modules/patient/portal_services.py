@@ -236,6 +236,31 @@ def get_patient_appointments(patient_id, status=None):
     return query.order_by(Appointment.appointment_date.desc()).all()
 
 
+def get_all_managed_appointments(user_id, status=None):
+    """
+    获取用户所有可管理病人的预约列表
+
+    Args:
+        user_id: 用户ID
+        status: 预约状态过滤（可选）
+
+    Returns:
+        Appointment对象列表
+    """
+    # 获取所有可管理的病人ID
+    patient_ids = get_user_managed_patient_ids(user_id)
+    
+    if not patient_ids:
+        return []
+    
+    query = Appointment.query.filter(Appointment.patient_id.in_(patient_ids))
+    
+    if status:
+        query = query.filter_by(status=status)
+    
+    return query.order_by(Appointment.appointment_date.desc(), Appointment.appointment_time.desc()).all()
+
+
 def create_appointment_for_patient(patient_id, data):
     """
     为病人创建预约（病人端自助挂号）
