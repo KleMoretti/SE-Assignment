@@ -179,8 +179,101 @@
             </el-form>
           </div>
         </el-tab-pane>
+
+        <!-- 病历记录标签 -->
+        <el-tab-pane label="病历记录" name="records">
+          <div class="tab-content">
+            <el-alert
+              v-if="!patientInfo.patient_no"
+              title="无法查看病历"
+              type="info"
+              description="您还没有病人档案信息，无法查看病历记录"
+              :closable="false"
+              style="margin-bottom: 20px;"
+            />
+
+            <div v-else>
+              <div class="records-header">
+                <span class="records-title">我的病历记录</span>
+                <el-button
+                  type="primary"
+                  :icon="Refresh"
+                  @click="fetchMedicalRecords"
+                  :loading="recordsLoading"
+                  size="small"
+                >
+                  刷新
+                </el-button>
+              </div>
+
+              <el-table
+                v-loading="recordsLoading"
+                :data="medicalRecords"
+                border
+                stripe
+                style="width: 100%; margin-top: 16px;"
+                empty-text="暂无病历记录"
+              >
+                <el-table-column prop="visit_date" label="就诊日期" width="180">
+                  <template #default="{ row }">
+                    {{ formatDate(row.visit_date) }}
+                  </template>
+                </el-table-column>
+                <el-table-column prop="doctor_name" label="医生" width="120" />
+                <el-table-column prop="symptoms" label="症状" min-width="150" show-overflow-tooltip />
+                <el-table-column prop="diagnosis" label="诊断" min-width="150" show-overflow-tooltip />
+                <el-table-column prop="treatment" label="治疗方案" min-width="150" show-overflow-tooltip />
+                <el-table-column label="操作" width="100" fixed="right" align="center">
+                  <template #default="{ row }">
+                    <el-button
+                      type="primary"
+                      size="small"
+                      @click="viewRecordDetail(row)"
+                    >
+                      详情
+                    </el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </div>
+        </el-tab-pane>
       </el-tabs>
     </el-card>
+
+    <!-- 病历详情对话框 -->
+    <el-dialog
+      v-model="showRecordDialog"
+      title="病历详情"
+      width="700px"
+    >
+      <el-descriptions :column="1" border v-if="currentRecord">
+        <el-descriptions-item label="就诊日期">
+          {{ formatDate(currentRecord.visit_date) }}
+        </el-descriptions-item>
+        <el-descriptions-item label="医生">
+          {{ currentRecord.doctor_name }}
+        </el-descriptions-item>
+        <el-descriptions-item label="症状">
+          {{ currentRecord.symptoms || '无' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="诊断">
+          {{ currentRecord.diagnosis || '无' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="治疗方案">
+          {{ currentRecord.treatment || '无' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="处方">
+          <pre style="white-space: pre-wrap; margin: 0;">{{ currentRecord.prescription || '无' }}</pre>
+        </el-descriptions-item>
+        <el-descriptions-item label="备注">
+          {{ currentRecord.notes || '无' }}
+        </el-descriptions-item>
+      </el-descriptions>
+      <template #footer>
+        <el-button @click="showRecordDialog = false">关闭</el-button>
+      </template>
+    </el-dialog>
 
     <!-- 修改密码对话框 -->
     <el-dialog
@@ -248,9 +341,11 @@ import {
   Lock,
   Tickets,
   CreditCard,
-  ArrowLeft
+  ArrowLeft,
+  Refresh
 } from '@element-plus/icons-vue'
 import { getCurrentUser, updateProfile, changePassword, checkPatientInfo, completePatientInfo } from '@/api/auth'
+import { getPatientMedicalRecords } from '@/api/patient'
 import { formatDate } from '@/utils/format'
 
 const router = useRouter()
@@ -267,6 +362,12 @@ const passwordFormRef = ref(null)
 const loading = ref(false)
 const patientLoading = ref(false)
 const passwordLoading = ref(false)
+const recordsLoading = ref(false)
+
+// 病历记录
+const medicalRecords = ref([])
+const showRecordDialog = ref(false)
+const currentRecord = ref(null)
 
 // 个人信息表单
 const profileForm = reactive({
@@ -283,6 +384,7 @@ const profileForm = reactive({
 
 // 病人信息
 const patientInfo = reactive({
+  id: null,
   patient_no: '',
   phone: '',
   created_at: '',
@@ -435,6 +537,7 @@ const loadPatientInfo = async () => {
       const patient = response.data.patient
 
       // 更新病人基础信息
+      patientInfo.id = patient.id || null
       patientInfo.patient_no = patient.patient_no || ''
       patientInfo.phone = patient.phone || ''
       patientInfo.created_at = patient.created_at || ''
@@ -493,6 +596,10 @@ const handleSubmitPatient = async () => {
     if (response.success) {
       ElMessage.success('病人信息更新成功')
       await loadPatientInfo()
+      // 重新加载病历记录
+      if (patientInfo.id) {
+        fetchMedicalRecords()
+      }
     } else {
       ElMessage.error(response.message || '更新失败')
     }
@@ -552,15 +659,43 @@ const handleChangePassword = async () => {
   }
 }
 
+// 获取病历记录
+const fetchMedicalRecords = async () => {
+  if (!patientInfo.id) return
+  
+  recordsLoading.value = true
+  try {
+    const res = await getPatientMedicalRecords(patientInfo.id)
+    if (res.success) {
+      medicalRecords.value = res.data || []
+    }
+  } catch (error) {
+    console.error('获取病历记录失败:', error)
+    ElMessage.error('获取病历记录失败')
+  } finally {
+    recordsLoading.value = false
+  }
+}
+
+// 查看病历详情
+const viewRecordDetail = (record) => {
+  currentRecord.value = record
+  showRecordDialog.value = true
+}
+
 // 返回上一页
 const goBack = () => {
   router.push({ name: 'PortalIndex' })
 }
 
 // 页面加载时获取数据
-onMounted(() => {
-  loadUserInfo()
-  loadPatientInfo()
+onMounted(async () => {
+  await loadUserInfo()
+  await loadPatientInfo()
+  // 如果有病人信息，加载病历记录
+  if (patientInfo.id) {
+    fetchMedicalRecords()
+  }
 })
 </script>
 
@@ -673,6 +808,20 @@ onMounted(() => {
 :deep(.el-dialog) {
   border-radius: 16px;
   overflow: hidden;
+}
+
+/* 病历记录样式 */
+.records-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.records-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
 }
 
 :deep(.el-dialog__header) {
