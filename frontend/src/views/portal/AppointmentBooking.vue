@@ -219,11 +219,7 @@ const resetForm = () => {
 .title {
   font-size: 24px;
   font-weight: bold;
-  color: #2c3e50;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #000000;
 }
 
 .header-placeholder {
@@ -236,7 +232,7 @@ const resetForm = () => {
 
 .booking-form :deep(.el-form-item__label) {
   font-weight: 600;
-  color: #2c3e50;
+  color: #000000;
 }
 
 .booking-form :deep(.el-input__wrapper) {
@@ -274,13 +270,12 @@ const resetForm = () => {
 }
 
 .form-actions .el-button--primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #409EFF;
   border: none;
 }
 
 .form-actions .el-button--primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  background: #66b1ff;
 }
 
 /* 动画 */

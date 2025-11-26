@@ -591,11 +591,7 @@ onMounted(() => {
 .title {
   font-size: 24px;
   font-weight: bold;
-  color: #2c3e50;
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #000000;
 }
 
 .custom-tabs {
@@ -611,7 +607,7 @@ onMounted(() => {
 
 /* 按钮样式 */
 :deep(.el-button--primary) {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: #409EFF;
   border: none;
   border-radius: 8px;
   padding: 12px 24px;
@@ -620,8 +616,7 @@ onMounted(() => {
 }
 
 :deep(.el-button--primary:hover) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
+  background: #66b1ff;
 }
 
 /* 表单输入框样式 */
@@ -661,17 +656,17 @@ onMounted(() => {
 }
 
 :deep(.el-tabs__item.is-active) {
-  color: #4facfe;
+  color: #409EFF;
 }
 
 :deep(.el-tabs__active-bar) {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: #409EFF;
 }
 
 /* 表单标签样式 */
 :deep(.el-form-item__label) {
   font-weight: 600;
-  color: #2c3e50;
+  color: #000000;
 }
 
 /* 弹窗样式 */
@@ -681,19 +676,19 @@ onMounted(() => {
 }
 
 :deep(.el-dialog__header) {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: #f5f7fa;
   padding: 20px;
   margin: 0;
 }
 
 :deep(.el-dialog__title) {
-  color: #ffffff;
+  color: #000000;
   font-size: 20px;
   font-weight: 600;
 }
 
 :deep(.el-dialog__headerbtn .el-dialog__close) {
-  color: #ffffff;
+  color: #000000;
   font-size: 20px;
 }
 
