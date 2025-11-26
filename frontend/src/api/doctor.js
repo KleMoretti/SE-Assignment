@@ -266,6 +266,7 @@ const buildMedicationRequestPayload = (data = {}) => {
     patient_id: data.patientId,
     doctor_id: data.doctorId,
     medicine_id: data.medicineId,
+    appointment_id: data.appointmentId,
     dose: data.dose,
     usage: data.usage,
     quantity: data.quantity,

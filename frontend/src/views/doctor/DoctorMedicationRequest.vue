@@ -64,6 +64,7 @@
                 :remote-method="remoteSearchPatients"
                 :loading="patientLoading"
                 style="width: 100%"
+                @change="handlePatientChange"
               >
                 <el-option
                   v-for="item in patientOptions"
@@ -74,6 +75,31 @@
               </el-select>
             </el-form-item>
           </el-col>
+          <el-col :span="8">
+            <el-form-item label="关联预约" prop="appointmentId">
+              <el-select
+                v-model="form.appointmentId"
+                filterable
+                clearable
+                placeholder="请选择预约"
+                :loading="appointmentLoading"
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="item in appointmentOptions"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
+              <el-text type="info" size="small" style="margin-top: 4px; display: block;">
+                开药后将自动更新预约状态为"已确认"
+              </el-text>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="16">
           <el-col :span="8">
             <el-form-item label="选择药品" prop="medicineId">
               <el-select
@@ -202,7 +228,7 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
-import { getPatientList } from '@/api/patient'
+import { getPatientList, getPatientAppointments } from '@/api/patient'
 import { getMedicineList } from '@/api/pharmacy'
 import { getMedicationRequestList, createMedicationRequest, getDoctorList } from '@/api/doctor'
 
@@ -214,6 +240,7 @@ const submitting = ref(false)
 const form = reactive({
   doctorId: undefined,
   patientId: undefined,
+  appointmentId: undefined,
   medicineId: undefined,
   quantity: 1,
   dose: '',
@@ -224,6 +251,7 @@ const form = reactive({
 const rules = {
   doctorId: [{ required: true, message: '请选择开药医生', trigger: 'change' }],
   patientId: [{ required: true, message: '请选择病人', trigger: 'change' }],
+  appointmentId: [{ required: true, message: '请选择关联预约', trigger: 'change' }],
   medicineId: [{ required: true, message: '请选择药品', trigger: 'change' }],
   quantity: [{ required: true, message: '请输入数量', trigger: 'change' }]
 }
@@ -233,6 +261,9 @@ const doctorLoading = ref(false)
 
 const patientOptions = ref([])
 const patientLoading = ref(false)
+
+const appointmentOptions = ref([])
+const appointmentLoading = ref(false)
 
 const medicineOptions = ref([])
 const medicineMap = ref({})
@@ -390,13 +421,44 @@ const handlePageChange = () => {
   fetchRequestList()
 }
 
+const handlePatientChange = async (patientId) => {
+  // 清空预约选择
+  form.appointmentId = undefined
+  appointmentOptions.value = []
+  
+  if (!patientId) return
+  
+  // 加载该病人的待确认和已确认预约
+  appointmentLoading.value = true
+  try {
+    const res = await getPatientAppointments(patientId)
+    if (res.success && res.data) {
+      const appointments = res.data || []
+      // 只显示待确认和已确认的预约
+      appointmentOptions.value = appointments
+        .filter(apt => apt.status === 'pending' || apt.status === 'confirmed')
+        .map(apt => ({
+          value: apt.id,
+          label: `${apt.appointment_date} ${apt.appointment_time} - ${apt.doctor_name || '未知医生'} (${apt.status === 'pending' ? '待确认' : '已确认'})`
+        }))
+    }
+  } catch (error) {
+    console.error('获取预约列表失败:', error)
+  } finally {
+    appointmentLoading.value = false
+  }
+}
+
 const resetForm = () => {
+  form.doctorId = userStore.isDoctor ? currentDoctorId.value : undefined
   form.patientId = undefined
+  form.appointmentId = undefined
   form.medicineId = undefined
   form.quantity = 1
   form.dose = ''
   form.usage = ''
   form.reason = ''
+  appointmentOptions.value = []
   if (formRef.value) {
     formRef.value.clearValidate()
   }
@@ -421,12 +483,13 @@ const submitForm = async () => {
         doctorId: currentDoctorId.value,
         patientId: form.patientId,
         medicineId: form.medicineId,
+        appointmentId: form.appointmentId,
         quantity: form.quantity,
         dose: form.dose,
         usage: form.usage,
         reason: form.reason
       })
-      ElMessage.success('用药申请已提交，已自动生成病历记录')
+      ElMessage.success('用药申请已提交，已自动生成病历记录，预约状态已更新为"已确认"')
       resetForm()
       fetchRequestList()
     } catch (error) {
