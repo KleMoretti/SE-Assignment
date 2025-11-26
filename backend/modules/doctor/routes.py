@@ -76,8 +76,8 @@ def get_doctors():
             page=page, per_page=per_page, error_out=False
         )
         
-        # 序列化数据
-        doctors_data = [doctor.to_dict() for doctor in pagination.items]
+        # 序列化数据 - 包含统计信息
+        doctors_data = [doctor.to_dict(include_stats=True) for doctor in pagination.items]
         
         return success_response({
             'items': doctors_data,
@@ -1551,9 +1551,42 @@ def create_medication_request():
         )
         
         db.session.add(medication_request)
+        
+        # 自动创建病历记录，将申请理由作为病历描述
+        reason = data.get('reason', '').strip()
+        
+        # 根据申请理由生成诊断结果（直接显示理由）
+        if reason:
+            # 有理由：直接显示理由作为诊断结果
+            diagnosis_text = f'{reason}（开具{medicine.name}）'
+            symptoms_text = reason
+        else:
+            # 无理由：使用默认诊断
+            diagnosis_text = f'开具{medicine.name}进行治疗'
+            symptoms_text = '医生开药申请'
+        
+        medical_record = MedicalRecord(
+            patient_id=data['patient_id'],
+            doctor_id=data['doctor_id'],
+            visit_date=datetime.now(),
+            symptoms=symptoms_text,  # 症状描述
+            diagnosis=diagnosis_text,  # 诊断结果 - 直接显示理由
+            treatment=f'处方用药：{medicine.name}',
+            prescription=f'{medicine.name} × {quantity}\n剂量：{data.get("dose", "按医嘱")}\n用法：{data.get("usage", "按医嘱")}',
+            notes=f'自动生成病历（关联用药申请ID: 待分配）'
+        )
+        
+        db.session.add(medical_record)
         db.session.commit()
         
-        return success_response(medication_request.to_dict(), '用药申请创建成功', 'MEDICATION_REQUEST_CREATED')
+        # 更新病历记录的备注，添加关联的用药申请ID
+        medical_record.notes = f'自动生成病历（关联用药申请ID: {medication_request.id}）'
+        db.session.commit()
+        
+        return success_response({
+            'medication_request': medication_request.to_dict(),
+            'medical_record': medical_record.to_dict()
+        }, '用药申请创建成功，已自动生成病历记录', 'MEDICATION_REQUEST_CREATED')
     
     except Exception as e:
         db.session.rollback()

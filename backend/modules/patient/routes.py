@@ -179,7 +179,7 @@ def view_appointment_add():
         except Exception as e:
             db.session.rollback()
             flash(f'创建预约失败: {str(e)}', 'error')
-    from models import Doctor
+    from backend.models import Doctor
     from datetime import date
 
     patients = patient_services.get_all_patients_for_dropdown()
@@ -396,6 +396,19 @@ def api_create_medical_record():
     except Exception as e:
         db.session.rollback()
         return error_response(f'创建病历失败: {str(e)}', 'CREATE_RECORD_ERROR', 500)
+
+
+@patient_bp.route('/medical-records/<int:record_id>', methods=['GET'])
+def api_get_medical_record_detail(record_id):
+    """获取病历详情 (API)"""
+    try:
+        record = record_services.get_medical_record_by_id(record_id)
+        if not record:
+            return error_response('病历不存在', 'RECORD_NOT_FOUND', 404)
+        
+        return success_response(record.to_dict(), '获取病历详情成功')
+    except Exception as e:
+        return error_response(f'获取病历详情失败: {str(e)}', 'GET_RECORD_DETAIL_ERROR', 500)
 
 
 # ============= 病人端门户 API (Patient Portal) =============

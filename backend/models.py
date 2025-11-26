@@ -6,6 +6,7 @@ from datetime import datetime
 from backend.extensions import db
 from typing import Dict
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import func
 
 
 # ============= 用户认证模型 =============
@@ -88,8 +89,8 @@ class DoctorUserLink(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False)
     doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), unique=True, nullable=False)
 
-    user = db.relationship('User', backref=db.backref('doctor_link', uselist=False, cascade='all, delete-orphan'))
-    doctor = db.relationship('Doctor', backref=db.backref('user_link', uselist=False, cascade='all, delete-orphan'))
+    user = db.relationship('backend.models.User', backref=db.backref('doctor_link', uselist=False, cascade='all, delete-orphan'))
+    doctor = db.relationship('backend.models.Doctor', backref=db.backref('user_link', uselist=False, cascade='all, delete-orphan'))
 
     def __repr__(self):
         return f'<DoctorUserLink user_id={self.user_id} doctor_id={self.doctor_id}>'
@@ -180,15 +181,22 @@ class MedicalRecord(db.Model):
             'id': self.id,
             'patient_id': self.patient_id,
             'patient_name': self.patient.name if self.patient else None,
+            'patientName': self.patient.name if self.patient else None,  # 兼容前端
             'doctor_id': self.doctor_id,
             'doctor_name': self.doctor.name if self.doctor else None,
+            'doctorName': self.doctor.name if self.doctor else None,  # 兼容前端
             'visit_date': self.visit_date.isoformat() if self.visit_date else None,
-            'diagnosis': self.diagnosis,
-            'symptoms': self.symptoms,
-            'treatment': self.treatment,
-            'prescription': self.prescription,
-            'notes': self.notes,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'visitDate': self.visit_date.isoformat() if self.visit_date else None,  # 兼容前端
+            'diagnosis_date': self.visit_date.isoformat() if self.visit_date else None,  # 兼容前端
+            'diagnosis': self.diagnosis or '',  # 确保不为None
+            'symptoms': self.symptoms or '',
+            'treatment': self.treatment or '',
+            'prescription': self.prescription or '',
+            'notes': self.notes or '',
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'createdAt': self.created_at.isoformat() if self.created_at else None,  # 兼容前端
+            'record_no': f"MR{self.id:06d}" if self.id else None,  # 生成病历号
+            'recordNo': f"MR{self.id:06d}" if self.id else None  # 兼容前端
         }
 
 
@@ -269,9 +277,13 @@ class Doctor(db.Model):
         {'extend_existing': True}
     )
     
-    def to_dict(self) -> Dict:
-        """转换为字典（用于JSON序列化）"""
-        return {
+    def to_dict(self, include_stats=False) -> Dict:
+        """转换为字典（用于JSON序列化）
+        
+        Args:
+            include_stats: 是否包含统计信息（患者数、排班数），默认False以提高性能
+        """
+        result = {
             'id': self.id,
             'doctor_no': self.doctor_no,
             'name': self.name,
@@ -288,6 +300,26 @@ class Doctor(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
+        
+        # 只有在需要时才查询统计信息
+        if include_stats:
+            try:
+                # 统计关联的唯一患者数（通过病历记录）
+                patient_count = db.session.query(func.count(func.distinct(MedicalRecord.patient_id))).filter(
+                    MedicalRecord.doctor_id == self.id
+                ).scalar() or 0
+                
+                # 统计排班数
+                schedule_count = self.schedules.count()
+                
+                result['patientCount'] = patient_count
+                result['scheduleCount'] = schedule_count
+            except Exception:
+                # 如果统计失败，返回默认值0
+                result['patientCount'] = 0
+                result['scheduleCount'] = 0
+        
+        return result
 
 
 class DoctorSchedule(db.Model):

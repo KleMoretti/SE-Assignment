@@ -7,7 +7,7 @@
             <h1 class="page-title">
               医生开药申请
             </h1>
-            <p class="page-subtitle">选择病人和药品，提交用药申请，由药房审核后发药</p>
+            <p class="page-subtitle">选择病人和药品，提交用药申请。系统会自动生成病历记录，申请说明将作为病历描述</p>
           </div>
         </template>
       </el-page-header>
@@ -129,9 +129,12 @@
               <el-input
                 v-model="form.reason"
                 type="textarea"
-                :rows="2"
-                placeholder="可填写诊断要点或开药原因，便于药房审核（可选）"
+                :rows="3"
+                placeholder="请填写诊断要点或开药原因。此内容将作为病历的症状描述，并用于药房审核"
               />
+              <el-text type="info" size="small" style="margin-top: 4px; display: block;">
+                💡 提示：提交用药申请时，系统将自动为该病人创建病历记录
+              </el-text>
             </el-form-item>
           </el-col>
         </el-row>
@@ -414,7 +417,7 @@ const submitForm = async () => {
     if (!valid) return
     submitting.value = true
     try {
-      await createMedicationRequest({
+      const res = await createMedicationRequest({
         doctorId: currentDoctorId.value,
         patientId: form.patientId,
         medicineId: form.medicineId,
@@ -423,7 +426,7 @@ const submitForm = async () => {
         usage: form.usage,
         reason: form.reason
       })
-      ElMessage.success('用药申请已提交，等待药房审核')
+      ElMessage.success('用药申请已提交，已自动生成病历记录')
       resetForm()
       fetchRequestList()
     } catch (error) {

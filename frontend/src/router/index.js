@@ -68,6 +68,15 @@ const routes = [
     }
   },
   {
+    path: '/patient/medical-record/:id',
+    name: 'MedicalRecordDetail',
+    component: () => import('@/views/patient/MedicalRecordDetail.vue'),
+    meta: {
+      title: '病历详情',
+      requiresAuth: true
+    }
+  },
+  {
     path: '/doctor/medical-records',
     name: 'DoctorMedicalRecordList',
     component: () => import('@/views/doctor/DoctorMedicalRecordList.vue'),

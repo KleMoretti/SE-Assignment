@@ -100,6 +100,18 @@ export function getMedicalRecordList(params) {
 }
 
 /**
+ * 获取病历详情
+ * @param {number} id 病历ID
+ * @returns {Promise}
+ */
+export function getMedicalRecordDetail(id) {
+  return request({
+    url: `/patient/medical-records/${id}`,
+    method: 'get'
+  })
+}
+
+/**
  * 获取当前用户可管理的所有病人列表
  * @returns {Promise}
  */

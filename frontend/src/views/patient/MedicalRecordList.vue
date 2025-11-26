@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getMedicalRecordList } from '@/api/patient'
-import { Search, Plus } from '@element-plus/icons-vue'
+import { Search, Plus, InfoFilled } from '@element-plus/icons-vue'
 
 const router = useRouter()
 

@@ -1,5 +1,14 @@
 <template>
   <div class="doctor-dashboard-container">
+    <!-- 欢迎标题 -->
+    <div class="welcome-section">
+      <h1 class="welcome-title">
+        <el-icon class="title-icon"><Odometer /></el-icon>
+        医生工作台
+      </h1>
+      <p class="welcome-subtitle">{{ currentDoctorName }}，欢迎回来！</p>
+    </div>
+
     <!-- 完善医生信息弹窗 -->
     <el-dialog
       v-model="showDoctorInfoDialog"
@@ -111,54 +120,69 @@
       </template>
     </el-dialog>
 
-    <el-row :gutter="16">
-      <el-col :span="10">
-        <el-card shadow="never" class="quick-actions-card">
-          <div class="card-header">
-            <div class="card-title">医生快捷操作</div>
-          </div>
-          <div class="quick-actions">
-            <el-button type="primary" size="large" @click="goToMedicationRequest">
-              医生开药管理
-            </el-button>
-            <el-button size="large" @click="goToPatients">
-              病人信息
-            </el-button>
-            <el-button size="large" @click="goToMedicalRecords">
-              病历记录
-            </el-button>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :span="14">
-        <el-card shadow="never" class="patients-card">
-          <div class="card-header">
-            <div class="card-title">我的病人列表</div>
-            <el-text type="info" size="small">与我有过预约或就诊记录的病人</el-text>
-          </div>
-          <el-table
-            v-loading="loading"
-            :data="tableData"
-            border
-            stripe
-            height="360px"
-          >
-            <el-table-column prop="patient_no" label="病人编号" width="120" />
-            <el-table-column prop="name" label="姓名" min-width="100" />
-            <el-table-column prop="gender" label="性别" width="80" align="center" />
-            <el-table-column prop="age" label="年龄" width="80" align="center" />
-            <el-table-column prop="phone" label="联系电话" min-width="120" />
-            <el-table-column prop="appointment_count" label="预约次数" width="100" align="center" />
-            <el-table-column prop="medical_record_count" label="就诊次数" width="100" align="center" />
-            <el-table-column label="最后就诊" min-width="120">
-              <template #default="{ row }">
-                {{ row.last_visit_date ? row.last_visit_date.split('T')[0] : '暂无' }}
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-card>
-      </el-col>
-    </el-row>
+    <!-- 服务卡片网格 -->
+    <div class="service-grid">
+      <div class="service-card" @click="goToMedicationRequest">
+        <div class="card-icon medication-icon">
+          <el-icon><DocumentCopy /></el-icon>
+        </div>
+        <h3 class="card-title">开药管理</h3>
+        <p class="card-description">管理和审批药品处方申请</p>
+        <div class="card-arrow">
+          <el-icon><ArrowRight /></el-icon>
+        </div>
+      </div>
+
+      <div class="service-card" @click="goToPatients">
+        <div class="card-icon patients-icon">
+          <el-icon><User /></el-icon>
+        </div>
+        <h3 class="card-title">病人信息</h3>
+        <p class="card-description">查看和管理病人档案</p>
+        <div class="card-arrow">
+          <el-icon><ArrowRight /></el-icon>
+        </div>
+      </div>
+
+      <div class="service-card" @click="goToMedicalRecords">
+        <div class="card-icon records-icon">
+          <el-icon><Notebook /></el-icon>
+        </div>
+        <h3 class="card-title">病历记录</h3>
+        <p class="card-description">查看和编辑病历档案</p>
+        <div class="card-arrow">
+          <el-icon><ArrowRight /></el-icon>
+        </div>
+      </div>
+    </div>
+
+    <!-- 我的病人列表 -->
+    <el-card shadow="never" class="patients-table-card">
+      <div class="card-header">
+        <div class="card-title">我的病人列表</div>
+        <el-text type="info" size="small">与我有过预约或就诊记录的病人</el-text>
+      </div>
+      <el-table
+        v-loading="loading"
+        :data="tableData"
+        border
+        stripe
+        height="360px"
+      >
+        <el-table-column prop="patient_no" label="病人编号" width="120" />
+        <el-table-column prop="name" label="姓名" min-width="100" />
+        <el-table-column prop="gender" label="性别" width="80" align="center" />
+        <el-table-column prop="age" label="年龄" width="80" align="center" />
+        <el-table-column prop="phone" label="联系电话" min-width="120" />
+        <el-table-column prop="appointment_count" label="预约次数" width="100" align="center" />
+        <el-table-column prop="medical_record_count" label="就诊次数" width="100" align="center" />
+        <el-table-column label="最后就诊" min-width="120">
+          <template #default="{ row }">
+            {{ row.last_visit_date ? row.last_visit_date.split('T')[0] : '暂无' }}
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
   </div>
 </template>
 
@@ -166,6 +190,7 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
+import { Odometer, DocumentCopy, User, Notebook, ArrowRight } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { checkDoctorInfo, completeDoctorInfo } from '@/api/auth'
 import { getDoctorPatients } from '@/api/doctor'
@@ -325,39 +350,215 @@ onMounted(async () => {
 
 <style scoped>
 .doctor-dashboard-container {
-  padding: 24px;
-  background-color: #f5f7fa;
   min-height: 100vh;
+  background: #f5f7fa;
+  padding: 20px;
+  padding-bottom: 40px;
+  box-sizing: border-box;
 }
 
-.card-header {
+/* 欢迎区域 */
+.welcome-section {
+  text-align: center;
+  margin-bottom: 50px;
+  padding-top: 40px;
+  animation: fadeInDown 0.6s ease-out;
+}
+
+.welcome-title {
+  color: #2c3e50;
+  font-size: 36px;
+  font-weight: 600;
+  margin: 0;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  justify-content: center;
+  gap: 12px;
+}
+
+.title-icon {
+  font-size: 36px;
+  color: #67c23a;
+}
+
+.welcome-subtitle {
+  color: #606266;
+  font-size: 16px;
+  margin-top: 10px;
+  font-weight: 400;
+}
+
+/* 服务卡片网格 */
+.service-grid {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 20px;
+  max-width: 1200px;
+  margin: 0 auto 40px;
+  flex-wrap: wrap;
+}
+
+.service-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 35px 25px;
+  width: 280px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e4e7ed;
+  position: relative;
+  animation: fadeInUp 0.6s ease-out backwards;
+}
+
+.service-card:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.service-card:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.service-card:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.service-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #67c23a;
+}
+
+.card-icon {
+  width: 70px;
+  height: 70px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  margin: 0 auto 20px;
+  transition: all 0.3s ease;
+}
+
+.medication-icon {
+  background: #f0f9ff;
+  color: #409eff;
+}
+
+.patients-icon {
+  background: #fef0f0;
+  color: #f56c6c;
+}
+
+.records-icon {
+  background: #f4f4f5;
+  color: #909399;
+}
+
+.service-card:hover .card-icon {
+  transform: scale(1.05);
 }
 
 .card-title {
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 600;
   color: #303133;
+  margin: 0 0 10px 0;
+  text-align: center;
 }
 
-.quick-actions-card,
-.patients-card {
-  height: 100%;
-}
-
-.quick-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: 100%;
-}
-
-.quick-actions .el-button {
-  width: 100%;
-  display: block;
+.card-description {
+  font-size: 14px;
+  color: #909399;
   margin: 0;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.card-arrow {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  font-size: 18px;
+  color: #c0c4cc;
+  opacity: 0;
+  transform: translateX(-5px);
+  transition: all 0.3s ease;
+}
+
+.service-card:hover .card-arrow {
+  opacity: 0.6;
+  transform: translateX(0);
+  color: #67c23a;
+}
+
+/* 病人列表卡片 */
+.patients-table-card {
+  max-width: 1200px;
+  margin: 0 auto;
+  animation: fadeInUp 0.6s ease-out 0.4s backwards;
+}
+
+.patients-table-card .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.patients-table-card .card-title {
+  text-align: left;
+  margin: 0;
+  font-size: 18px;
+}
+
+/* 动画 */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .welcome-title {
+    font-size: 28px;
+  }
+
+  .title-icon {
+    font-size: 28px;
+  }
+
+  .welcome-subtitle {
+    font-size: 14px;
+  }
+
+  .service-grid {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .service-card {
+    width: 100%;
+    max-width: 400px;
+  }
 }
 </style>

@@ -3,10 +3,15 @@
     <!-- 页面标题和操作栏 -->
     <div class="page-header">
       <div class="header-content">
-        <h1 class="page-title">
-          <el-icon class="title-icon"><User /></el-icon>
-          医生管理
-        </h1>
+        <div class="title-with-back">
+          <el-button :icon="ArrowLeft" @click="goToHome" class="back-button">
+            返回首页
+          </el-button>
+          <h1 class="page-title">
+            <el-icon class="title-icon"><User /></el-icon>
+            医生管理
+          </h1>
+        </div>
         <p class="page-subtitle">管理医院医生信息、排班和绩效</p>
       </div>
       <div class="action-buttons">
@@ -428,7 +433,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Plus, Search, User, Star, Edit, Delete,
-  Filter, Grid, List, Calendar, TrendCharts
+  Filter, Grid, List, Calendar, TrendCharts, ArrowLeft, View
 } from '@element-plus/icons-vue'
 import { getDoctorList, createDoctor, updateDoctor, deleteDoctor as deleteDoctorApi, getDepartments } from '@/api/doctor'
 
@@ -690,6 +695,10 @@ const viewDoctorDetail = (id) => {
   router.push(`/doctor/detail/${id}`)
 }
 
+const goToHome = () => {
+  router.push('/')
+}
+
 const goToSchedule = () => {
   router.push('/doctor/schedule')
 }
@@ -765,6 +774,16 @@ onMounted(() => {
 
 .header-content {
   flex: 1;
+}
+
+.title-with-back {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.back-button {
+  flex-shrink: 0;
 }
 
 .page-title {
