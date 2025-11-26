@@ -162,10 +162,20 @@ const routes = [
   },
   {
     path: '/pharmacy',
-    name: 'PharmacyInventory',
+    name: 'PharmacyHome',
     component: () => import('@/views/pharmacy/PharmacyIndex.vue'),
     meta: {
-      title: '库存管理',
+      title: '药品管理',
+      requiresAuth: true,
+      adminOnly: true
+    }
+  },
+  {
+    path: '/pharmacy/inventory',
+    name: 'PharmacyInventory',
+    component: () => import('@/views/pharmacy/PharmacyInventory.vue'),
+    meta: {
+      title: '库存监控',
       requiresAuth: true,
       adminOnly: true
     }
@@ -221,6 +231,16 @@ const routes = [
     component: () => import('@/views/pharmacy/PharmacyPurchase.vue'),
     meta: {
       title: '药品采购管理',
+      requiresAuth: true,
+      adminOnly: true
+    }
+  },
+  {
+    path: '/pharmacy/requests',
+    name: 'PharmacyRequests',
+    component: () => import('@/views/pharmacy/PharmacyRequests.vue'),
+    meta: {
+      title: '用药申请审核',
       requiresAuth: true,
       adminOnly: true
     }

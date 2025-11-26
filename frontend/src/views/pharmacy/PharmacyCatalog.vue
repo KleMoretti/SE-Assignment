@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
+import { Memo, ArrowLeft, Search } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { getMedicineList, getMedicineDetail } from '@/api/pharmacy'
 
@@ -89,7 +90,7 @@ const handleShowDetail = async (row) => {
 }
 
 const goToInventory = () => {
-  router.push('/pharmacy')
+  router.push('/pharmacy/inventory')
 }
 
 const goToPurchase = () => {
@@ -102,32 +103,47 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="pharmacy-catalog">
-    <div class="flex justify-between items-center mb-6">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-800">药品信息</h1>
-        <p class="text-gray-500 text-sm mt-1">查看库存中的药品信息</p>
+  <div class="catalog-container">
+    <!-- 欢迎区域 -->
+    <div class="page-header">
+      <div class="header-content">
+        <div class="back-button" @click="router.push('/pharmacy')">
+          <el-icon><ArrowLeft /></el-icon>
+          <span>返回</span>
+        </div>
+        <div class="header-title">
+          <el-icon class="title-icon"><Memo /></el-icon>
+          <h1>药品目录</h1>
+        </div>
+        <p class="header-subtitle">查看所有药品的详细信息</p>
       </div>
-      <div v-if="userStore.isAdmin" class="flex gap-2">
-        <el-button @click="goToInventory">库存管理</el-button>
+      <div v-if="userStore.isAdmin" class="header-actions">
+        <el-button @click="goToInventory">库存监控</el-button>
         <el-button @click="goToPurchase">采购管理</el-button>
       </div>
     </div>
 
-    <div class="bg-white p-4 rounded-lg shadow-sm mb-4">
-      <div class="flex gap-4 items-center">
+    <!-- 搜索区域 -->
+    <div class="search-card">
+      <div class="search-content">
         <el-input
           v-model="searchKeyword"
           placeholder="搜索药品名称/编号/通用名"
           clearable
-          class="w-72"
+          size="large"
+          class="search-input"
           @keyup.enter="handleSearch"
-        />
+        >
+          <template #prefix>
+            <el-icon><Search /></el-icon>
+          </template>
+        </el-input>
         <el-select
           v-model="categoryFilter"
           placeholder="按药品分类筛选"
           clearable
-          class="w-48"
+          size="large"
+          class="category-select"
         >
           <el-option
             v-for="category in categoryOptions"
@@ -136,11 +152,12 @@ onMounted(() => {
             :value="category"
           />
         </el-select>
-        <el-button type="primary" @click="handleSearch">搜索</el-button>
+        <el-button type="primary" size="large" @click="handleSearch">搜索</el-button>
       </div>
     </div>
 
-    <div class="bg-white rounded-lg shadow-sm">
+    <!-- 药品列表 -->
+    <div class="table-card">
       <el-table
         v-loading="loading"
         :data="displayedMedicines"
@@ -291,7 +308,168 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.pharmacy-catalog {
+.catalog-container {
+  min-height: 100vh;
+  background: #f5f7fa;
   padding: 20px;
+  padding-bottom: 40px;
+}
+
+/* 页面头部 */
+.page-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  padding: 30px 40px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  animation: fadeInDown 0.6s ease-out;
+}
+
+.header-content {
+  color: white;
+}
+
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  font-size: 14px;
+  margin-bottom: 12px;
+  transition: all 0.3s ease;
+}
+
+.back-button:hover {
+  color: white;
+  transform: translateX(-3px);
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.header-title h1 {
+  font-size: 32px;
+  font-weight: 600;
+  margin: 0;
+  color: white;
+}
+
+.title-icon {
+  font-size: 32px;
+  color: white;
+}
+
+.header-subtitle {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+}
+
+.header-actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 12px;
+}
+
+/* 搜索卡片 */
+.search-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.search-content {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 280px;
+}
+
+.category-select {
+  width: 200px;
+}
+
+/* 表格卡片 */
+.table-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  animation: fadeInUp 0.6s ease-out 0.1s backwards;
+}
+
+.table-card :deep(.el-table) {
+  border-radius: 12px;
+}
+
+.table-card :deep(.el-table th) {
+  background: #f5f7fa;
+  color: #303133;
+  font-weight: 600;
+}
+
+.table-card :deep(.el-pagination) {
+  padding: 20px;
+  justify-content: flex-end;
+}
+
+/* 动画 */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .page-header {
+    padding: 20px;
+  }
+
+  .header-title h1 {
+    font-size: 24px;
+  }
+
+  .title-icon {
+    font-size: 24px;
+  }
+
+  .search-content {
+    flex-direction: column;
+  }
+
+  .search-input,
+  .category-select {
+    width: 100%;
+  }
 }
 </style>
