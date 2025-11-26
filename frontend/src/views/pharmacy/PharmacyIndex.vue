@@ -1,13 +1,17 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Memo, ShoppingCart, DocumentCopy, Warning, House, ArrowRight } from '@element-plus/icons-vue'
+import { Memo, ShoppingCart, DocumentCopy, Warning, House, ArrowRight, ArrowLeft } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { getMedicineList, getMedicationRequestList } from '@/api/pharmacy'
 
 const router = useRouter()
 const userStore = useUserStore()
+
+const goBack = () => {
+  router.push({ name: 'Home' })
+}
 
 const loading = ref(false)
 const stats = ref({
@@ -104,6 +108,16 @@ onMounted(() => {
 
 <template>
   <div class="pharmacy-container">
+    <!-- 返回按钮 -->
+    <div class="back-button-container">
+      <el-button 
+        :icon="ArrowLeft" 
+        @click="goBack" 
+        circle 
+        class="index-back-button"
+      />
+    </div>
+
     <!-- 欢迎标题 -->
     <div class="welcome-section">
       <h1 class="welcome-title">
@@ -224,11 +238,27 @@ onMounted(() => {
   box-sizing: border-box;
 }
 
+/* 返回按钮容器 */
+.back-button-container {
+  padding: 20px 0 0 20px;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.index-back-button {
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.index-back-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(103, 194, 58, 0.3);
+}
+
 /* 欢迎区域 */
 .welcome-section {
   text-align: center;
   margin-bottom: 40px;
-  padding-top: 40px;
+  padding-top: 20px;
   animation: fadeInDown 0.6s ease-out;
 }
 
@@ -475,6 +505,15 @@ onMounted(() => {
 }
 
 /* 动画 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes fadeInDown {
   from {
     opacity: 0;

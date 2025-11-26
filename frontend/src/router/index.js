@@ -26,7 +26,6 @@ const routes = [
     path: '/patient',
     name: 'PatientIndex',
     component: () => import('@/views/patient/PatientIndex.vue'),
-    redirect: () => ({ name: 'PatientList' }),
     meta: {
       title: '病人管理',
       requiresAuth: true
